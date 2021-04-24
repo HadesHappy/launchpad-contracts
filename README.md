@@ -1,4 +1,4 @@
-# idia Launchpad Staking Contracts repo
+# IDIA Launchpad Staking Contracts
 
 
 ### yarn install
@@ -8,7 +8,7 @@
 ### yarn migrate
 
 
-In this repo, we will feature a new IDIA staking launcpad mechanism.
+In this repo, we will feature a new IDIA staking launchpad mechanism.
 
 For a full write up on our launchpad logic, please visit here:
 
