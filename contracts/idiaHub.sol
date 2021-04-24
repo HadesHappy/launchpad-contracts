@@ -13,7 +13,7 @@ contract idiaHub is Ownable {
     using SafeERC20 for IERC20;
 
     // Info of each user.
-    struct userInfo {
+    struct UserInfo {
         uint256 stakedAmount; // How many IDIA tokens the user has provided to a given track
         uint256 stakeDuration; // How to let users stake multiple durations? force them to stake into discrete staking options?
         // where options 1-4 could be weeks, months, years etc. for a multiplier on power.
@@ -23,7 +23,7 @@ contract idiaHub is Ownable {
     }
 
     // Info of each pool.
-    struct trackInfo {
+    struct TrackInfo {
         uint256 trackId; // id of the track
         uint256 lastCampaignTime; // Records the last time that a launchpad took place in this track
         uint256 totalDeposit; // Tracker of the total deposits within a pool, starts at 0.
@@ -32,16 +32,19 @@ contract idiaHub is Ownable {
         // User and decision
     }
 
-    uint256 ceilingDeposit = 25000000000000000000000000; //creating a ceiling is for depositing into the pool, where penalty may be levied later on
-    uint256 floorDeposit = 250000000000000000000000; //creating a floor deposit to ensure that every track has some liquidity in the long run
+    uint256 ceilingDeposit = 25000000000000000000000000; // ceiling for deposits, where penalty may be levied later on
+    uint256 floorDeposit = 250000000000000000000000; // floor for deposits, to ensure that every track has some liquidity in the long run
 
     // TODO: make sure the structure is proper such that userInfo is contained within a trackInfo
     // Info of each track.
-    trackInfo[] public trackInfo;
+    TrackInfo[] public trackInfoList;
     // Info of each user that stakes LP tokens.
-    mapping(uint256 => mapping(address => userInfo)) public userInfo;
+    mapping(uint256 => mapping(address => UserInfo)) public userInfoMap;
     // The block number when idia mining starts. // startblock = when protocol is first launched
+    // Start Block for the entire Idia staking ecosystem (to allow for staking to start at a fair time for everyone)
     uint256 public startBlock;
+
+    // events
     event Stake(
         address indexed user,
         uint256 indexed pid,
@@ -62,18 +65,17 @@ contract idiaHub is Ownable {
     event EmergencyErc20Retrieve(
         address indexed user,
         uint256 indexed pid,
-        uuint256 amount
+        uint256 amount
     );
 
-    // Global variables
-    // Start Block for the entire Idia staking ecosystem (to allow for staking to start at a fair time for everyone)
+    // entrypoint
     constructor(uint256 _startBlock) public {
         startBlock = _startBlock;
     }
 
     // helpful to keep track of how many tracks there are.
     function trackLength() external view returns (uint256) {
-        return trackInfo.length;
+        return trackInfoList.length;
     }
 
     // Section for track-creating features
@@ -83,8 +85,8 @@ contract idiaHub is Ownable {
         uint256 latestRewardBlock =
             block.number > startBlock ? block.number : startBlock;
         // Update Pool Logic
-        trackInfo.push(
-            trackInfo({
+        trackInfoList.push(
+            TrackInfo({
                 stakeToken: _stakeToken,
                 latestRewardBlock: 0,
                 totalBalance: 0
@@ -98,9 +100,9 @@ contract idiaHub is Ownable {
         view
         returns (uint256)
     {
-        trackInfo storage track = trackInfo[_trackId];
+        TrackInfo storage track = trackInfoList[_trackId];
         // Need to check how much IDIA a user staked for each track
-        userInfo storage user = userInfo[_trackId][_user][_track];
+        UserInfo storage user = userInfoMap[_trackId][_user][track];
         uint256 accruedStakedPower = user.stakePower;
         // if lastStake was < min stakePeriod ago
 
@@ -129,8 +131,8 @@ contract idiaHub is Ownable {
     ) external {
         // TODO: Check if amount < user's max limit
         require(_amount >= 0, 'stake too little');
-        trackInfo storage pool = trackInfo[_trackId];
-        userInfo storage user = userInfo[_trackId][msg.sender];
+        TrackInfo storage track = trackInfoList[_trackId];
+        UserInfo storage user = userInfoMap[_trackId][msg.sender];
         // Update users most recent stake time.
 
         track.stakeToken.safeTransferFrom(
@@ -145,7 +147,7 @@ contract idiaHub is Ownable {
             user.stakedAmount = _amount;
             user.stakedPower = _amount;
         }
-        user.rewardDebt = user.amount.mul(pool.accruedStakeAge).div(1e12);
+        user.rewardDebt = user.amount.mul(track.accruedStakeAge).div(1e12);
         emit Stake(msg.sender, _trackId, _amount);
     }
 
@@ -165,8 +167,8 @@ contract idiaHub is Ownable {
         uint256 _amount,
         uint256 _duration
     ) external {
-        trackInfo storage pool = trackInfo[_trackId];
-        userInfo storage user = userInfo[_trackId][msg.sender];
+        TrackInfo storage pool = trackInfoList[_trackId];
+        UserInfo storage user = userInfoMap[_trackId][msg.sender];
         require(user.stakedAmount > 0, 'no assets Staked');
         require(user.stakedAmount >= _amount, 'unstaked too much'); // To Ensure that user only withdrawas less than what they stakedIn
 
@@ -223,8 +225,8 @@ contract idiaHub is Ownable {
     // Users may call this unstake without caring about rewards. EMERGENCY ONLY.
     // Accrued rewards are lost when this option is chosen.
     function emergencyUnstake(uint256 _trackId) external {
-        trackInfo storage pool = trackInfo[_trackId];
-        userInfo storage user = userInfo[_trackId][msg.sender];
+        TrackInfo storage pool = trackInfoList[_trackId];
+        UserInfo storage user = userInfoMap[_trackId][msg.sender];
         uint256 amount = user.amount;
         user.amount = 0;
         user.stakedPower = 0;
