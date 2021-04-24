@@ -12,6 +12,10 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 contract idiaHub is Ownable {
     using SafeERC20 for IERC20;
 
+    // tokens
+    IERC20 public ifusd;
+    IERC20 public idia;
+
     // Info of each user.
     struct UserInfo {
         uint256 stakedAmount; // How many IDIA tokens the user has provided to a given track
@@ -69,8 +73,14 @@ contract idiaHub is Ownable {
     );
 
     // entrypoint
-    constructor(uint256 _startBlock) public {
+    constructor(
+        uint256 _startBlock,
+        IERC20 _ifusd,
+        IERC20 _idia
+    ) public {
         startBlock = _startBlock;
+        ifusd = _ifusd;
+        idia = _idia;
     }
 
     // helpful to keep track of how many tracks there are.
@@ -106,8 +116,8 @@ contract idiaHub is Ownable {
         uint256 accruedStakedPower = user.stakePower;
         // if lastStake was < min stakePeriod ago
 
-        uint256 totalIdiaSupplied = pool.stakeToken.balanceOf(address(this));
-        if (block.number > pool.latestRewardBlock && totalIdiaSupplied != 0) {
+        uint256 totalIdiaSupplied = track.stakeToken.balanceOf(address(this));
+        if (block.number > track.latestRewardBlock && totalIdiaSupplied != 0) {
             // TODO fix:
             accruedStakeWeight = accruedStakePower.add(
                 idiaReward.mul(1e12).div(totalIdiaSupplied)
@@ -161,7 +171,7 @@ contract idiaHub is Ownable {
         // Calculate the accrued proportional allocation
     }
 
-    // A unstake function
+    // unstake tokens
     function unstake(
         uint256 _trackId,
         uint256 _amount,
@@ -169,8 +179,8 @@ contract idiaHub is Ownable {
     ) external {
         TrackInfo storage pool = trackInfoList[_trackId];
         UserInfo storage user = userInfoMap[_trackId][msg.sender];
-        require(user.stakedAmount > 0, 'no assets Staked');
-        require(user.stakedAmount >= _amount, 'unstaked too much'); // To Ensure that user only withdrawas less than what they stakedIn
+        require(user.stakedAmount > 0, 'no assets staked');
+        require(user.stakedAmount > _amount, 'unstaked too much'); // withdraw amount must be less than or equal to staked
 
         if (_duration < 1) {
             require(
@@ -206,10 +216,10 @@ contract idiaHub is Ownable {
         // Somehow need to top up the contract to be able to support the trading of users' IFUSD for the project in question
     }
 
-    // Only whitelisted addresse should be able to add tokens for sale should
-    function topUpAssetForSale() {
-        // provide the contract with funds to be able to offer up for participants.
-    }
+    //// Only whitelisted addresse should be able to add tokens for sale
+    // function topUpAssetForSale() {
+    //     // provide the contract with funds to be able to offer up for participants.
+    // }
 
     // Function for the multisig to cash in the accrued idia tokens for distribution into futher baskets of usage
     // Claiming ifUSD and later needs to assign it to governance multisig to distribute to project team during fundraise
