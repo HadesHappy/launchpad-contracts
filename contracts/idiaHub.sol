@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // TODO: QUICK EXPLAINER
-// TODO: upgrade to newest version of solidity 0.8+
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.0;
 
 import "./lib/IERC20.sol";
 import "./lib/Math.sol";
