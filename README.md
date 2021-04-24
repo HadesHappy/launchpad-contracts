@@ -6,26 +6,22 @@ For a full write up on our launchpad logic, please visit here:
 
 Key changes in this contract include:
 
-## Table of Contents
-
-Libraries:
-Address.sol,
-Context.sol,
-ERC20.sol,
-IERC20.sol,
-Ownable.sol,
-SafeERC20.sol,
-SafeMath.sol
-
-
 ## Setup
 
 ```
 yarn install
 ```
 
+## Test
+
+```
+npx hardhat test
+```
 
 ## Deploy
 
-Please deploy the remaining contracts in the following order
+DEPLOY SCRIPT TO BE WRITTEN
 
+```
+npx hardhat run ./scripts/deploy.js
+```
