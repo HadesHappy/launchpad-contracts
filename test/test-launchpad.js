@@ -10,7 +10,7 @@ describe('IDIA Launchpad', function () {
     const startBlock = 9
 
     // deploy launchpad
-    const IDIAHubFactory = await ethers.getContractFactory('idiaHub')
+    const IDIAHubFactory = await ethers.getContractFactory('IDIAHub')
     const IDIAHub = await IDIAHubFactory.deploy(startBlock)
 
     // test

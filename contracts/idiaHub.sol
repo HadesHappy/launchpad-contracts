@@ -9,7 +9,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 
 // import './idiaToken.sol'; // TODO: need to add new .sol file for whatever we launch of the idia token
 
-contract idiaHub is Ownable {
+contract IDIAHub is Ownable {
     using SafeERC20 for IERC20;
 
     // tokens
@@ -49,6 +49,7 @@ contract idiaHub is Ownable {
     uint256 public startBlock;
 
     // events
+    event Cash(address indexed sender, uint256 balance);
     event Stake(
         address indexed user,
         uint256 indexed pid,
@@ -113,7 +114,7 @@ contract idiaHub is Ownable {
         TrackInfo storage track = trackInfoList[_trackId];
         // Need to check how much IDIA a user staked for each track
         UserInfo storage user = userInfoMap[_trackId][_user][track];
-        uint256 accruedStakedPower = user.stakePower;
+        uint256 accruedStakePower = user.stakePower;
         // if lastStake was < min stakePeriod ago
 
         uint256 totalIdiaSupplied = track.stakeToken.balanceOf(address(this));
@@ -196,7 +197,7 @@ contract idiaHub is Ownable {
         // Amount that can be claimed from the contract needs to be reduced by the amount redeemed
         //TODO: FIX if this is the name of the totalDeposited into a Track
         totalDeposited = totalDeposited.sub(_amount);
-        poolsInfo[msg.sender] = poolsInfo[msg.sender].sub(_amount);
+        userInfoMap[msg.sender] = userInfoMap[msg.sender].sub(_amount);
         idia.safeTransfer(address(msg.sender), _amount);
         emit Unstake(msg.sender, _trackId, _amount, _duration);
     }
