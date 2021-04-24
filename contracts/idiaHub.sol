@@ -3,12 +3,11 @@ pragma solidity ^0.8.0;
 
 // TODO: QUICK EXPLAINER
 
-import './lib/IERC20.sol';
-import './lib/Math.sol';
-import './lib/SafeMath.sol';
-import './idiaToken.sol'; // TODO: need to add new .sol file for whatever we launch of the idia token
-import './lib/Ownable.sol';
-import './lib/SafeERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
+
+// import './idiaToken.sol'; // TODO: need to add new .sol file for whatever we launch of the idia token
 
 contract idiaHub is Ownable {
     using SafeERC20 for IERC20;
