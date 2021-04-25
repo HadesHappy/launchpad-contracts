@@ -44,12 +44,15 @@ library SMLibrary {
 contract StateMaster is Ownable {
     using SafeERC20 for ERC20;
 
+    // array of track information
+    SMLibrary.TrackInfo[] public tracks;
+
     // user info mapping
     // (track, user address) => user info
     mapping(uint256 => mapping(address => SMLibrary.UserInfo)) public users;
 
-    // array of track information
-    SMLibrary.TrackInfo[] public tracks;
+    // events
+    event SetTrackUserInfo(uint256 indexed trackId, address indexed user);
 
     constructor() {}
 
@@ -69,5 +72,18 @@ contract StateMaster is Ownable {
                 totalDeposit: 0 // default is 0
             })
         );
+    }
+
+    // sets info for a user of a particular track
+    function setTrackUserInfo(
+        uint256 trackId,
+        address user,
+        SMLibrary.UserInfo calldata userInfo
+    ) public onlyOwner {
+        // set user info
+        users[trackId][user] = userInfo;
+
+        // emit
+        emit SetTrackUserInfo(trackId, user);
     }
 }

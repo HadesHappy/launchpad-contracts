@@ -9,16 +9,20 @@ export default describe('IDIA Launchpad', function () {
 
     // deploy test tokens (ifusd, idia)
     const TestTokenFactory = await ethers.getContractFactory('TestToken')
-    const ifusd = await TestTokenFactory.deploy(
+    const IFUSD = await TestTokenFactory.deploy(
       'IFUSD Token',
       'IFUSD',
       21_000_000_000
     )
-    const idia = await TestTokenFactory.deploy(
+    const IDIA = await TestTokenFactory.deploy(
       'IDIA Token',
       'IDIA',
       21_000_000_000
     )
+
+    // deploy statemaster
+    const StateMasterFactory = await ethers.getContractFactory('StateMaster')
+    const StateMaster = await StateMasterFactory.deploy()
 
     // launchpad parameters
     const startBlock = 10
@@ -29,13 +33,13 @@ export default describe('IDIA Launchpad', function () {
     // deploy launchpad
     const IDIAHubFactory = await ethers.getContractFactory('IDIAHub')
     const IDIAHub = await IDIAHubFactory.deploy(
-      // statemaster
+      StateMaster.address,
       startBlock,
       endBlock,
       minDeposit,
       maxDeposit,
-      ifusd.address,
-      idia.address
+      IFUSD.address,
+      IDIA.address
     )
 
     // test
