@@ -100,16 +100,23 @@ contract IDIAHub is Ownable {
     // Section for track-creating features
 
     // OWNER FUNCTION
-    // Add a new asset to be staked
-    //  _stakeToken can be IDIA or an IDIA/IFUSD LP token, etc
-    // Will start with majority of IDIA staking contracts first
-    function add(IERC20 _stakeToken) public onlyOwner {
+    // adds a new track, allowing the staking of a new token
+    // stakeToken can be IDIA or an IDIA/IFUSD LP token, etc
+    function addTrack(IERC20 stakeToken) public onlyOwner {
+        // get latest reward block
         uint256 latestRewardBlock =
             block.number > startBlock ? block.number : startBlock;
-        // Update Pool Logic
+
+        // add track
+        
+        // uint256 trackId;
+        // // Records the last time that a launchpad took place in this track
+        // uint256 lastCampaignTime;
+        // // Tracker of the total deposits within a pool, starts at 0.
+        // uint256 totalDeposit;
         trackInfoList.push(
             TrackInfo({
-                stakeToken: _stakeToken,
+                stakeToken: stakeToken,
                 latestRewardBlock: 0,
                 totalBalance: 0
             })
@@ -192,7 +199,7 @@ contract IDIAHub is Ownable {
     ) external {
         TrackInfo storage pool = trackInfoList[_trackId];
         UserInfo storage user = userInfoMap[_trackId][msg.sender];
-        
+
         // existing stake must be > 0 to unstake
         require(user.stakeAmount > 0, 'no assets staked');
         // amount to unstake must be <= stake amount
