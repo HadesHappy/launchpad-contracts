@@ -16,36 +16,44 @@ contract IDIAHub is Ownable {
     IERC20 public ifusd;
     IERC20 public idia;
 
+    // TODO: make sure the structure is proper such that userInfo is contained within a trackInfo
+    // TODO: update both amount deposited and accruedStakeAge every time a deposit or withdraw happens
     // Info of each user.
     struct UserInfo {
-        uint256 stakeAmount; // How many IDIA tokens the user has provided to a given track
-        uint256 stakeDuration; // How to let users stake multiple durations? force them to stake into discrete staking options?
+        // How many IDIA tokens the user has provided to a given track
+        uint256 stakeAmount;
+        // How to let users stake multiple durations? force them to stake into discrete staking options?
         // where options 1-4 could be weeks, months, years etc. for a multiplier on power.
-        uint256 stakePower; // the calculated weight of the user's proportion
-        uint256 lastDepositBlockStamp; // records the time of last deposit to properly calculate stake age
-        // Update both amount deposited and accruedStakeAge every time a deposit or withdraw happens
+        uint256 stakeDuration;
+        // the calculated weight of the user's proportion
+        uint256 stakePower;
+        // records the time of last deposit to properly calculate stake age
+        uint256 lastDepositBlockStamp;
     }
 
     // Info of each pool.
     struct TrackInfo {
-        uint256 trackId; // id of the track
-        uint256 lastCampaignTime; // Records the last time that a launchpad took place in this track
-        uint256 totalDeposit; // Tracker of the total deposits within a pool, starts at 0.
+        // id of the track
+        uint256 trackId;
+        // Records the last time that a launchpad took place in this track
+        uint256 lastCampaignTime;
+        // Tracker of the total deposits within a pool, starts at 0.
+        uint256 totalDeposit;
         // TODO: decide if we can use balanceOf this account when needed
         // TODO: Decide if both of these are necessary - for now will just save in this spot and ignore if not needed later
         // User and decision
     }
 
-    uint256 ceilingDeposit = 25000000000000000000000000; // ceiling for deposits, where penalty may be levied later on
-    uint256 floorDeposit = 250000000000000000000000; // floor for deposits, to ensure that every track has some liquidity in the long run
+    // ceiling for deposits, where penalty may be levied later on
+    uint256 ceilingDeposit = 25000000000000000000000000;
+    // floor for deposits, to ensure that every track has some liquidity in the long run
+    uint256 floorDeposit = 250000000000000000000000;
 
-    // TODO: make sure the structure is proper such that userInfo is contained within a trackInfo
-    // Info of each track.
+    // track information array
     TrackInfo[] public trackInfoList;
-    // Info of each user that stakes LP tokens.
+    // user info mapping; (track, user address) => user info
     mapping(uint256 => mapping(address => UserInfo)) public userInfoMap;
-    // The block number when idia mining starts. // startblock = when protocol is first launched
-    // Start Block for the entire Idia staking ecosystem (to allow for staking to start at a fair time for everyone)
+    // block number when idia mining starts
     uint256 public startBlock;
 
     // events
@@ -84,14 +92,17 @@ contract IDIAHub is Ownable {
         idia = _idia;
     }
 
-    // helpful to keep track of how many tracks there are.
-    function trackLength() external view returns (uint256) {
+    // number of tracks
+    function trackCount() external view returns (uint256) {
         return trackInfoList.length;
     }
 
     // Section for track-creating features
-    // Add a new asset to be staked. Can only be called by the owner.
-    //  _stakeToken can be IDIA or an IDIA/IFUSD LP token, etc. Will start with majority of IDIA staking contracts first
+
+    // OWNER FUNCTION
+    // Add a new asset to be staked
+    //  _stakeToken can be IDIA or an IDIA/IFUSD LP token, etc
+    // Will start with majority of IDIA staking contracts first
     function add(IERC20 _stakeToken) public onlyOwner {
         uint256 latestRewardBlock =
             block.number > startBlock ? block.number : startBlock;
@@ -105,14 +116,14 @@ contract IDIAHub is Ownable {
         );
     }
 
-    // This function is only used as a View function to see pending idiaAge  on frontend.
+    // view function to see pending idiaAge on frontend.
     function checkPower(uint256 _trackId, address _user)
         external
         view
         returns (uint256)
     {
         TrackInfo storage track = trackInfoList[_trackId];
-        // Need to check how much IDIA a user staked for each track
+        // TODO: check how much IDIA a user staked for each track
         UserInfo storage user = userInfoMap[_trackId][_user][track];
         uint256 accruedStakePower = user.stakePower;
         // if lastStake was < min stakePeriod ago
@@ -141,10 +152,10 @@ contract IDIAHub is Ownable {
         uint256 _duration
     ) external {
         // TODO: Check if amount < user's max limit
-        require(_amount >= 0, 'stake too little');
+        require(_amount > 0, 'amount is 0');
         TrackInfo storage track = trackInfoList[_trackId];
         UserInfo storage user = userInfoMap[_trackId][msg.sender];
-        // Update users most recent stake time.
+        // TODO: Update users most recent stake time.
 
         track.stakeToken.safeTransferFrom(
             address(msg.sender),
@@ -153,7 +164,7 @@ contract IDIAHub is Ownable {
         );
         if (user.stakeAmount) {
             user.stakeAmount = user.stakeAmount.add(_amount);
-            // Add calculation logic to update what the stakePower
+            // TODO: Add calculation logic to update stakePower
         } else {
             user.stakeAmount = _amount;
             user.stakePower = _amount;
@@ -162,11 +173,12 @@ contract IDIAHub is Ownable {
         emit Stake(msg.sender, _trackId, _amount);
     }
 
-    // Can consider moving to a separate smart contract but harder to read that value if separately held onchain
+    // TODO: consider moving to a separate smart contract but harder to read that value if separately held onchain
     function privilegeddepositIFUSD(uint256 _trackId, uint256 _amount)
         external
     {
-        // Based on the amount stakeed into a queue, how much stablecoin can be stakeed to claim allocation into the launchpad
+        // TODO:
+        // Based on the amount staked into a queue, how much stablecoin can be staked to claim allocation into the launchpad
         // require stakePower to be greater than min threshhold to claim some allocation
         // Check accruedReward
         // Calculate the accrued proportional allocation
@@ -180,8 +192,11 @@ contract IDIAHub is Ownable {
     ) external {
         TrackInfo storage pool = trackInfoList[_trackId];
         UserInfo storage user = userInfoMap[_trackId][msg.sender];
-        require(user.stakeAmount > 0, 'no assets staked'); // existing stake must be > 0 to unstake
-        require(user.stakeAmount > _amount, 'unstaking too much'); // amount to unstake must be <= stake amount
+        
+        // existing stake must be > 0 to unstake
+        require(user.stakeAmount > 0, 'no assets staked');
+        // amount to unstake must be <= stake amount
+        require(user.stakeAmount > _amount, 'unstaking too much');
 
         if (_duration < 1) {
             require(
@@ -194,7 +209,8 @@ contract IDIAHub is Ownable {
                 'not ready to unstake'
             ); // Check that User's unlock time is ready
         }
-        // Amount that can be claimed from the contract needs to be reduced by the amount redeemed
+
+        // TODO: Amount that can be claimed from the contract needs to be reduced by the amount redeemed
         //TODO: FIX if this is the name of the totalDeposited into a Track
         totalDeposited = totalDeposited.sub(_amount);
         userInfoMap[msg.sender] = userInfoMap[msg.sender].sub(_amount);
@@ -202,7 +218,7 @@ contract IDIAHub is Ownable {
         emit Unstake(msg.sender, _trackId, _amount, _duration);
     }
 
-    // RollOver Function
+    // TODO: RollOver Function
     function refuseAllocation(uint256 _trackId, uint256 _amount) external {
         // roll over one's accrued staking for weight into the next launchpad in the category
         // If not called, user receives a decay to their vote weight of 80% for each round they do not check in
@@ -214,10 +230,10 @@ contract IDIAHub is Ownable {
     }
 
     function fundLaunchToken(uint256 _amount) public onlyOwner {
-        // Somehow need to top up the contract to be able to support the trading of users' IFUSD for the project in question
+        // TODO: Somehow need to top up the contract to be able to support the trading of users' IFUSD for the project in question
     }
 
-    //// Only whitelisted addresse should be able to add tokens for sale
+    //// Only whitelisted address should be able to add tokens for sale
     // function topUpAssetForSale() {
     //     // provide the contract with funds to be able to offer up for participants.
     // }
