@@ -17,14 +17,14 @@ contract IDIAHub is Ownable {
     ERC20 public ifusd;
     ERC20 public idia;
 
-    // max for deposits, where penalty may be levied later on
-    uint256 maxDeposit = 25000000000000000000000000;
-    // min for deposits, to ensure that every track has some liquidity in the long run
-    uint256 minDeposit = 250000000000000000000000;
     // start block when sale is active (inclusive)
     uint256 public startBlock;
     // end block when sale is active (inclusive)
     uint256 public endBlock;
+    // min for deposits, to ensure that every track has some liquidity in the long run
+    uint256 public minDeposit;
+    // max for deposits, where penalty may be levied later on
+    uint256 public maxDeposit;
 
     StateMaster stateMaster;
 
@@ -58,12 +58,16 @@ contract IDIAHub is Ownable {
         StateMaster _stateMaster,
         uint256 _startBlock,
         uint256 _endBlock,
+        uint256 _minDeposit,
+        uint256 _maxDeposit,
         ERC20 _ifusd,
         ERC20 _idia
     ) public {
         stateMaster = _stateMaster;
         startBlock = _startBlock;
         endBlock = _endBlock;
+        minDeposit = _minDeposit;
+        maxDeposit = _maxDeposit;
         ifusd = _ifusd;
         idia = _idia;
     }
