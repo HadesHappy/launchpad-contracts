@@ -46,24 +46,23 @@ contract StateMaster is Ownable {
 
     // user info mapping
     // (track, user address) => user info
-    mapping(uint256 => mapping(address => SMLibrary.UserInfo))
-        public userInfoMap;
+    mapping(uint256 => mapping(address => SMLibrary.UserInfo)) public users;
 
     // array of track information
-    SMLibrary.TrackInfo[] public trackInfoList;
+    SMLibrary.TrackInfo[] public tracks;
 
     constructor() {}
 
     // number of tracks
     function trackCount() external view returns (uint256) {
-        return trackInfoList.length;
+        return tracks.length;
     }
 
     // adds a new track, allowing the staking of a new token
     // stakeToken can be IDIA or an IDIA/IFUSD LP token, etc
     function addTrack(ERC20 stakeToken) public onlyOwner {
         // add track
-        trackInfoList.push(
+        tracks.push(
             SMLibrary.TrackInfo({
                 stakeToken: stakeToken,
                 lastCampaignTime: 0, // default is 0

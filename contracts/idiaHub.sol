@@ -26,11 +26,7 @@ contract IDIAHub is Ownable {
     // end block when sale is active (inclusive)
     uint256 public endBlock;
 
-    // array of track information
-    SMLibrary.TrackInfo[] public trackInfoList;
-    // user info mapping; (track, user address) => user info
-    mapping(uint256 => mapping(address => SMLibrary.UserInfo))
-        public userInfoMap;
+    StateMaster stateMaster;
 
     // events
     event Cash(address indexed sender, uint256 balance);
@@ -59,11 +55,13 @@ contract IDIAHub is Ownable {
 
     // entrypoint
     constructor(
+        StateMaster _stateMaster,
         uint256 _startBlock,
         uint256 _endBlock,
         ERC20 _ifusd,
         ERC20 _idia
     ) public {
+        stateMaster = _stateMaster;
         startBlock = _startBlock;
         endBlock = _endBlock;
         ifusd = _ifusd;
@@ -76,9 +74,10 @@ contract IDIAHub is Ownable {
         view
         returns (uint256)
     {
-        SMLibrary.TrackInfo storage track = trackInfoList[_trackId];
+        SMLibrary.TrackInfo storage track = stateMaster.tracks[_trackId];
         // TODO: check how much IDIA a user staked for each track
-        SMLibrary.UserInfo storage user = userInfoMap[_trackId][_user][track];
+        SMLibrary.UserInfo storage user =
+            stateMaster.users[_trackId][_user][track];
         uint256 accruedStakePower = user.stakePower;
         // if lastStake was < min stakePeriod ago
 
@@ -114,9 +113,10 @@ contract IDIAHub is Ownable {
         require(block.number > endBlock, 'too late');
 
         // get track info
-        SMLibrary.TrackInfo storage track = trackInfoList[_trackId];
+        SMLibrary.TrackInfo storage track = stateMaster.tracks[_trackId];
         // get user info
-        SMLibrary.UserInfo storage user = userInfoMap[_trackId][msg.sender];
+        SMLibrary.UserInfo storage user =
+            stateMaster.users[_trackId][msg.sender];
 
         // TODO: Update users most recent stake time.
 
@@ -161,9 +161,10 @@ contract IDIAHub is Ownable {
         uint256 _duration
     ) external {
         // get track info
-        SMLibrary.TrackInfo storage track = trackInfoList[_trackId];
+        SMLibrary.TrackInfo storage track = stateMaster.tracks[_trackId];
         // get user info
-        SMLibrary.UserInfo storage user = userInfoMap[_trackId][msg.sender];
+        SMLibrary.UserInfo storage user =
+            stateMaster.users[_trackId][msg.sender];
 
         // existing stake must be > 0 to unstake
         require(user.stakeAmount > 0, 'no assets staked');
@@ -233,7 +234,8 @@ contract IDIAHub is Ownable {
     // Accrued rewards are lost when this option is chosen.
     function emergencyUnstake(uint256 _trackId) external {
         // get user info
-        SMLibrary.UserInfo storage user = userInfoMap[_trackId][msg.sender];
+        SMLibrary.UserInfo storage user =
+            stateMaster.users[_trackId][msg.sender];
         // get user amount
         uint256 amount = user.amount;
 
