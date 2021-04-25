@@ -1,7 +1,8 @@
-const { expect } = require('chai')
-const { ethers } = require('hardhat')
+import '@nomiclabs/hardhat-ethers'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
 
-describe('IDIA Launchpad', function () {
+export default describe('IDIA Launchpad', function () {
   it('all tests', async function () {
     // get owner
     // const [owner] = await ethers.getSigners()
