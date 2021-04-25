@@ -305,17 +305,6 @@ contract IDIAHub is Ownable {
         emit EmergencyUnstake(msg.sender, _trackId, amount);
     }
 
-    // Safe idia transfer function, just in case if rounding error causes pool to not have enough idias.
-    // Utilised by the pool itself (hence internal) to transfer funds to the miners.
-    function safeidiaTransfer(address _to, uint256 _amount) internal {
-        uint256 idiaBal = idia.balanceOf(address(this));
-        if (_amount > idiaBal) {
-            idia.transfer(_to, idiaBal);
-        } else {
-            idia.transfer(_to, _amount);
-        }
-    }
-
     // EMERGENCY ERC20 Rescue ONLY - unstake all erroneous sent in to this address.
     // cannot unstake idia in the contract, this ensures that owner does not have a way to touch idia tokens
     // in this contract inappropriately
