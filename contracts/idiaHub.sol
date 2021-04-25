@@ -10,11 +10,11 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 // import './idiaToken.sol'; // TODO: need to add new .sol file for whatever we launch of the idia token
 
 contract IDIAHub is Ownable {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for ERC20;
 
     // tokens
-    IERC20 public ifusd;
-    IERC20 public idia;
+    ERC20 public ifusd;
+    ERC20 public idia;
 
     // TODO: make sure the structure is proper such that userInfo is contained within a trackInfo
     // TODO: update both amount deposited and accruedStakeAge every time a deposit or withdraw happens
@@ -87,8 +87,8 @@ contract IDIAHub is Ownable {
     constructor(
         uint256 _startBlock,
         uint256 _endBlock,
-        IERC20 _ifusd,
-        IERC20 _idia
+        ERC20 _ifusd,
+        ERC20 _idia
     ) public {
         startBlock = _startBlock;
         endBlock = _endBlock;
@@ -106,7 +106,7 @@ contract IDIAHub is Ownable {
     // OWNER FUNCTION
     // adds a new track, allowing the staking of a new token
     // stakeToken can be IDIA or an IDIA/IFUSD LP token, etc
-    function addTrack(IERC20 stakeToken) public onlyOwner {
+    function addTrack(ERC20 stakeToken) public onlyOwner {
         // get latest reward block
         uint256 latestRewardBlock =
             block.number > startBlock ? block.number : startBlock;
@@ -321,13 +321,13 @@ contract IDIAHub is Ownable {
     // in this contract inappropriately
     function emergencyErc20Retrieve(address token) external onlyOwner {
         require(token != address(idia)); // only allow retrieval for nonidia tokens
-        IERC20(token).safeTransfer(
+        ERC20(token).safeTransfer(
             address(msg.sender),
-            IERC20(token).balanceOf(address(this))
+            ERC20(token).balanceOf(address(this))
         ); // helps remove all
         emit EmergencyErc20Retrieve(
             address(msg.sender),
-            IERC20(token).balanceOf(address(this))
+            ERC20(token).balanceOf(address(this))
         );
     }
 }
