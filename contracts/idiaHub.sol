@@ -18,7 +18,7 @@ contract IDIAHub is Ownable {
 
     // Info of each user.
     struct UserInfo {
-        uint256 stakedAmount; // How many IDIA tokens the user has provided to a given track
+        uint256 stakeAmount; // How many IDIA tokens the user has provided to a given track
         uint256 stakeDuration; // How to let users stake multiple durations? force them to stake into discrete staking options?
         // where options 1-4 could be weeks, months, years etc. for a multiplier on power.
         uint256 stakePower; // the calculated weight of the user's proportion
@@ -151,12 +151,12 @@ contract IDIAHub is Ownable {
             address(this),
             _amount
         );
-        if (user.stakedAmount) {
-            user.stakedAmount = user.stakedAmount.add(_amount);
+        if (user.stakeAmount) {
+            user.stakeAmount = user.stakeAmount.add(_amount);
             // Add calculation logic to update what the stakePower
         } else {
-            user.stakedAmount = _amount;
-            user.stakedPower = _amount;
+            user.stakeAmount = _amount;
+            user.stakePower = _amount;
         }
         user.rewardDebt = user.amount.mul(track.accruedStakeAge).div(1e12);
         emit Stake(msg.sender, _trackId, _amount);
@@ -180,8 +180,8 @@ contract IDIAHub is Ownable {
     ) external {
         TrackInfo storage pool = trackInfoList[_trackId];
         UserInfo storage user = userInfoMap[_trackId][msg.sender];
-        require(user.stakedAmount > 0, 'no assets staked');
-        require(user.stakedAmount > _amount, 'unstaked too much'); // withdraw amount must be less than or equal to staked
+        require(user.stakeAmount > 0, 'no assets staked'); // existing stake must be > 0 to unstake
+        require(user.stakeAmount > _amount, 'unstaking too much'); // amount to unstake must be <= stake amount
 
         if (_duration < 1) {
             require(
@@ -240,7 +240,7 @@ contract IDIAHub is Ownable {
         UserInfo storage user = userInfoMap[_trackId][msg.sender];
         uint256 amount = user.amount;
         user.amount = 0;
-        user.stakedPower = 0;
+        user.stakePower = 0;
         idia.safeTransfer(address(msg.sender), amount);
         emit EmergencyUnstake(msg.sender, _trackId, amount);
     }
