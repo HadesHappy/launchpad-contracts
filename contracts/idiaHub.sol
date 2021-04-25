@@ -250,21 +250,30 @@ contract IDIAHub is Ownable {
     function cash() external onlyOwner {
         uint256 ifusdBal = ifusd.balanceOf(address(this));
         // Require the cash amount to be less than the amount totally deposited
-        require(ifusd > 0, 'not enough cash');
+        require(ifusdBal > 0, 'not enough cash');
         // Split the _amount to be cashed out in half.
         ifusd.safeTransfer(address(msg.sender), ifusdBal);
+        
+        // emit
         emit Cash(msg.sender, ifusdBal);
     }
 
     // Users may call this unstake without caring about rewards. EMERGENCY ONLY.
     // Accrued rewards are lost when this option is chosen.
     function emergencyUnstake(uint256 _trackId) external {
-        TrackInfo storage pool = trackInfoList[_trackId];
+        // get user info
         UserInfo storage user = userInfoMap[_trackId][msg.sender];
+        // get user amount
         uint256 amount = user.amount;
+        
+        // reduce recorded user amount and stake power to 0
         user.amount = 0;
         user.stakePower = 0;
+
+        // transfer out
         idia.safeTransfer(address(msg.sender), amount);
+
+        // emit
         emit EmergencyUnstake(msg.sender, _trackId, amount);
     }
 
