@@ -28,9 +28,9 @@ library SMLibrary {
 
     // Info of each pool.
     struct TrackInfo {
-        // id of the track
-        uint256 trackId;
-        // Records the last time that a launchpad took place in this track
+        // token to stake
+        ERC20 stakeToken;
+        // last time a launchpad took place in this track
         uint256 lastCampaignTime;
         // Tracker of the total deposits within a pool, starts at 0.
         uint256 totalDeposit;
@@ -54,24 +54,21 @@ contract StateMaster is Ownable {
 
     constructor() {}
 
-    // Section for track-creating features
+    // number of tracks
+    function trackCount() external view returns (uint256) {
+        return trackInfoList.length;
+    }
 
-    // OWNER FUNCTION
     // adds a new track, allowing the staking of a new token
     // stakeToken can be IDIA or an IDIA/IFUSD LP token, etc
     function addTrack(ERC20 stakeToken) public onlyOwner {
         // add track
-        // uint256 trackId;
-        // // Records the last time that a launchpad took place in this track
-        // uint256 lastCampaignTime;
-        // // Tracker of the total deposits within a pool, starts at 0.
-        // uint256 totalDeposit;
-        // trackInfoList.push(
-        //     SMLibrary.TrackInfo({
-        //         stakeToken: stakeToken,
-        //         latestRewardBlock: 0,
-        //         totalBalance: 0
-        //     })
-        // );
+        trackInfoList.push(
+            SMLibrary.TrackInfo({
+                stakeToken: stakeToken,
+                lastCampaignTime: 0, // default is 0
+                totalDeposit: 0 // default is 0
+            })
+        );
     }
 }

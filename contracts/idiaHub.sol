@@ -70,12 +70,6 @@ contract IDIAHub is Ownable {
         idia = _idia;
     }
 
-    // number of tracks
-    function trackCount() external view returns (uint256) {
-        return trackInfoList.length;
-    }
-
-
     // view function to see pending idiaAge on frontend.
     function checkPower(uint256 _trackId, address _user)
         external
