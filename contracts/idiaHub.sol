@@ -48,13 +48,15 @@ contract IDIAHub is Ownable {
     uint256 maxDeposit = 25000000000000000000000000;
     // min for deposits, to ensure that every track has some liquidity in the long run
     uint256 minDeposit = 250000000000000000000000;
+    // start block when sale is active (inclusive)
+    uint256 public startBlock;
+    // end block when sale is active (inclusive)
+    uint256 public endBlock;
 
-    // track information array
+    // array of track information
     TrackInfo[] public trackInfoList;
     // user info mapping; (track, user address) => user info
     mapping(uint256 => mapping(address => UserInfo)) public userInfoMap;
-    // block number when idia mining starts
-    uint256 public startBlock;
 
     // events
     event Cash(address indexed sender, uint256 balance);
@@ -84,10 +86,12 @@ contract IDIAHub is Ownable {
     // entrypoint
     constructor(
         uint256 _startBlock,
+        uint256 _endBlock,
         IERC20 _ifusd,
         IERC20 _idia
     ) public {
         startBlock = _startBlock;
+        endBlock = _endBlock;
         ifusd = _ifusd;
         idia = _idia;
     }
@@ -108,7 +112,7 @@ contract IDIAHub is Ownable {
             block.number > startBlock ? block.number : startBlock;
 
         // add track
-        
+
         // uint256 trackId;
         // // Records the last time that a launchpad took place in this track
         // uint256 lastCampaignTime;
@@ -158,8 +162,14 @@ contract IDIAHub is Ownable {
         uint256 _amount,
         uint256 _duration
     ) external {
-        // TODO: Check if amount < user's max limit
+        // stake amount must be greater than 0
         require(_amount > 0, 'amount is 0');
+        // TODO: stake amount must be <= user's balance AND limit
+        
+        // user can only stake if sale is active
+        require(block.number < startBlock, 'too early');
+        require(block.number > endBlock, 'too late');
+
         TrackInfo storage track = trackInfoList[_trackId];
         UserInfo storage user = userInfoMap[_trackId][msg.sender];
         // TODO: Update users most recent stake time.
@@ -253,7 +263,7 @@ contract IDIAHub is Ownable {
         require(ifusdBal > 0, 'not enough cash');
         // Split the _amount to be cashed out in half.
         ifusd.safeTransfer(address(msg.sender), ifusdBal);
-        
+
         // emit
         emit Cash(msg.sender, ifusdBal);
     }
@@ -265,7 +275,7 @@ contract IDIAHub is Ownable {
         UserInfo storage user = userInfoMap[_trackId][msg.sender];
         // get user amount
         uint256 amount = user.amount;
-        
+
         // reduce recorded user amount and stake power to 0
         user.amount = 0;
         user.stakePower = 0;
