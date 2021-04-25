@@ -165,20 +165,26 @@ contract IDIAHub is Ownable {
         // stake amount must be greater than 0
         require(_amount > 0, 'amount is 0');
         // TODO: stake amount must be <= user's balance AND limit
-        
+
         // user can only stake if sale is active
         require(block.number < startBlock, 'too early');
         require(block.number > endBlock, 'too late');
 
+        // get track info
         TrackInfo storage track = trackInfoList[_trackId];
+        // get user info
         UserInfo storage user = userInfoMap[_trackId][msg.sender];
+        
         // TODO: Update users most recent stake time.
 
+        // transfer the specified amount of stake token from user to this contract
         track.stakeToken.safeTransferFrom(
             address(msg.sender),
             address(this),
             _amount
         );
+
+        // update tracked stake amount and stake power in user info
         if (user.stakeAmount) {
             user.stakeAmount = user.stakeAmount.add(_amount);
             // TODO: Add calculation logic to update stakePower
@@ -186,7 +192,11 @@ contract IDIAHub is Ownable {
             user.stakeAmount = _amount;
             user.stakePower = _amount;
         }
+
+        // 
         user.rewardDebt = user.amount.mul(track.accruedStakeAge).div(1e12);
+        
+        // emit
         emit Stake(msg.sender, _trackId, _amount);
     }
 
@@ -207,7 +217,9 @@ contract IDIAHub is Ownable {
         uint256 _amount,
         uint256 _duration
     ) external {
-        TrackInfo storage pool = trackInfoList[_trackId];
+        // get track info
+        TrackInfo storage track = trackInfoList[_trackId];
+        // get user info
         UserInfo storage user = userInfoMap[_trackId][msg.sender];
 
         // existing stake must be > 0 to unstake
@@ -215,6 +227,7 @@ contract IDIAHub is Ownable {
         // amount to unstake must be <= stake amount
         require(user.stakeAmount > _amount, 'unstaking too much');
 
+        // duration checks
         if (_duration < 1) {
             require(
                 block.number > user.lastDepositBlockStamp.add(1),
@@ -228,10 +241,15 @@ contract IDIAHub is Ownable {
         }
 
         // TODO: Amount that can be claimed from the contract needs to be reduced by the amount redeemed
-        //TODO: FIX if this is the name of the totalDeposited into a Track
+        // TODO: FIX if this is the name of the totalDeposited into a Track
         totalDeposited = totalDeposited.sub(_amount);
-        userInfoMap[msg.sender] = userInfoMap[msg.sender].sub(_amount);
+
+        // update user info with decreased amount 
+        user.stakeAmount = user.stakeAmount.sub(_amount);
+        // transfer _amount from user wallet to this contract
         idia.safeTransfer(address(msg.sender), _amount);
+
+        // emit
         emit Unstake(msg.sender, _trackId, _amount, _duration);
     }
 
