@@ -11,10 +11,8 @@ import 'hardhat/console.sol';
 
 // Library of datastructures used by StateMaster and IDIAHub
 library SMLibrary {
-    // TODO: make sure the structure is proper such that userInfo is contained within a trackInfo
-    // TODO: update both amount deposited and accruedStakeAge every time a deposit or withdraw happens
-    // Info of each user.
-    struct UserInfo {
+    // Information of a user with respect to a specific track.
+    struct TrackUserInfo {
         // How many IDIA tokens the user has provided to a given track
         uint256 stakeAmount;
         // How to let users stake multiple durations? force them to stake into discrete staking options?
@@ -45,11 +43,12 @@ contract StateMaster is Ownable {
     using SafeERC20 for ERC20;
 
     // array of track information
-    SMLibrary.TrackInfo[] public tracks;
+    SMLibrary.TrackInfo[] internal tracks;
 
     // user info mapping
     // (track, user address) => user info
-    mapping(uint256 => mapping(address => SMLibrary.UserInfo)) public users;
+    mapping(uint256 => mapping(address => SMLibrary.TrackUserInfo))
+        public users;
 
     // events
     event SetTrackUserInfo(uint256 indexed trackId, address indexed user);
@@ -74,11 +73,27 @@ contract StateMaster is Ownable {
         );
     }
 
+    // get track info
+    function getTrack(uint256 trackId)
+        public
+        view
+        returns (
+            ERC20,
+            uint256,
+            uint256
+        )
+    {
+        // get track info
+        SMLibrary.TrackInfo storage track = tracks[trackId];
+
+        return (track.stakeToken, track.lastCampaignTime, track.totalDeposit);
+    }
+
     // sets info for a user of a particular track
     function setTrackUserInfo(
         uint256 trackId,
         address user,
-        SMLibrary.UserInfo calldata userInfo
+        SMLibrary.TrackUserInfo calldata userInfo
     ) public onlyOwner {
         // set user info
         users[trackId][user] = userInfo;
