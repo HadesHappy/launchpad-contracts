@@ -6,6 +6,7 @@ pragma solidity ^0.8.4;
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
+import './StateMaster.sol';
 
 // import './idiaToken.sol'; // TODO: need to add new .sol file for whatever we launch of the idia token
 
@@ -15,34 +16,6 @@ contract IDIAHub is Ownable {
     // tokens
     ERC20 public ifusd;
     ERC20 public idia;
-
-    // TODO: make sure the structure is proper such that userInfo is contained within a trackInfo
-    // TODO: update both amount deposited and accruedStakeAge every time a deposit or withdraw happens
-    // Info of each user.
-    struct UserInfo {
-        // How many IDIA tokens the user has provided to a given track
-        uint256 stakeAmount;
-        // How to let users stake multiple durations? force them to stake into discrete staking options?
-        // where options 1-4 could be weeks, months, years etc. for a multiplier on power.
-        uint256 stakeDuration;
-        // the calculated weight of the user's proportion
-        uint256 stakePower;
-        // records the time of last deposit to properly calculate stake age
-        uint256 lastDepositBlockStamp;
-    }
-
-    // Info of each pool.
-    struct TrackInfo {
-        // id of the track
-        uint256 trackId;
-        // Records the last time that a launchpad took place in this track
-        uint256 lastCampaignTime;
-        // Tracker of the total deposits within a pool, starts at 0.
-        uint256 totalDeposit;
-        // TODO: decide if we can use balanceOf this account when needed
-        // TODO: Decide if both of these are necessary - for now will just save in this spot and ignore if not needed later
-        // User and decision
-    }
 
     // max for deposits, where penalty may be levied later on
     uint256 maxDeposit = 25000000000000000000000000;
@@ -54,9 +27,10 @@ contract IDIAHub is Ownable {
     uint256 public endBlock;
 
     // array of track information
-    TrackInfo[] public trackInfoList;
+    SMLibrary.TrackInfo[] public trackInfoList;
     // user info mapping; (track, user address) => user info
-    mapping(uint256 => mapping(address => UserInfo)) public userInfoMap;
+    mapping(uint256 => mapping(address => SMLibrary.UserInfo))
+        public userInfoMap;
 
     // events
     event Cash(address indexed sender, uint256 balance);
@@ -101,31 +75,6 @@ contract IDIAHub is Ownable {
         return trackInfoList.length;
     }
 
-    // Section for track-creating features
-
-    // OWNER FUNCTION
-    // adds a new track, allowing the staking of a new token
-    // stakeToken can be IDIA or an IDIA/IFUSD LP token, etc
-    function addTrack(ERC20 stakeToken) public onlyOwner {
-        // get latest reward block
-        uint256 latestRewardBlock =
-            block.number > startBlock ? block.number : startBlock;
-
-        // add track
-
-        // uint256 trackId;
-        // // Records the last time that a launchpad took place in this track
-        // uint256 lastCampaignTime;
-        // // Tracker of the total deposits within a pool, starts at 0.
-        // uint256 totalDeposit;
-        trackInfoList.push(
-            TrackInfo({
-                stakeToken: stakeToken,
-                latestRewardBlock: 0,
-                totalBalance: 0
-            })
-        );
-    }
 
     // view function to see pending idiaAge on frontend.
     function checkPower(uint256 _trackId, address _user)
@@ -133,9 +82,9 @@ contract IDIAHub is Ownable {
         view
         returns (uint256)
     {
-        TrackInfo storage track = trackInfoList[_trackId];
+        SMLibrary.TrackInfo storage track = trackInfoList[_trackId];
         // TODO: check how much IDIA a user staked for each track
-        UserInfo storage user = userInfoMap[_trackId][_user][track];
+        SMLibrary.UserInfo storage user = userInfoMap[_trackId][_user][track];
         uint256 accruedStakePower = user.stakePower;
         // if lastStake was < min stakePeriod ago
 
@@ -171,10 +120,10 @@ contract IDIAHub is Ownable {
         require(block.number > endBlock, 'too late');
 
         // get track info
-        TrackInfo storage track = trackInfoList[_trackId];
+        SMLibrary.TrackInfo storage track = trackInfoList[_trackId];
         // get user info
-        UserInfo storage user = userInfoMap[_trackId][msg.sender];
-        
+        SMLibrary.UserInfo storage user = userInfoMap[_trackId][msg.sender];
+
         // TODO: Update users most recent stake time.
 
         // transfer the specified amount of stake token from user to this contract
@@ -193,9 +142,9 @@ contract IDIAHub is Ownable {
             user.stakePower = _amount;
         }
 
-        // 
+        //
         user.rewardDebt = user.amount.mul(track.accruedStakeAge).div(1e12);
-        
+
         // emit
         emit Stake(msg.sender, _trackId, _amount);
     }
@@ -218,9 +167,9 @@ contract IDIAHub is Ownable {
         uint256 _duration
     ) external {
         // get track info
-        TrackInfo storage track = trackInfoList[_trackId];
+        SMLibrary.TrackInfo storage track = trackInfoList[_trackId];
         // get user info
-        UserInfo storage user = userInfoMap[_trackId][msg.sender];
+        SMLibrary.UserInfo storage user = userInfoMap[_trackId][msg.sender];
 
         // existing stake must be > 0 to unstake
         require(user.stakeAmount > 0, 'no assets staked');
@@ -244,7 +193,7 @@ contract IDIAHub is Ownable {
         // TODO: FIX if this is the name of the totalDeposited into a Track
         totalDeposited = totalDeposited.sub(_amount);
 
-        // update user info with decreased amount 
+        // update user info with decreased amount
         user.stakeAmount = user.stakeAmount.sub(_amount);
         // transfer _amount from user wallet to this contract
         idia.safeTransfer(address(msg.sender), _amount);
@@ -290,7 +239,7 @@ contract IDIAHub is Ownable {
     // Accrued rewards are lost when this option is chosen.
     function emergencyUnstake(uint256 _trackId) external {
         // get user info
-        UserInfo storage user = userInfoMap[_trackId][msg.sender];
+        SMLibrary.UserInfo storage user = userInfoMap[_trackId][msg.sender];
         // get user amount
         uint256 amount = user.amount;
 
