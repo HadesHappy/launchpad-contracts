@@ -44,10 +44,10 @@ contract IDIAHub is Ownable {
         // User and decision
     }
 
-    // ceiling for deposits, where penalty may be levied later on
-    uint256 ceilingDeposit = 25000000000000000000000000;
-    // floor for deposits, to ensure that every track has some liquidity in the long run
-    uint256 floorDeposit = 250000000000000000000000;
+    // max for deposits, where penalty may be levied later on
+    uint256 maxDeposit = 25000000000000000000000000;
+    // min for deposits, to ensure that every track has some liquidity in the long run
+    uint256 minDeposit = 250000000000000000000000;
 
     // track information array
     TrackInfo[] public trackInfoList;
