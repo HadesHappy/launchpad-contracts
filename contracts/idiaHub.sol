@@ -8,8 +8,6 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import './StateMaster.sol';
 
-// import './idiaToken.sol'; // TODO: need to add new .sol file for whatever we launch of the idia token
-
 contract IDIAHub is Ownable {
     using SafeERC20 for ERC20;
 
@@ -62,7 +60,7 @@ contract IDIAHub is Ownable {
         uint256 _maxDeposit,
         ERC20 _ifusd,
         ERC20 _idia
-    ) public {
+    ) {
         stateMaster = _stateMaster;
         startBlock = _startBlock;
         endBlock = _endBlock;
