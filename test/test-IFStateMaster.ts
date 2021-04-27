@@ -2,7 +2,7 @@ import '@nomiclabs/hardhat-ethers'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 
-export default describe('StateMaster', function () {
+export default describe('IFStateMaster', function () {
   it('counts tracks', async function () {
     // get owner
     const [owner] = await ethers.getSigners()
@@ -16,18 +16,18 @@ export default describe('StateMaster', function () {
     )
 
     // deploy statemaster
-    const StateMasterFactory = await ethers.getContractFactory('StateMaster')
-    const StateMaster = await StateMasterFactory.deploy()
+    const IFStateMasterFactory = await ethers.getContractFactory('IFStateMaster')
+    const IFStateMaster = await IFStateMasterFactory.deploy()
 
     // test
 
     // num tracks should be 0
-    expect(await StateMaster.trackCount()).to.equal(0)
+    expect(await IFStateMaster.trackCount()).to.equal(0)
 
     // add a track
-    await StateMaster.addTrack(TestToken.address)
+    await IFStateMaster.addTrack(TestToken.address)
 
     // num tracks should be 1
-    expect(await StateMaster.trackCount()).to.equal(1)
+    expect(await IFStateMaster.trackCount()).to.equal(1)
   })
 })

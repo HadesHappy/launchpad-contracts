@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-// TODO: QUICK EXPLAINER
-
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
-import './StateMaster.sol';
+import './IFStateMaster.sol';
 
-contract IDIAHub is Ownable {
+contract IFAllocationSale is Ownable {
     using SafeERC20 for ERC20;
 
     // tokens
@@ -19,12 +17,14 @@ contract IDIAHub is Ownable {
     uint256 public startBlock;
     // end block when sale is active (inclusive)
     uint256 public endBlock;
+    // allocation snapshot block
+    uint256 public allocSnapshotBlock;
     // min for deposits, to ensure that every track has some liquidity in the long run
     uint256 public minDeposit;
     // max for deposits, where penalty may be levied later on
     uint256 public maxDeposit;
 
-    StateMaster stateMaster;
+    IFStateMaster stateMaster;
 
     // events
     event Cash(address indexed sender, uint256 balance);
@@ -53,9 +53,10 @@ contract IDIAHub is Ownable {
 
     // entrypoint
     constructor(
-        StateMaster _stateMaster,
+        IFStateMaster _stateMaster,
         uint256 _startBlock,
         uint256 _endBlock,
+        uint256 _allocSnapshotBlock,
         uint256 _minDeposit,
         uint256 _maxDeposit,
         ERC20 _ifusd,
@@ -64,39 +65,14 @@ contract IDIAHub is Ownable {
         stateMaster = _stateMaster;
         startBlock = _startBlock;
         endBlock = _endBlock;
+        allocSnapshotBlock = _allocSnapshotBlock;
         minDeposit = _minDeposit;
         maxDeposit = _maxDeposit;
         ifusd = _ifusd;
         idia = _idia;
     }
 
-    // view function to see pending idiaAge on frontend.
-    function checkPower(uint256 trackId, address userAddr)
-        external
-        view
-        returns (uint256)
-    {
-        SMLibrary.TrackInfo storage track = stateMaster.tracks[trackId];
-        // TODO: check how much IDIA a user staked for each track
-        SMLibrary.UserInfo storage user = stateMaster.users[trackId][userAddr];
-        uint256 accruedStakePower = user.stakePower;
-        // if lastStake was < min stakePeriod ago
-
-        // uint256 totalIdiaSupplied = track.stakeToken.balanceOf(address(this));
-        // if (block.number > track.latestRewardBlock && totalIdiaSupplied != 0) {
-        //     // TODO fix:
-        //     accruedStakeWeight = accruedStakePower.add(
-        //         idiaReward.mul(1e12).div(totalIdiaSupplied)
-        //     );
-        // }
-        // return user.amount.mul(accruedStakeAge).div(1e12).sub(user.rewardDebt);
-    }
-
-    // Increase stake
-    // calculate global stake weight as a snapshot of what's "accrued"
-    // The snapshot is essentially an "end time"
-
-    // stake to earn idia allocation
+    // stake
     function stake(
         uint256 trackId,
         uint256 amount,
@@ -141,18 +117,7 @@ contract IDIAHub is Ownable {
         emit Stake(msg.sender, trackId, amount);
     }
 
-    // // TODO: consider moving to a separate smart contract
-    // function privilegeddepositIFUSD(uint256 _trackId, uint256 _amount)
-    //     external
-    // {
-    //     // TODO:
-    //     // Based on the amount staked into a queue, how much stablecoin can be staked to claim allocation into the launchpad
-    //     // require stakePower to be greater than min threshhold to claim some allocation
-    //     // Check accruedReward
-    //     // Calculate the accrued proportional allocation
-    // }
-
-    // unstake tokens
+    // unstake
     function unstake(
         uint256 trackId,
         uint256 amount,
@@ -194,26 +159,6 @@ contract IDIAHub is Ownable {
         // emit
         emit Unstake(msg.sender, trackId, amount, duration);
     }
-
-    // TODO: RollOver Function
-    function refuseAllocation(uint256 _trackId, uint256 _amount) external {
-        // roll over one's accrued staking for weight into the next launchpad in the category
-        // If not called, user receives a decay to their vote weight of 80% for each round they do not check in
-        // This incentivises users to make sure they are systematic in checking in
-        // Easiest way would be to count as refreshing a timestamp that is saved to the user struct
-        // so that future holdings can be counted from this time on.
-        // This encourages quick passing/refusal to give other users more of an idea of what allocation they may receive
-        // record block.time for use
-    }
-
-    function fundLaunchToken(uint256 _amount) public onlyOwner {
-        // TODO: Somehow need to top up the contract to be able to support the trading of users' IFUSD for the project in question
-    }
-
-    //// Only whitelisted address should be able to add tokens for sale
-    // function topUpAssetForSale() {
-    //     // provide the contract with funds to be able to offer up for participants.
-    // }
 
     // Function for the multisig to cash in the accrued idia tokens for distribution into futher baskets of usage
     // Claiming ifUSD and later needs to assign it to governance multisig to distribute to project team during fundraise

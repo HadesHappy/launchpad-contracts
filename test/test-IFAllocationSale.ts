@@ -21,8 +21,8 @@ export default describe('IDIA Launchpad', function () {
     )
 
     // deploy statemaster
-    const StateMasterFactory = await ethers.getContractFactory('StateMaster')
-    const StateMaster = await StateMasterFactory.deploy()
+    const IFStateMasterFactory = await ethers.getContractFactory('IFStateMaster')
+    const IFStateMaster = await IFStateMasterFactory.deploy()
 
     // launchpad parameters
     const startBlock = 10
@@ -31,9 +31,11 @@ export default describe('IDIA Launchpad', function () {
     const maxDeposit = 25000000000000000000000000
 
     // deploy launchpad
-    const IDIAHubFactory = await ethers.getContractFactory('IDIAHub')
-    const IDIAHub = await IDIAHubFactory.deploy(
-      StateMaster.address,
+    const IFAllocationSaleFactory = await ethers.getContractFactory(
+      'IFAllocationSale'
+    )
+    const IFAllocationSale = await IFAllocationSaleFactory.deploy(
+      IFStateMaster.address,
       startBlock,
       endBlock,
       minDeposit,
@@ -44,6 +46,6 @@ export default describe('IDIA Launchpad', function () {
 
     // test
 
-    expect(await IDIAHub.startBlock()).to.equal(startBlock)
+    expect(await IFAllocationSale.startBlock()).to.equal(startBlock)
   })
 })
