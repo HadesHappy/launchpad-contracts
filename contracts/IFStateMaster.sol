@@ -68,6 +68,7 @@ contract IFStateMaster is Ownable {
     event AddTrack(string indexed name, address indexed token);
     event SetTrackUserInfo(uint256 indexed trackId, address indexed user);
 
+    // entrypoint
     constructor() {}
 
     // FUNCTIONS

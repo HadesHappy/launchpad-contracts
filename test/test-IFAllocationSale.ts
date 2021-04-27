@@ -2,7 +2,7 @@ import '@nomiclabs/hardhat-ethers'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 
-export default describe('IDIA Launchpad', function () {
+export default describe('IF Allocation Sale', function () {
   it('all tests', async function () {
     // get owner
     // const [owner] = await ethers.getSigners()
@@ -21,14 +21,17 @@ export default describe('IDIA Launchpad', function () {
     )
 
     // deploy statemaster
-    const IFStateMasterFactory = await ethers.getContractFactory('IFStateMaster')
+    const IFStateMasterFactory = await ethers.getContractFactory(
+      'IFStateMaster'
+    )
     const IFStateMaster = await IFStateMasterFactory.deploy()
 
     // launchpad parameters
     const startBlock = 10
     const endBlock = 20
-    const minDeposit = 250000000000000000000000
-    const maxDeposit = 25000000000000000000000000
+    const allocSnapshotBlock = 5
+    const minDeposit = '250000000000000000000000'
+    const maxDeposit = '25000000000000000000000000'
 
     // deploy launchpad
     const IFAllocationSaleFactory = await ethers.getContractFactory(
@@ -38,6 +41,7 @@ export default describe('IDIA Launchpad', function () {
       IFStateMaster.address,
       startBlock,
       endBlock,
+      allocSnapshotBlock,
       minDeposit,
       maxDeposit,
       IFUSD.address,

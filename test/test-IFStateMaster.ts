@@ -12,11 +12,13 @@ export default describe('IFStateMaster', function () {
     const TestToken = await TestTokenFactory.deploy(
       'test token',
       'TEST',
-      21_000_000_000
+      '21000000000000000000000000' // 21 million * 10**18
     )
 
     // deploy statemaster
-    const IFStateMasterFactory = await ethers.getContractFactory('IFStateMaster')
+    const IFStateMasterFactory = await ethers.getContractFactory(
+      'IFStateMaster'
+    )
     const IFStateMaster = await IFStateMasterFactory.deploy()
 
     // test
@@ -25,7 +27,7 @@ export default describe('IFStateMaster', function () {
     expect(await IFStateMaster.trackCount()).to.equal(0)
 
     // add a track
-    await IFStateMaster.addTrack(TestToken.address)
+    await IFStateMaster.addTrack('TEST Track', TestToken.address, 1)
 
     // num tracks should be 1
     expect(await IFStateMaster.trackCount()).to.equal(1)
