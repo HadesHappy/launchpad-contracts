@@ -3,7 +3,7 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 
 export default describe('IFStateMaster', function () {
-  it('counts tracks', async function () {
+  it('adds tracks', async function () {
     // get owner
     const [owner] = await ethers.getSigners()
 

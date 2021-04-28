@@ -19,7 +19,7 @@ contract IFStateMaster is Ownable {
     struct UserCheckpoint {
         uint256 blockNumber;
         uint256 staked;
-        uint128 stakeWeight;
+        uint256 stakeWeight;
     }
 
     // A checkpoint for marking stake amount at a given block
@@ -67,6 +67,13 @@ contract IFStateMaster is Ownable {
 
     event AddTrack(string indexed name, address indexed token);
     event SetTrackUserInfo(uint256 indexed trackId, address indexed user);
+    event Stake(address indexed user, uint256 indexed trackId, uint256 amount);
+    event Unstake(address indexed user, uint256 trackId, uint256 amount);
+    event EmergencyUnstake(
+        address indexed user,
+        uint256 trackId,
+        uint256 amount
+    );
 
     // entrypoint
     constructor() {}
@@ -193,50 +200,60 @@ contract IFStateMaster is Ownable {
         return closestCheckpoint.stakeWeight + marginalAccruedStakeWeight;
     }
 
-    // // stake
-    // function stake(
-    //     uint256 trackId,
-    //     uint256 amount,
-    //     uint256 duration
-    // ) external {
-    //     // stake amount must be greater than 0
-    //     require(amount > 0, 'amount is 0');
-    //     // TODO: stake amount must be <= user's balance AND limit
+    // stake
+    function stake(uint256 trackId, uint256 amount) external {
+        // stake amount must be greater than 0
+        require(amount > 0, 'amount is 0');
+        // TODO: stake amount must be <= user's limit
 
-    //     // user can only stake if sale is active
-    //     require(block.number < startBlock, 'too early');
-    //     require(block.number > endBlock, 'too late');
+        // get track info
+        TrackInfo storage track = tracks[trackId];
 
-    //     // get track info
-    //     SMLibrary.TrackInfo storage track = stateMaster.tracks[trackId];
-    //     // get user info
-    //     SMLibrary.UserInfo storage user =
-    //         stateMaster.users[trackId][msg.sender];
+        // get number of user's checkpoints within this track
+        uint32 userCheckpointCount = userCheckpointCounts[trackId][msg.sender];
 
-    //     // TODO: Update users most recent stake time.
+        // transfer the specified amount of stake token from user to this contract
+        track.stakeToken.safeTransferFrom(
+            address(msg.sender),
+            address(this),
+            amount
+        );
 
-    //     // transfer the specified amount of stake token from user to this contract
-    //     track.stakeToken.safeTransferFrom(
-    //         address(msg.sender),
-    //         address(this),
-    //         amount
-    //     );
+        // branch depending on if this is user's first deposit
+        if (userCheckpointCount == 0) {
+            // add a new checkpoint for user within this track
+            userCheckpoints[trackId][msg.sender][
+                userCheckpointCount
+            ] = UserCheckpoint({
+                blockNumber: block.number,
+                staked: amount,
+                stakeWeight: 0
+            });
+        } else {
+            // get previous checkpoint
+            UserCheckpoint storage prev =
+                userCheckpoints[trackId][msg.sender][userCheckpointCount];
 
-    //     // update tracked stake amount and stake power in user info
-    //     if (user.stakeAmount) {
-    //         user.stakeAmount = user.stakeAmount.add(amount);
-    //         // TODO: Add calculation logic to update stakePower
-    //     } else {
-    //         user.stakeAmount = amount;
-    //         user.stakePower = amount;
-    //     }
+            // calculate blocks elapsed since checkpoint
+            uint256 additionalBlocks = (block.number - prev.blockNumber);
 
-    //     //
-    //     user.rewardDebt = user.amount.mul(track.accruedStakeAge).div(1e12);
+            // calculate marginal accrued stake weight
+            uint256 marginalAccruedStakeWeight =
+                additionalBlocks * track.weightAccrualRate * prev.staked;
 
-    //     // emit
-    //     emit Stake(msg.sender, trackId, amount);
-    // }
+            // add a new checkpoint for user within this track
+            userCheckpoints[trackId][msg.sender][
+                userCheckpointCount
+            ] = UserCheckpoint({
+                blockNumber: block.number,
+                staked: prev.staked + amount,
+                stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
+            });
+        }
+
+        // emit
+        emit Stake(msg.sender, trackId, amount);
+    }
 
     // // unstake
     // function unstake(

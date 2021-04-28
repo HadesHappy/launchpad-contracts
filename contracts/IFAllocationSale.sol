@@ -28,23 +28,6 @@ contract IFAllocationSale is Ownable {
 
     // events
     event Cash(address indexed sender, uint256 balance);
-    event Stake(
-        address indexed user,
-        uint256 indexed pid,
-        uint256 trackId,
-        uint256 amount
-    );
-    event Unstake(
-        address indexed user,
-        uint256 indexed pid,
-        uint256 trackId,
-        uint256 amount
-    );
-    event EmergencyUnstake(
-        address indexed user,
-        uint256 indexed pid,
-        uint256 amount
-    );
     event EmergencyErc20Retrieve(
         address indexed user,
         uint256 indexed pid,
