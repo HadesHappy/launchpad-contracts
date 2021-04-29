@@ -143,7 +143,7 @@ contract IFStateMaster is Ownable {
         address user,
         uint256 blockNumber
     ) public view returns (uint256) {
-        require(blockNumber < block.number, 'block # too high');
+        require(blockNumber <= block.number, 'block # too high');
 
         // check number of checkpoints
         uint32 nCheckpoints = userCheckpointCounts[trackId][msg.sender];
@@ -151,38 +151,41 @@ contract IFStateMaster is Ownable {
             return 0;
         }
 
-        // First check most recent checkpoint
+        // closest checkpoint
+        UserCheckpoint memory closestCheckpoint;
+
         if (
             userCheckpoints[trackId][user][nCheckpoints - 1].blockNumber <=
             blockNumber
         ) {
-            return userCheckpoints[trackId][user][nCheckpoints - 1].stakeWeight;
-        }
+            // First check most recent checkpoint
 
-        // Next check implicit zero balance
-        if (userCheckpoints[trackId][user][0].blockNumber > blockNumber) {
+            // set closest checkpoint
+            closestCheckpoint = userCheckpoints[trackId][user][nCheckpoints - 1];
+        }
+        else if (userCheckpoints[trackId][user][0].blockNumber > blockNumber) {
+            // Next check implicit zero balance
+
             return 0;
-        }
-
-        // binary search on checkpoints
-        uint32 lower = 0;
-        uint32 upper = nCheckpoints - 1;
-        while (upper > lower) {
-            uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
-            UserCheckpoint memory cp = userCheckpoints[trackId][user][center];
-            if (cp.blockNumber == blockNumber) {
-                return cp.stakeWeight;
-            } else if (cp.blockNumber < blockNumber) {
-                lower = center;
-            } else {
-                upper = center - 1;
+        } else {
+            // binary search on checkpoints
+            uint32 lower = 0;
+            uint32 upper = nCheckpoints - 1;
+            while (upper > lower) {
+                uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
+                UserCheckpoint memory cp = userCheckpoints[trackId][user][center];
+                if (cp.blockNumber == blockNumber) {
+                    return cp.stakeWeight;
+                } else if (cp.blockNumber < blockNumber) {
+                    lower = center;
+                } else {
+                    upper = center - 1;
+                }
             }
+
+            // get closest checkpoint
+            closestCheckpoint = userCheckpoints[trackId][user][lower];
         }
-
-        // get closest checkpoint
-        UserCheckpoint memory closestCheckpoint =
-            userCheckpoints[trackId][user][lower];
-
         // calculate blocks elapsed since checkpoint
         uint256 additionalBlocks =
             (blockNumber - closestCheckpoint.blockNumber);
@@ -194,7 +197,10 @@ contract IFStateMaster is Ownable {
         uint256 marginalAccruedStakeWeight =
             additionalBlocks *
                 trackInfo.weightAccrualRate *
-                closestCheckpoint.staked;
+                closestCheckpoint.staked / 10**18;
+
+
+        console.log(block.number, closestCheckpoint.stakeWeight, '+', marginalAccruedStakeWeight);
 
         // return
         return closestCheckpoint.stakeWeight + marginalAccruedStakeWeight;
@@ -229,17 +235,23 @@ contract IFStateMaster is Ownable {
                 staked: amount,
                 stakeWeight: 0
             });
+
+            // console.log('---- adding checkpoint', userCheckpointCount, '----');
+            // console.log('block', block.number);
+            // console.log('staked', amount);
+            // console.log('weight', 0);
+            // console.log('----');
         } else {
             // get previous checkpoint
             UserCheckpoint storage prev =
-                userCheckpoints[trackId][msg.sender][userCheckpointCount];
+                userCheckpoints[trackId][msg.sender][userCheckpointCount-1];
 
             // calculate blocks elapsed since checkpoint
             uint256 additionalBlocks = (block.number - prev.blockNumber);
 
             // calculate marginal accrued stake weight
             uint256 marginalAccruedStakeWeight =
-                additionalBlocks * track.weightAccrualRate * prev.staked;
+                additionalBlocks * track.weightAccrualRate * prev.staked / 10**18;
 
             // add a new checkpoint for user within this track
             userCheckpoints[trackId][msg.sender][
@@ -249,7 +261,16 @@ contract IFStateMaster is Ownable {
                 staked: prev.staked + amount,
                 stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
             });
+
+            // console.log('---- adding checkpoint', userCheckpointCount, '----');
+            // console.log('block', block.number);
+            // console.log('staked', prev.staked, '+', amount);
+            // console.log('weight', prev.stakeWeight, '+', marginalAccruedStakeWeight);
+            // console.log('----');
         }
+
+        // increment user's checkpoint count
+        userCheckpointCounts[trackId][msg.sender] = userCheckpointCount+1;
 
         // emit
         emit Stake(msg.sender, trackId, amount);

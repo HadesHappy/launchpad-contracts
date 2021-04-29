@@ -1,5 +1,5 @@
 import '@nomiclabs/hardhat-ethers'
-import { ethers } from 'hardhat'
+import { ethers, network } from 'hardhat'
 import { expect } from 'chai'
 
 export default describe('IFStateMaster', function () {
@@ -23,13 +23,61 @@ export default describe('IFStateMaster', function () {
 
     // test
 
+    // array of stakeweights over time
+    const stakeWeights = []
+
     // num tracks should be 0
     expect(await IFStateMaster.trackCount()).to.equal(0)
 
     // add a track
-    await IFStateMaster.addTrack('TEST Track', TestToken.address, 1)
+    await IFStateMaster.addTrack('TEST Track', TestToken.address, 1000)
 
     // num tracks should be 1
     expect(await IFStateMaster.trackCount()).to.equal(1)
+
+    // how much to stake on a block-by-block basis
+    const stakesOverTime = [
+      '1000000000000000000', // 1 token
+      '0',
+      '0',
+      '0',
+      '0',
+      '50000000000000000000', // 50 tokens
+      '0',
+      '0',
+      '0',
+      '0',
+      '0',
+      '2500000000000000000', // 2.5 tokens
+      '0',
+      '0',
+      '0',
+    ]
+
+    // get stake weight over time
+    for (let i = 0; i < stakesOverTime.length; i++) {
+      // owner approves and stakes according to stakesOverTime
+      if (stakesOverTime[i] !== '0') {
+        await TestToken.approve(IFStateMaster.address, stakesOverTime[i]) // approve
+        await IFStateMaster.stake(0, stakesOverTime[i]) // stake
+      } else {
+        // mine block
+        await network.provider.send('evm_mine') // +1 blockheight
+      }
+
+      // current block number
+      const currBlock = await ethers.provider.getBlockNumber()
+
+      // get current stake
+      stakeWeights.push({
+        block: currBlock,
+        weight: await IFStateMaster.getStakeWeight(0, owner.address, currBlock),
+      })
+    }
+
+    // print stakeweights
+    stakeWeights.map(async (stakeWeight) => {
+      console.log(stakeWeight.block, stakeWeight.weight.toString())
+    })
   })
 })
