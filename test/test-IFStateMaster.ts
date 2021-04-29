@@ -85,6 +85,7 @@ export default describe('IFStateMaster', function () {
     }
 
     // print stakeweights
+    console.log('printing stakeweights')
     stakeWeights.map(async (stakeWeight) => {
       console.log(
         stakeWeight.block,
@@ -92,5 +93,15 @@ export default describe('IFStateMaster', function () {
         stakeWeight.totalWeight.toString()
       )
     })
+
+    // print track checkpoints
+    console.log('printing checkpoints (block no, staked, stakeweight)')
+    const nTrackCheckpoints = await IFStateMaster.trackCheckpointCounts(0)
+    for (let i=0; i<nTrackCheckpoints; i++) {
+      const checkpoint = await IFStateMaster.trackCheckpoints(0, i)
+      console.log(checkpoint.toString())
+    }
+
+
   })
 })
