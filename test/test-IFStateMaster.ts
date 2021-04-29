@@ -45,7 +45,7 @@ export default describe('IFStateMaster', function () {
       '50000000000000000000', // 50 tokens
       '0',
       '0',
-      '0',
+      '-50000000000000000000', // -50 tokens
       '0',
       '0',
       '2500000000000000000', // 2.5 tokens
@@ -56,10 +56,14 @@ export default describe('IFStateMaster', function () {
 
     // get stake weight over time
     for (let i = 0; i < stakesOverTime.length; i++) {
-      // owner approves and stakes according to stakesOverTime
-      if (stakesOverTime[i] !== '0') {
+      // owner stakes according to stakesOverTime
+      if (stakesOverTime[i] !== '0' && stakesOverTime[i][0] !== '-') {
+        // stake
         await TestToken.approve(IFStateMaster.address, stakesOverTime[i]) // approve
         await IFStateMaster.stake(0, stakesOverTime[i]) // stake
+      } else if (stakesOverTime[i] !== '0' && stakesOverTime[i][0] === '-') {
+        // unstake
+        await IFStateMaster.unstake(0, stakesOverTime[i].substring(1)) // unstake
       } else {
         // mine block
         await network.provider.send('evm_mine') // +1 blockheight
@@ -71,13 +75,22 @@ export default describe('IFStateMaster', function () {
       // get current stake
       stakeWeights.push({
         block: currBlock,
-        weight: await IFStateMaster.getStakeWeight(0, owner.address, currBlock),
+        userWeight: await IFStateMaster.getUserStakeWeight(
+          0,
+          owner.address,
+          currBlock
+        ),
+        totalWeight: await IFStateMaster.getTotalStakeWeight(0, currBlock),
       })
     }
 
     // print stakeweights
     stakeWeights.map(async (stakeWeight) => {
-      console.log(stakeWeight.block, stakeWeight.weight.toString())
+      console.log(
+        stakeWeight.block,
+        stakeWeight.userWeight.toString(),
+        stakeWeight.totalWeight.toString()
+      )
     })
   })
 })
