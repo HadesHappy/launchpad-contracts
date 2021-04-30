@@ -22,11 +22,11 @@ export default describe('IF Allocation Sale', function () {
       21_000_000_000
     )
 
-    // deploy statemaster
-    const IFStateMasterFactory = await ethers.getContractFactory(
-      'IFStateMaster'
+    // deploy allocation master
+    const IFAllocationMasterFactory = await ethers.getContractFactory(
+      'IFAllocationMaster'
     )
-    const IFStateMaster = await IFStateMasterFactory.deploy()
+    const IFAllocationMaster = await IFAllocationMasterFactory.deploy()
 
     // launchpad parameters
     const startBlock = 10
@@ -40,7 +40,7 @@ export default describe('IF Allocation Sale', function () {
       'IFAllocationSale'
     )
     const IFAllocationSale = await IFAllocationSaleFactory.deploy(
-      IFStateMaster.address,
+      IFAllocationMaster.address,
       startBlock,
       endBlock,
       allocSnapshotBlock,

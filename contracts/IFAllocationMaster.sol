@@ -6,11 +6,11 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import 'hardhat/console.sol';
 
-// IFStateMaster is responsible for persisting all launchpad state between project launches
+// IFAllocationMaster is responsible for persisting all launchpad state between project launches
 // in order for the launches to have clean, self-enclosed, one-time-use states.
 
-// IFStateMaster is the master of launchpad state. He can remember everything and he is a smart guy.
-contract IFStateMaster is Ownable {
+// IFAllocationMaster is the master of allocations. He can remember everything and he is a smart guy.
+contract IFAllocationMaster is Ownable {
     using SafeERC20 for ERC20;
 
     // STRUCTS
@@ -469,7 +469,7 @@ contract IFStateMaster is Ownable {
     // function emergencyUnstake(uint256 _trackId) external {
     //     // get user info
     //     SMLibrary.UserInfo storage user =
-    //         stateMaster.users[_trackId][msg.sender];
+    //         AllocationMaster.users[_trackId][msg.sender];
     //     // get user amount
     //     uint256 amount = user.amount;
 

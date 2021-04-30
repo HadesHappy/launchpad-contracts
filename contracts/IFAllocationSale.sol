@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
-import './IFStateMaster.sol';
+import './IFAllocationMaster.sol';
 
 contract IFAllocationSale is Ownable {
     using SafeERC20 for ERC20;
@@ -24,7 +24,7 @@ contract IFAllocationSale is Ownable {
     // max for deposits, where penalty may be levied later on
     uint256 public maxDeposit;
 
-    IFStateMaster stateMaster;
+    IFAllocationMaster allocationMaster;
 
     // events
     event Cash(address indexed sender, uint256 balance);
@@ -36,7 +36,7 @@ contract IFAllocationSale is Ownable {
 
     // entrypoint
     constructor(
-        IFStateMaster _stateMaster,
+        IFAllocationMaster _allocationMaster,
         uint256 _startBlock,
         uint256 _endBlock,
         uint256 _allocSnapshotBlock,
@@ -45,7 +45,7 @@ contract IFAllocationSale is Ownable {
         ERC20 _ifusd,
         ERC20 _idia
     ) {
-        stateMaster = _stateMaster;
+        allocationMaster = _allocationMaster;
         startBlock = _startBlock;
         endBlock = _endBlock;
         allocSnapshotBlock = _allocSnapshotBlock;

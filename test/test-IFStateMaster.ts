@@ -5,11 +5,11 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from '@ethersproject/contracts'
 import { mineNext } from './helpers'
 
-export default describe('IFStateMaster', function () {
+export default describe('IFAllocationMaster', function () {
   // vars for all tests
   let owner: SignerWithAddress
   let TestToken: Contract
-  let IFStateMaster: Contract
+  let IFAllocationMaster: Contract
 
   // setup for each test
   beforeEach(async () => {
@@ -24,11 +24,11 @@ export default describe('IFStateMaster', function () {
       '21000000000000000000000000' // 21 million * 10**18
     )
 
-    // deploy statemaster
-    const IFStateMasterFactory = await ethers.getContractFactory(
-      'IFStateMaster'
+    // deploy allocation master
+    const IFAllocationMasterFactory = await ethers.getContractFactory(
+      'IFAllocationMaster'
     )
-    IFStateMaster = await IFStateMasterFactory.deploy()
+    IFAllocationMaster = await IFAllocationMasterFactory.deploy()
   })
 
   // TESTS
@@ -36,27 +36,27 @@ export default describe('IFStateMaster', function () {
   it('counts tracks', async () => {
     // num tracks should be 0
     mineNext()
-    expect(await IFStateMaster.trackCount()).to.equal(0)
+    expect(await IFAllocationMaster.trackCount()).to.equal(0)
 
     // add a track
     mineNext()
-    await IFStateMaster.addTrack('TEST Track', TestToken.address, 1000)
+    await IFAllocationMaster.addTrack('TEST Track', TestToken.address, 1000)
 
     // num tracks should be 1
     mineNext()
-    expect(await IFStateMaster.trackCount()).to.equal(1)
+    expect(await IFAllocationMaster.trackCount()).to.equal(1)
   })
 
   it('accrues stake weight', async () => {
     // add a track
     mineNext()
-    await IFStateMaster.addTrack(
+    await IFAllocationMaster.addTrack(
       'TEST Track', // track name
       TestToken.address, // token
       1000000000 // weight accrual rate
     )
 
-    const trackNum = await IFStateMaster.trackCount()
+    const trackNum = await IFAllocationMaster.trackCount()
 
     // how much to stake on a block-by-block basis
     const stakesOverTime = [
@@ -90,12 +90,16 @@ export default describe('IFStateMaster', function () {
     for (let i = 0; i < stakesOverTime.length; i++) {
       // owner stakes/unstakes according to stakesOverTime
       if (stakesOverTime[i] !== '0' && stakesOverTime[i][0] !== '-') {
-        // approve + stake
-        await TestToken.approve(IFStateMaster.address, stakesOverTime[i]) // approve
-        await IFStateMaster.stake(0, stakesOverTime[i]) // stake
+        // approve
+        await TestToken.approve(IFAllocationMaster.address, stakesOverTime[i])
+        // stake
+        await IFAllocationMaster.stake(trackNum, stakesOverTime[i])
       } else if (stakesOverTime[i] !== '0' && stakesOverTime[i][0] === '-') {
         // unstake
-        await IFStateMaster.unstake(0, stakesOverTime[i].substring(1)) // unstake
+        await IFAllocationMaster.unstake(
+          trackNum,
+          stakesOverTime[i].substring(1)
+        )
       }
 
       mineNext()
@@ -104,11 +108,11 @@ export default describe('IFStateMaster', function () {
       const currBlock = await ethers.provider.getBlockNumber()
 
       // user's staked amount
-      const nCheckpoints = await IFStateMaster.userCheckpointCounts(
+      const nCheckpoints = await IFAllocationMaster.userCheckpointCounts(
         trackNum,
         owner.address
       )
-      const checkpoint = await IFStateMaster.userCheckpoints(
+      const checkpoint = await IFAllocationMaster.userCheckpoints(
         trackNum,
         owner.address,
         nCheckpoints - 1
@@ -118,19 +122,19 @@ export default describe('IFStateMaster', function () {
       simData.push({
         block: currBlock,
         userStake: checkpoint.staked,
-        userWeight: await IFStateMaster.getUserStakeWeight(
+        userWeight: await IFAllocationMaster.getUserStakeWeight(
           trackNum,
           owner.address,
           currBlock
         ),
-        totalWeight: await IFStateMaster.getTotalStakeWeight(
+        totalWeight: await IFAllocationMaster.getTotalStakeWeight(
           trackNum,
           currBlock
         ),
       })
     }
 
-    // print stakeweights
+    // print simulation data
     console.log('Simulation data')
     simData.map(async (row) => {
       console.log(
@@ -147,14 +151,14 @@ export default describe('IFStateMaster', function () {
 
     // print track checkpoints
     console.log('\nTrack checkpoints')
-    const nTrackCheckpoints = await IFStateMaster.trackCheckpointCounts(
+    const nTrackCheckpoints = await IFAllocationMaster.trackCheckpointCounts(
       trackNum
     )
     for (let i = 0; i < nTrackCheckpoints; i++) {
-      const checkpoint = await IFStateMaster.trackCheckpoints(trackNum, i)
+      const checkpoint = await IFAllocationMaster.trackCheckpoints(trackNum, i)
       console.log(
         'Block',
-        checkpoint.blockNumber.toString(),
+        (checkpoint.blockNumber - simStartBlock).toString(),
         '| Total staked',
         checkpoint.totalStaked.toString(),
         '| Total stake weight',
