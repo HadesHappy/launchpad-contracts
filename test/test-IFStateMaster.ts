@@ -3,6 +3,7 @@ import { ethers, network } from 'hardhat'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from '@ethersproject/contracts'
+import { mineNext } from './helpers'
 
 export default describe('IFStateMaster', function () {
   // vars for all tests
@@ -30,89 +31,135 @@ export default describe('IFStateMaster', function () {
     IFStateMaster = await IFStateMasterFactory.deploy()
   })
 
+  // TESTS
+
   it('counts tracks', async () => {
     // num tracks should be 0
+    mineNext()
     expect(await IFStateMaster.trackCount()).to.equal(0)
 
     // add a track
+    mineNext()
     await IFStateMaster.addTrack('TEST Track', TestToken.address, 1000)
 
     // num tracks should be 1
+    mineNext()
     expect(await IFStateMaster.trackCount()).to.equal(1)
   })
 
   it('accrues stake weight', async () => {
     // add a track
-    await IFStateMaster.addTrack('TEST Track', TestToken.address, 1000)
+    mineNext()
+    await IFStateMaster.addTrack(
+      'TEST Track', // track name
+      TestToken.address, // token
+      1000000000 // weight accrual rate
+    )
 
-    // array of stakeweights over time
-    const stakeWeights = []
+    const trackNum = await IFStateMaster.trackCount()
 
     // how much to stake on a block-by-block basis
     const stakesOverTime = [
-      '1000000000000000000', // 1 token
+      '1000000000', // 1 gwei
       '0',
       '0',
       '0',
       '0',
-      '50000000000000000000', // 50 tokens
+      '50000000000', // 50 gwei
       '0',
       '0',
-      '-50000000000000000000', // -50 tokens
+      '-50000000000', // -50 gwei
       '0',
       '0',
-      '2500000000000000000', // 2.5 tokens
+      '2500000000', // 2.5 gwei
+      '0',
+      '0',
       '0',
       '0',
       '0',
     ]
 
-    // get stake weight over time
+    //// block-by-block simulation
+
+    // simulation data
+    const simData = []
+    // simulation starting block
+    const simStartBlock = await ethers.provider.getBlockNumber()
+
+    // simulation
     for (let i = 0; i < stakesOverTime.length; i++) {
-      // owner stakes according to stakesOverTime
+      // owner stakes/unstakes according to stakesOverTime
       if (stakesOverTime[i] !== '0' && stakesOverTime[i][0] !== '-') {
-        // stake
+        // approve + stake
         await TestToken.approve(IFStateMaster.address, stakesOverTime[i]) // approve
         await IFStateMaster.stake(0, stakesOverTime[i]) // stake
       } else if (stakesOverTime[i] !== '0' && stakesOverTime[i][0] === '-') {
         // unstake
         await IFStateMaster.unstake(0, stakesOverTime[i].substring(1)) // unstake
-      } else {
-        // mine block
-        await network.provider.send('evm_mine') // +1 blockheight
       }
+
+      mineNext()
 
       // current block number
       const currBlock = await ethers.provider.getBlockNumber()
 
+      // user's staked amount
+      const nCheckpoints = await IFStateMaster.userCheckpointCounts(
+        trackNum,
+        owner.address
+      )
+      const checkpoint = await IFStateMaster.userCheckpoints(
+        trackNum,
+        owner.address,
+        nCheckpoints - 1
+      )
+
       // get current stake
-      stakeWeights.push({
+      simData.push({
         block: currBlock,
+        userStake: checkpoint.staked,
         userWeight: await IFStateMaster.getUserStakeWeight(
-          0,
+          trackNum,
           owner.address,
           currBlock
         ),
-        totalWeight: await IFStateMaster.getTotalStakeWeight(0, currBlock),
+        totalWeight: await IFStateMaster.getTotalStakeWeight(
+          trackNum,
+          currBlock
+        ),
       })
     }
 
     // print stakeweights
-    console.log('printing stakeweights')
-    stakeWeights.map(async (stakeWeight) => {
+    console.log('Simulation data')
+    simData.map(async (row) => {
       console.log(
-        stakeWeight.block,
-        stakeWeight.userWeight.toString(),
-        stakeWeight.totalWeight.toString()
+        'Block',
+        (row.block - simStartBlock).toString(),
+        '| User stake',
+        row.userStake.toString(),
+        '| User weight',
+        row.userWeight.toString(),
+        '| Total weight',
+        row.totalWeight.toString()
       )
     })
 
     // print track checkpoints
-    console.log('printing checkpoints (block no, staked, stakeweight)')
-    const nTrackCheckpoints = await IFStateMaster.trackCheckpointCounts(0)
+    console.log('\nTrack checkpoints')
+    const nTrackCheckpoints = await IFStateMaster.trackCheckpointCounts(
+      trackNum
+    )
     for (let i = 0; i < nTrackCheckpoints; i++) {
-      const checkpoint = await IFStateMaster.trackCheckpoints(0, i)
-      console.log(checkpoint.toString())
+      const checkpoint = await IFStateMaster.trackCheckpoints(trackNum, i)
+      console.log(
+        'Block',
+        checkpoint.blockNumber.toString(),
+        '| Total staked',
+        checkpoint.totalStaked.toString(),
+        '| Total stake weight',
+        checkpoint.totalStakeWeight.toString()
+      )
     }
   })
 })

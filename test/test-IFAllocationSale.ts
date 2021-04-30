@@ -1,6 +1,7 @@
 import '@nomiclabs/hardhat-ethers'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
+import { mineNext } from './helpers'
 
 export default describe('IF Allocation Sale', function () {
   it('all tests', async function () {
@@ -8,6 +9,7 @@ export default describe('IF Allocation Sale', function () {
     // const [owner] = await ethers.getSigners()
 
     // deploy test tokens (ifusd, idia)
+
     const TestTokenFactory = await ethers.getContractFactory('TestToken')
     const IFUSD = await TestTokenFactory.deploy(
       'IFUSD Token',
@@ -48,8 +50,8 @@ export default describe('IF Allocation Sale', function () {
       IDIA.address
     )
 
-    // test
-
+    // test start block
+    mineNext()
     expect(await IFAllocationSale.startBlock()).to.equal(startBlock)
   })
 })

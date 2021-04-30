@@ -1,6 +1,7 @@
 import '@nomiclabs/hardhat-ethers'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
+import { mineNext } from './helpers'
 
 export default describe('TestToken', function () {
   it('sets starting supply', async function () {
@@ -19,6 +20,7 @@ export default describe('TestToken', function () {
     )
 
     // test
+    mineNext()
     expect(await TestToken.balanceOf(owner.address)).to.equal(startingSupply)
   })
 })

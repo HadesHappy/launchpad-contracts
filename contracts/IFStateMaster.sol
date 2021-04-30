@@ -360,7 +360,6 @@ contract IFStateMaster is Ownable {
         uint256 marginalAccruedStakeWeight =
             additionalBlocks * track.weightAccrualRate * prev.totalStaked / 10**18;
 
-
         console.log('---- adding track checkpoint', nCheckpoints, ' ----');
         console.log('block', block.number);
         console.log('total staked', prev.totalStaked, addElseSub? '+':'-', amount);
@@ -456,7 +455,7 @@ contract IFStateMaster is Ownable {
         );
 
         // add user checkpoint
-        addUserCheckpoint(trackId, amount, true);
+        addUserCheckpoint(trackId, amount, false);
 
         // add track checkpoint
         addTrackCheckpoint(trackId, amount, false);
