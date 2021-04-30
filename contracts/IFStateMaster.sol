@@ -65,7 +65,8 @@ contract IFStateMaster is Ownable {
     // EVENTS
 
     event AddTrack(string indexed name, address indexed token);
-    event SetTrackUserInfo(uint256 indexed trackId, address indexed user);
+    event AddUserCheckpoint(uint256 indexed blockNumber, uint256 indexed trackId);
+    event AddTrackCheckpoint(uint256 indexed blockNumber, uint256 indexed trackId);
     event Stake(address indexed user, uint256 indexed trackId, uint256 amount);
     event Unstake(address indexed user, uint256 indexed trackId, uint256 amount);
     event EmergencyUnstake(
@@ -99,11 +100,6 @@ contract IFStateMaster is Ownable {
                 saleCounter: 0 // default 0
             })
         );
-
-        // gets ID of new track
-        uint256 trackId = tracks.length - 1;
-
-        addTrackCheckpoint(trackId, 0, true);
 
         // emit
         emit AddTrack(name, address(stakeToken));
@@ -173,8 +169,8 @@ contract IFStateMaster is Ownable {
                 closestCheckpoint.staked / 10**18;
 
         // debug
-        // console.log('user stake weight');
-        // console.log(block.number, closestCheckpoint.stakeWeight, '+', marginalAccruedStakeWeight);
+        console.log('user stake weight');
+        console.log(block.number, closestCheckpoint.stakeWeight, '+', marginalAccruedStakeWeight);
 
         // return
         return closestCheckpoint.stakeWeight + marginalAccruedStakeWeight;
@@ -249,29 +245,78 @@ contract IFStateMaster is Ownable {
         return blocksElapsed * accrualRate * staked / 10**18;
     }
 
-    // function addUserCheckpoint() internal {
-    //     // get previous checkpoint
-    //     UserCheckpoint storage prev =
-    //         userCheckpoints[trackId][msg.sender][userCheckpointCount-1];
+    function addUserCheckpoint(uint256 trackId, uint256 amount, bool addElseSub) internal {
+        // get track info
+        TrackInfo storage track = tracks[trackId];
 
-    //     // calculate blocks elapsed since checkpoint
-    //     uint256 additionalBlocks = (block.number - prev.blockNumber);
+        // get user checkpoint count
+        uint32 nCheckpoints = userCheckpointCounts[trackId][msg.sender];
+        
+        // if this is first checkpoint
+        if (nCheckpoints == 0) {
 
-    //     // calculate marginal accrued stake weight
-    //     uint256 marginalAccruedStakeWeight =
-    //         additionalBlocks * track.weightAccrualRate * prev.staked / 10**18;
+            console.log('---- adding user checkpoint', nCheckpoints, '(stake) ----');
+            console.log('block', block.number);
+            console.log('staked', amount);
+            console.log('weight', 0);
+            console.log('----');
 
-    //     // add a new checkpoint for user within this track
-    //     userCheckpoints[trackId][msg.sender][
-    //         userCheckpointCount
-    //     ] = UserCheckpoint({
-    //         blockNumber: block.number,
-    //         staked: prev.staked + amount,
-    //         stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
-    //     });
-    //
-    //      // todo: emit
-    // }
+            // add a first checkpoint for this user on this track
+            userCheckpoints[trackId][msg.sender][0] = UserCheckpoint({
+                blockNumber: block.number,
+                staked: amount,
+                stakeWeight: 0
+            });
+
+            // increment user's checkpoint count
+            userCheckpointCounts[trackId][msg.sender] = nCheckpoints+1;
+
+            // emit
+            emit AddUserCheckpoint(block.number, trackId);
+
+            return;
+        }
+
+        // get previous checkpoint
+        UserCheckpoint storage prev =
+            userCheckpoints[trackId][msg.sender][nCheckpoints-1];
+
+        // calculate blocks elapsed since checkpoint
+        uint256 additionalBlocks = (block.number - prev.blockNumber);
+
+        // calculate marginal accrued stake weight
+        uint256 marginalAccruedStakeWeight =
+            additionalBlocks * track.weightAccrualRate * prev.staked / 10**18;
+
+        // add a new checkpoint for user within this track
+        if (addElseSub) {
+            // add amount
+            userCheckpoints[trackId][msg.sender][nCheckpoints] = UserCheckpoint({
+                blockNumber: block.number,
+                staked: prev.staked + amount,
+                stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
+            });
+        } else {
+            // sub amount
+            userCheckpoints[trackId][msg.sender][nCheckpoints] = UserCheckpoint({
+                blockNumber: block.number,
+                staked: prev.staked - amount,
+                stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
+            });
+        }
+
+        console.log('---- adding user checkpoint', nCheckpoints, '(stake) ----');
+        console.log('block', block.number);
+        console.log('staked', prev.staked, '+', amount);
+        console.log('weight', prev.stakeWeight, addElseSub?'+':'-', marginalAccruedStakeWeight);
+        console.log('----');
+    
+        // increment user's checkpoint count
+        userCheckpointCounts[trackId][msg.sender] = nCheckpoints+1;
+
+        // emit
+        emit AddUserCheckpoint(block.number, trackId);
+    }
 
     function addTrackCheckpoint(uint256 trackId, uint256 amount, bool addElseSub) internal {
         // get track info
@@ -285,7 +330,7 @@ contract IFStateMaster is Ownable {
             // add a first checkpoint for this track
             trackCheckpoints[trackId][0] = TrackCheckpoint({
                 blockNumber: block.number,
-                totalStaked: 0,
+                totalStaked: amount,
                 totalStakeWeight: 0
             });
 
@@ -299,7 +344,8 @@ contract IFStateMaster is Ownable {
             console.log('total weight', 0);
             console.log('----');
 
-            // todo: emit
+            // emit
+            emit AddTrackCheckpoint(block.number, trackId);
 
             return;
         }
@@ -341,8 +387,8 @@ contract IFStateMaster is Ownable {
         // increase new track's checkpoint count by 1
         trackCheckpointCounts[trackId]++;
 
-        // todo: emit
-
+        // emit
+        emit AddTrackCheckpoint(block.number, trackId);
     }
 
     // stake
@@ -354,9 +400,6 @@ contract IFStateMaster is Ownable {
         // get track info
         TrackInfo storage track = tracks[trackId];
 
-        // get number of user's checkpoints within this track
-        uint32 userCheckpointCount = userCheckpointCounts[trackId][msg.sender];
-
         // transfer the specified amount of stake token from user to this contract
         track.stakeToken.safeTransferFrom(
             address(msg.sender),
@@ -364,52 +407,8 @@ contract IFStateMaster is Ownable {
             amount
         );
 
-        // branch depending on if this is user's first deposit
-        if (userCheckpointCount == 0) {
-            // add a new checkpoint for user within this track
-            userCheckpoints[trackId][msg.sender][
-                userCheckpointCount
-            ] = UserCheckpoint({
-                blockNumber: block.number,
-                staked: amount,
-                stakeWeight: 0
-            });
-
-            // console.log('---- adding checkpoint', userCheckpointCount, '(stake) ----');
-            // console.log('block', block.number);
-            // console.log('staked', amount);
-            // console.log('weight', 0);
-            // console.log('----');
-        } else {
-            // get previous checkpoint
-            UserCheckpoint storage prev =
-                userCheckpoints[trackId][msg.sender][userCheckpointCount-1];
-
-            // calculate blocks elapsed since checkpoint
-            uint256 additionalBlocks = (block.number - prev.blockNumber);
-
-            // calculate marginal accrued stake weight
-            uint256 marginalAccruedStakeWeight =
-                additionalBlocks * track.weightAccrualRate * prev.staked / 10**18;
-
-            // add a new checkpoint for user within this track
-            userCheckpoints[trackId][msg.sender][
-                userCheckpointCount
-            ] = UserCheckpoint({
-                blockNumber: block.number,
-                staked: prev.staked + amount,
-                stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
-            });
-
-            // console.log('---- adding checkpoint', userCheckpointCount, '(stake) ----');
-            // console.log('block', block.number);
-            // console.log('staked', prev.staked, '+', amount);
-            // console.log('weight', prev.stakeWeight, '+', marginalAccruedStakeWeight);
-            // console.log('----');
-        }
-
-        // increment user's checkpoint count
-        userCheckpointCounts[trackId][msg.sender] = userCheckpointCount+1;
+        // add user checkpoint
+        addUserCheckpoint(trackId, amount, true);
 
         // add track checkpoint
         addTrackCheckpoint(trackId, amount, true);
@@ -445,42 +444,19 @@ contract IFStateMaster is Ownable {
             revert('unstake too soon');
         }
 
+        // // todo: cannot unstake within min duration
+        // if (checkpoint.blockNumber + minDuration < block.number) {
+        //     revert('not ready to unstake');
+        // }
+
         // transfer the specified amount of stake token from this contract to user
         track.stakeToken.safeTransfer(
             address(msg.sender),
             amount
         );
 
-        // calculate blocks elapsed since checkpoint
-        uint256 additionalBlocks =
-            (block.number - checkpoint.blockNumber);
-
-        // calculate marginal accrued stake weight
-        uint256 marginalAccruedStakeWeight =
-            additionalBlocks * track.weightAccrualRate * checkpoint.staked / 10**18;
-
-        console.log('---- adding checkpoint', userCheckpointCount, '(unstake) ----');
-        console.log('block', block.number);
-        console.log('staked', checkpoint.staked, '-', amount);
-        console.log('weight', checkpoint.stakeWeight, '+', marginalAccruedStakeWeight);
-        console.log('----');
-
-        // add a new checkpoint for user within this track
-        userCheckpoints[trackId][msg.sender][
-            userCheckpointCount
-        ] = UserCheckpoint({
-            blockNumber: block.number,
-            staked: checkpoint.staked - amount,
-            stakeWeight: checkpoint.stakeWeight + marginalAccruedStakeWeight
-        });
-
-        // increment user's checkpoint count
-        userCheckpointCounts[trackId][msg.sender] = userCheckpointCount+1;
-
-        // // todo: cannot unstake within min duration
-        // if (checkpoint.blockNumber + minDuration < block.number) {
-        //     revert('not ready to unstake');
-        // }
+        // add user checkpoint
+        addUserCheckpoint(trackId, amount, true);
 
         // add track checkpoint
         addTrackCheckpoint(trackId, amount, false);
