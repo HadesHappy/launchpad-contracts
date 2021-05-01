@@ -62,14 +62,24 @@ export default describe('IF Allocation Sale', function () {
     )
   })
 
-  it('can purchase', async function () {
+  it('can pay', async function () {
     // amount to pay
     const paymentAmount = 1000000
 
+    // fast forward blocks to get to start block
+    while ((await ethers.provider.getBlockNumber()) < startBlock) {
+      mineNext()
+    }
+
     // test start block
     mineNext()
+    await PaymentToken.approve(IFAllocationSale.address, paymentAmount)
     await IFAllocationSale.purchase(paymentAmount)
 
-    // expect(.startBlock()).to.equal(startBlock)
+    // check that payment was recorded
+    mineNext()
+    expect(await IFAllocationSale.paymentReceived(owner.address)).to.equal(
+      paymentAmount
+    )
   })
 })
