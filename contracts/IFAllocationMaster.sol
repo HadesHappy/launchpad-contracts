@@ -79,13 +79,9 @@ contract IFAllocationMaster is Ownable {
         uint256 indexed trackId,
         uint256 amount
     );
-    event EmergencyUnstake(
-        address indexed user,
-        uint256 trackId,
-        uint256 amount
-    );
 
-    // entrypoint
+    // CONSTRUCTOR
+
     constructor() {}
 
     // FUNCTIONS
@@ -105,7 +101,7 @@ contract IFAllocationMaster is Ownable {
         tracks.push(
             TrackInfo({
                 name: name, // name of track
-                stakeToken: stakeToken, // token to stake (IDIA)
+                stakeToken: stakeToken, // token to stake (e.g., IDIA)
                 weightAccrualRate: _weightAccrualRate, // rate of stake weight accrual
                 saleCounter: 0 // default 0
             })
@@ -183,13 +179,13 @@ contract IFAllocationMaster is Ownable {
                 closestCheckpoint.staked) / 10**18;
 
         // debug
-        console.log('user stake weight');
-        console.log(
-            block.number,
-            closestCheckpoint.stakeWeight,
-            '+',
-            marginalAccruedStakeWeight
-        );
+        // console.log('user stake weight');
+        // console.log(
+        //     block.number,
+        //     closestCheckpoint.stakeWeight,
+        //     '+',
+        //     marginalAccruedStakeWeight
+        // );
 
         // return
         return closestCheckpoint.stakeWeight + marginalAccruedStakeWeight;
@@ -255,13 +251,13 @@ contract IFAllocationMaster is Ownable {
                 closestCheckpoint.totalStaked) / 10**18;
 
         // debug
-        console.log('total stake weight');
-        console.log(
-            block.number,
-            closestCheckpoint.totalStakeWeight,
-            '+',
-            marginalAccruedStakeWeight
-        );
+        // console.log('total stake weight');
+        // console.log(
+        //     block.number,
+        //     closestCheckpoint.totalStakeWeight,
+        //     '+',
+        //     marginalAccruedStakeWeight
+        // );
 
         // return
         return closestCheckpoint.totalStakeWeight + marginalAccruedStakeWeight;
@@ -289,15 +285,15 @@ contract IFAllocationMaster is Ownable {
 
         // if this is first checkpoint
         if (nCheckpoints == 0) {
-            console.log(
-                '---- adding user checkpoint',
-                nCheckpoints,
-                '(stake) ----'
-            );
-            console.log('block', block.number);
-            console.log('staked', amount);
-            console.log('weight', 0);
-            console.log('----');
+            // console.log(
+            //     '---- adding user checkpoint',
+            //     nCheckpoints,
+            //     '(stake) ----'
+            // );
+            // console.log('block', block.number);
+            // console.log('staked', amount);
+            // console.log('weight', 0);
+            // console.log('----');
 
             // add a first checkpoint for this user on this track
             userCheckpoints[trackId][msg.sender][0] = UserCheckpoint({
@@ -347,20 +343,20 @@ contract IFAllocationMaster is Ownable {
             });
         }
 
-        console.log(
-            '---- adding user checkpoint',
-            nCheckpoints,
-            '(stake) ----'
-        );
-        console.log('block', block.number);
-        console.log('staked', prev.staked, '+', amount);
-        console.log(
-            'weight',
-            prev.stakeWeight,
-            addElseSub ? '+' : '-',
-            marginalAccruedStakeWeight
-        );
-        console.log('----');
+        // console.log(
+        //     '---- adding user checkpoint',
+        //     nCheckpoints,
+        //     '(stake) ----'
+        // );
+        // console.log('block', block.number);
+        // console.log('staked', prev.staked, '+', amount);
+        // console.log(
+        //     'weight',
+        //     prev.stakeWeight,
+        //     addElseSub ? '+' : '-',
+        //     marginalAccruedStakeWeight
+        // );
+        // console.log('----');
 
         // increment user's checkpoint count
         userCheckpointCounts[trackId][msg.sender] = nCheckpoints + 1;
@@ -392,11 +388,11 @@ contract IFAllocationMaster is Ownable {
             // increase new track's checkpoint count by 1
             trackCheckpointCounts[trackId]++;
 
-            console.log('---- adding track checkpoint', nCheckpoints, ' ----');
-            console.log('block', block.number);
-            console.log('total staked', amount);
-            console.log('total weight', 0);
-            console.log('----');
+            // console.log('---- adding track checkpoint', nCheckpoints, ' ----');
+            // console.log('block', block.number);
+            // console.log('total staked', amount);
+            // console.log('total weight', 0);
+            // console.log('----');
 
             // emit
             emit AddTrackCheckpoint(block.number, trackId);
@@ -416,21 +412,21 @@ contract IFAllocationMaster is Ownable {
             (additionalBlocks * track.weightAccrualRate * prev.totalStaked) /
                 10**18;
 
-        console.log('---- adding track checkpoint', nCheckpoints, ' ----');
-        console.log('block', block.number);
-        console.log(
-            'total staked',
-            prev.totalStaked,
-            addElseSub ? '+' : '-',
-            amount
-        );
-        console.log(
-            'total weight',
-            prev.totalStakeWeight,
-            '+',
-            marginalAccruedStakeWeight
-        );
-        console.log('----');
+        // console.log('---- adding track checkpoint', nCheckpoints, ' ----');
+        // console.log('block', block.number);
+        // console.log(
+        //     'total staked',
+        //     prev.totalStaked,
+        //     addElseSub ? '+' : '-',
+        //     amount
+        // );
+        // console.log(
+        //     'total weight',
+        //     prev.totalStakeWeight,
+        //     '+',
+        //     marginalAccruedStakeWeight
+        // );
+        // console.log('----');
 
         // add a new checkpoint for this track
         if (addElseSub) {
@@ -524,24 +520,4 @@ contract IFAllocationMaster is Ownable {
         // emit
         emit Unstake(msg.sender, trackId, amount);
     }
-
-    // // Users may call this unstake without caring about rewards. EMERGENCY ONLY.
-    // // Accrued rewards are lost when this option is chosen.
-    // function emergencyUnstake(uint256 _trackId) external {
-    //     // get user info
-    //     SMLibrary.UserInfo storage user =
-    //         AllocationMaster.users[_trackId][msg.sender];
-    //     // get user amount
-    //     uint256 amount = user.amount;
-
-    //     // reduce recorded user amount and stake power to 0
-    //     user.amount = 0;
-    //     user.stakePower = 0;
-
-    //     // transfer out
-    //     idia.safeTransfer(address(msg.sender), amount);
-
-    //     // emit
-    //     emit EmergencyUnstake(msg.sender, _trackId, amount);
-    // }
 }

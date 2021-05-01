@@ -2,52 +2,64 @@ import '@nomiclabs/hardhat-ethers'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { mineNext } from './helpers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { Contract } from '@ethersproject/contracts'
 
 export default describe('IF Allocation Sale', function () {
-  it('all tests', async function () {
+  // vars for all tests
+  let owner: SignerWithAddress
+  let PaymentToken: Contract
+  let SaleToken: Contract
+  let IFAllocationMaster: Contract
+
+  // setup for each test
+  beforeEach(async () => {
     // get owner
-    // const [owner] = await ethers.getSigners()
+    owner = (await ethers.getSigners())[0]
 
-    // deploy test tokens (ifusd, idia)
-
+    // deploy test token
     const TestTokenFactory = await ethers.getContractFactory('TestToken')
-    const IFUSD = await TestTokenFactory.deploy(
-      'IFUSD Token',
-      'IFUSD',
-      21_000_000_000
+    PaymentToken = await TestTokenFactory.deploy(
+      'Test Payment Token',
+      'PAY',
+      '21000000000000000000000000' // 21 million * 10**18
     )
-    const IDIA = await TestTokenFactory.deploy(
-      'IDIA Token',
-      'IDIA',
-      21_000_000_000
+    SaleToken = await TestTokenFactory.deploy(
+      'Test Sale Token',
+      'SALE',
+      '21000000000000000000000000' // 21 million * 10**18
     )
 
     // deploy allocation master
     const IFAllocationMasterFactory = await ethers.getContractFactory(
       'IFAllocationMaster'
     )
-    const IFAllocationMaster = await IFAllocationMasterFactory.deploy()
+    IFAllocationMaster = await IFAllocationMasterFactory.deploy()
+  })
 
+  it('all tests', async function () {
     // launchpad parameters
-    const startBlock = 10
-    const endBlock = 20
-    const allocSnapshotBlock = 5
-    const minDeposit = '250000000000000000000000'
-    const maxDeposit = '25000000000000000000000000'
+    const salePrice = '10000000000000000000' // 10 PAY per SALE
+    const snapshotBlock = 20 // block at which to take allocation snapshot
+    const startBlock = 100 // start block of sale (inclusive)
+    const endBlock = 200 // end block of sale (inclusive)
+    const minDeposit = '250000000000000000000000' // min deposit
+    const maxDeposit = '25000000000000000000000000' // max deposit
 
     // deploy launchpad
     const IFAllocationSaleFactory = await ethers.getContractFactory(
       'IFAllocationSale'
     )
     const IFAllocationSale = await IFAllocationSaleFactory.deploy(
+      salePrice,
+      PaymentToken.address,
+      SaleToken.address,
       IFAllocationMaster.address,
+      snapshotBlock,
       startBlock,
       endBlock,
-      allocSnapshotBlock,
       minDeposit,
-      maxDeposit,
-      IFUSD.address,
-      IDIA.address
+      maxDeposit
     )
 
     // test start block
