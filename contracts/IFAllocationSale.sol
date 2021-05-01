@@ -73,13 +73,13 @@ contract IFAllocationSale is Ownable {
     // FUNCTIONS
 
     // Function for making purchase in allocation sale
-    function purchase(uint256 amount) external {
+    function purchase(uint256 paymentAmount) external {
         // sale must be active
         require(startBlock <= block.number, 'sale has not begun');
         require(block.number <= endBlock, 'sale over');
 
         // amount must be greater than 0
-        require(amount > 0, 'amount is 0');
+        require(paymentAmount > 0, 'amount is 0');
 
         // todo: make sure below allocation cap
 
@@ -87,11 +87,11 @@ contract IFAllocationSale is Ownable {
         paymentToken.safeTransferFrom(
             address(msg.sender),
             address(this),
-            amount
+            paymentAmount
         );
 
         // increase payment received amount
-        paymentReceived[msg.sender] += amount;
+        paymentReceived[msg.sender] += paymentAmount;
     }
 
     // Function for withdrawing sale token after sale end

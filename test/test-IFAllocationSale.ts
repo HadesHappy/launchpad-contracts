@@ -11,6 +11,15 @@ export default describe('IF Allocation Sale', function () {
   let PaymentToken: Contract
   let SaleToken: Contract
   let IFAllocationMaster: Contract
+  let IFAllocationSale: Contract
+
+  // launchpad parameters
+  const salePrice = '10000000000000000000' // 10 PAY per SALE
+  const snapshotBlock = 20 // block at which to take allocation snapshot
+  const startBlock = 100 // start block of sale (inclusive)
+  const endBlock = 200 // end block of sale (inclusive)
+  const minDeposit = '250000000000000000000000' // min deposit
+  const maxDeposit = '25000000000000000000000000' // max deposit
 
   // setup for each test
   beforeEach(async () => {
@@ -35,22 +44,12 @@ export default describe('IF Allocation Sale', function () {
       'IFAllocationMaster'
     )
     IFAllocationMaster = await IFAllocationMasterFactory.deploy()
-  })
-
-  it('all tests', async function () {
-    // launchpad parameters
-    const salePrice = '10000000000000000000' // 10 PAY per SALE
-    const snapshotBlock = 20 // block at which to take allocation snapshot
-    const startBlock = 100 // start block of sale (inclusive)
-    const endBlock = 200 // end block of sale (inclusive)
-    const minDeposit = '250000000000000000000000' // min deposit
-    const maxDeposit = '25000000000000000000000000' // max deposit
 
     // deploy launchpad
     const IFAllocationSaleFactory = await ethers.getContractFactory(
       'IFAllocationSale'
     )
-    const IFAllocationSale = await IFAllocationSaleFactory.deploy(
+    IFAllocationSale = await IFAllocationSaleFactory.deploy(
       salePrice,
       PaymentToken.address,
       SaleToken.address,
@@ -61,9 +60,16 @@ export default describe('IF Allocation Sale', function () {
       minDeposit,
       maxDeposit
     )
+  })
+
+  it('can purchase', async function () {
+    // amount to pay
+    const paymentAmount = 1000000
 
     // test start block
     mineNext()
-    expect(await IFAllocationSale.startBlock()).to.equal(startBlock)
+    await IFAllocationSale.purchase(paymentAmount)
+
+    // expect(.startBlock()).to.equal(startBlock)
   })
 })
