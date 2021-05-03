@@ -340,25 +340,15 @@ contract IFAllocationMaster is Ownable {
                     10**18;
 
             // add a new checkpoint for user within this track
-            if (addElseSub) {
-                // add amount
-                userCheckpoints[trackId][_msgSender()][
-                    nCheckpoints
-                ] = UserCheckpoint({
-                    blockNumber: block.number,
-                    staked: prev.staked + amount,
-                    stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
-                });
-            } else {
-                // sub amount
-                userCheckpoints[trackId][_msgSender()][
-                    nCheckpoints
-                ] = UserCheckpoint({
-                    blockNumber: block.number,
-                    staked: prev.staked - amount,
-                    stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
-                });
-            }
+            userCheckpoints[trackId][_msgSender()][
+                nCheckpoints
+            ] = UserCheckpoint({
+                blockNumber: block.number,
+                staked: addElseSub
+                    ? prev.staked + amount
+                    : prev.staked - amount,
+                stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
+            });
 
             // console.log(
             //     '---- adding user checkpoint',
