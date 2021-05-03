@@ -40,8 +40,6 @@ contract IFAllocationMaster is Ownable {
         uint256 weightAccrualRate;
         // counts number of sales within this track
         uint32 saleCounter;
-        // whether track is disabled (if true, users can no longer stake)
-        bool disabled;
     }
 
     // TRACK INFO
@@ -68,8 +66,8 @@ contract IFAllocationMaster is Ownable {
     // EVENTS
 
     event AddTrack(string indexed name, address indexed token);
-    event BumpSaleCounter(uint256 indexed trackId, uint32 newCount);
     event DisableTrack(uint256 indexed trackId);
+    event BumpSaleCounter(uint256 indexed trackId, uint32 newCount);
     event AddUserCheckpoint(
         uint256 indexed blockNumber,
         uint256 indexed trackId
@@ -108,8 +106,7 @@ contract IFAllocationMaster is Ownable {
                 name: name, // name of track
                 stakeToken: stakeToken, // token to stake (e.g., IDIA)
                 weightAccrualRate: _weightAccrualRate, // rate of stake weight accrual
-                saleCounter: 0, // default 0
-                disabled: false // default false
+                saleCounter: 0 // default 0
             })
         );
 
@@ -129,13 +126,12 @@ contract IFAllocationMaster is Ownable {
         emit BumpSaleCounter(trackId, oldCount + 1);
     }
 
-    // disables a track (cannot be undone)
+    // disables a track
     function disableTrack(uint256 trackId) public onlyOwner {
-        // disable
-        tracks[trackId].disabled = true;
+        // add a new checkpoint with `disabled` set to true
+        addTrackCheckpoint(trackId, 0, false, true);
 
-        // emit
-        emit DisableTrack(trackId);
+        // `disable track` event fired in function call above
     }
 
     // gets a user's stake weight within a track at a particular block number
@@ -328,62 +324,55 @@ contract IFAllocationMaster is Ownable {
                 staked: amount,
                 stakeWeight: 0
             });
-
-            // increment user's checkpoint count
-            userCheckpointCounts[trackId][_msgSender()] = nCheckpoints + 1;
-
-            // emit
-            emit AddUserCheckpoint(block.number, trackId);
-
-            return;
-        }
-
-        // get previous checkpoint
-        UserCheckpoint storage prev =
-            userCheckpoints[trackId][_msgSender()][nCheckpoints - 1];
-
-        // calculate blocks elapsed since checkpoint
-        uint256 additionalBlocks = (block.number - prev.blockNumber);
-
-        // calculate marginal accrued stake weight
-        uint256 marginalAccruedStakeWeight =
-            (additionalBlocks * track.weightAccrualRate * prev.staked) / 10**18;
-
-        // add a new checkpoint for user within this track
-        if (addElseSub) {
-            // add amount
-            userCheckpoints[trackId][_msgSender()][
-                nCheckpoints
-            ] = UserCheckpoint({
-                blockNumber: block.number,
-                staked: prev.staked + amount,
-                stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
-            });
         } else {
-            // sub amount
-            userCheckpoints[trackId][_msgSender()][
-                nCheckpoints
-            ] = UserCheckpoint({
-                blockNumber: block.number,
-                staked: prev.staked - amount,
-                stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
-            });
-        }
+            // get previous checkpoint
+            UserCheckpoint storage prev =
+                userCheckpoints[trackId][_msgSender()][nCheckpoints - 1];
 
-        // console.log(
-        //     '---- adding user checkpoint',
-        //     nCheckpoints,
-        //     '(stake) ----'
-        // );
-        // console.log('block', block.number);
-        // console.log('staked', prev.staked, '+', amount);
-        // console.log(
-        //     'weight',
-        //     prev.stakeWeight,
-        //     addElseSub ? '+' : '-',
-        //     marginalAccruedStakeWeight
-        // );
-        // console.log('----');
+            // calculate blocks elapsed since checkpoint
+            uint256 additionalBlocks = (block.number - prev.blockNumber);
+
+            // calculate marginal accrued stake weight
+            uint256 marginalAccruedStakeWeight =
+                (additionalBlocks * track.weightAccrualRate * prev.staked) /
+                    10**18;
+
+            // add a new checkpoint for user within this track
+            if (addElseSub) {
+                // add amount
+                userCheckpoints[trackId][_msgSender()][
+                    nCheckpoints
+                ] = UserCheckpoint({
+                    blockNumber: block.number,
+                    staked: prev.staked + amount,
+                    stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
+                });
+            } else {
+                // sub amount
+                userCheckpoints[trackId][_msgSender()][
+                    nCheckpoints
+                ] = UserCheckpoint({
+                    blockNumber: block.number,
+                    staked: prev.staked - amount,
+                    stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
+                });
+            }
+
+            // console.log(
+            //     '---- adding user checkpoint',
+            //     nCheckpoints,
+            //     '(stake) ----'
+            // );
+            // console.log('block', block.number);
+            // console.log('staked', prev.staked, '+', amount);
+            // console.log(
+            //     'weight',
+            //     prev.stakeWeight,
+            //     addElseSub ? '+' : '-',
+            //     marginalAccruedStakeWeight
+            // );
+            // console.log('----');
+        }
 
         // increment user's checkpoint count
         userCheckpointCounts[trackId][_msgSender()] = nCheckpoints + 1;
@@ -395,7 +384,8 @@ contract IFAllocationMaster is Ownable {
     function addTrackCheckpoint(
         uint256 trackId, // track number
         uint256 amount, // delta on staked amount
-        bool addElseSub // true = adding; false = subtracting
+        bool addElseSub, // true = adding; false = subtracting
+        bool disabled // whether track is disabled; cannot undo a disable
     ) internal {
         // get track info
         TrackInfo storage track = tracks[trackId];
@@ -413,80 +403,81 @@ contract IFAllocationMaster is Ownable {
                 disabled: false
             });
 
-            // increase new track's checkpoint count by 1
-            trackCheckpointCounts[trackId]++;
-
             // console.log('---- adding track checkpoint', nCheckpoints, ' ----');
             // console.log('block', block.number);
             // console.log('total staked', amount);
             // console.log('total weight', 0);
             // console.log('----');
-
-            // emit
-            emit AddTrackCheckpoint(block.number, trackId);
-
-            return;
-        }
-
-        // get previous checkpoint
-        TrackCheckpoint storage prev =
-            trackCheckpoints[trackId][nCheckpoints - 1];
-
-        // calculate blocks elapsed since checkpoint
-        uint256 additionalBlocks = (block.number - prev.blockNumber);
-
-        // calculate marginal accrued stake weight
-        uint256 marginalAccruedStakeWeight =
-            (additionalBlocks * track.weightAccrualRate * prev.totalStaked) /
-                10**18;
-
-        // console.log('---- adding track checkpoint', nCheckpoints, ' ----');
-        // console.log('block', block.number);
-        // console.log(
-        //     'total staked',
-        //     prev.totalStaked,
-        //     addElseSub ? '+' : '-',
-        //     amount
-        // );
-        // console.log(
-        //     'total weight',
-        //     prev.totalStakeWeight,
-        //     '+',
-        //     marginalAccruedStakeWeight
-        // );
-        // console.log('----');
-
-        // add a new checkpoint for this track
-        if (prev.disabled) {
-            // if previous checkpoint was disabled, then total staked can only decrease
-            require(addElseSub == false, 'disabled track can only sub');
-
-            // if previous checkpoint was disabled, stakeweight cannot increase
-            // and new checkpoint must also be disabled
-            trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
-                blockNumber: block.number,
-                totalStaked: prev.totalStaked - amount,
-                totalStakeWeight: prev.totalStakeWeight,
-                disabled: true
-            });
-        } else if (addElseSub) {
-            // add amount
-            trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
-                blockNumber: block.number,
-                totalStaked: prev.totalStaked + amount,
-                totalStakeWeight: prev.totalStakeWeight +
-                    marginalAccruedStakeWeight,
-                disabled: false
-            });
         } else {
-            // sub amount
-            trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
-                blockNumber: block.number,
-                totalStaked: prev.totalStaked - amount,
-                totalStakeWeight: prev.totalStakeWeight +
-                    marginalAccruedStakeWeight,
-                disabled: false
-            });
+            // get previous checkpoint
+            TrackCheckpoint storage prev =
+                trackCheckpoints[trackId][nCheckpoints - 1];
+
+            // calculate blocks elapsed since checkpoint
+            uint256 additionalBlocks = (block.number - prev.blockNumber);
+
+            // calculate marginal accrued stake weight
+            uint256 marginalAccruedStakeWeight =
+                (additionalBlocks *
+                    track.weightAccrualRate *
+                    prev.totalStaked) / 10**18;
+
+            // console.log('---- adding track checkpoint', nCheckpoints, ' ----');
+            // console.log('block', block.number);
+            // console.log(
+            //     'total staked',
+            //     prev.totalStaked,
+            //     addElseSub ? '+' : '-',
+            //     amount
+            // );
+            // console.log(
+            //     'total weight',
+            //     prev.totalStakeWeight,
+            //     '+',
+            //     marginalAccruedStakeWeight
+            // );
+            // console.log('----');
+
+            // add a new checkpoint for this track
+            if (prev.disabled) {
+                // if previous checkpoint was disabled, then total staked can only decrease
+                require(addElseSub == false, 'disabled track can only sub');
+                // if previous checkpoint was disabled, then disabled cannot be false going forward
+                require(disabled == true, 'cannot undo disable');
+
+                // if previous checkpoint was disabled, stakeweight cannot increase
+                // and new checkpoint must also be disabled
+                trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
+                    blockNumber: block.number,
+                    totalStaked: prev.totalStaked - amount,
+                    totalStakeWeight: prev.totalStakeWeight,
+                    disabled: true
+                });
+            } else {
+                if (addElseSub) {
+                    // add amount
+                    trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
+                        blockNumber: block.number,
+                        totalStaked: prev.totalStaked + amount,
+                        totalStakeWeight: prev.totalStakeWeight +
+                            marginalAccruedStakeWeight,
+                        disabled: disabled
+                    });
+                } else {
+                    // sub amount
+                    trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
+                        blockNumber: block.number,
+                        totalStaked: prev.totalStaked - amount,
+                        totalStakeWeight: prev.totalStakeWeight +
+                            marginalAccruedStakeWeight,
+                        disabled: disabled
+                    });
+                }
+
+                if (disabled) {
+                    emit DisableTrack(trackId);
+                }
+            }
         }
 
         // increase new track's checkpoint count by 1
@@ -504,8 +495,12 @@ contract IFAllocationMaster is Ownable {
         // get track info
         TrackInfo storage track = tracks[trackId];
 
+        // get latest track checkpoint
+        TrackCheckpoint storage checkpoint =
+            trackCheckpoints[trackId][trackCheckpointCounts[trackId]];
+
         // cannot stake into disabled track
-        require(!track.disabled, 'track is disabled');
+        require(!checkpoint.disabled, 'track is disabled');
 
         // transfer the specified amount of stake token from user to this contract
         track.stakeToken.safeTransferFrom(_msgSender(), address(this), amount);
@@ -514,7 +509,7 @@ contract IFAllocationMaster is Ownable {
         addUserCheckpoint(trackId, amount, true);
 
         // add track checkpoint
-        addTrackCheckpoint(trackId, amount, true);
+        addTrackCheckpoint(trackId, amount, true, false);
 
         // emit
         emit Stake(_msgSender(), trackId, amount);
@@ -551,7 +546,7 @@ contract IFAllocationMaster is Ownable {
         addUserCheckpoint(trackId, amount, false);
 
         // add track checkpoint
-        addTrackCheckpoint(trackId, amount, false);
+        addTrackCheckpoint(trackId, amount, false, false);
 
         // emit
         emit Unstake(_msgSender(), trackId, amount);

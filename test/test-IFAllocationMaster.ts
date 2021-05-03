@@ -70,24 +70,24 @@ export default describe('IFAllocationMaster', function () {
     expect(trackInfo.saleCounter).to.equal(1)
   })
 
-  it('can disable track', async () => {
-    // add a track
-    mineNext()
-    await IFAllocationMaster.addTrack('TEST Track', TestToken.address, 1000)
-    const trackNum = 0
+  // it('can disable track', async () => {
+  //   // add a track
+  //   mineNext()
+  //   await IFAllocationMaster.addTrack('TEST Track', TestToken.address, 1000)
+  //   const trackNum = 0
 
-    // disable track as non-owner (should fail)
-    mineNext()
-    await IFAllocationMaster.connect(nonOwner).disableTrack(trackNum)
-    mineNext()
-    expect((await IFAllocationMaster.tracks(trackNum)).disabled).to.equal(false)
+  //   // disable track as non-owner (should fail)
+  //   mineNext()
+  //   await IFAllocationMaster.connect(nonOwner).disableTrack(trackNum)
+  //   mineNext()
+  //   expect((await IFAllocationMaster.tracks(trackNum)).disabled).to.equal(false)
 
-    // disable track as owner (should work)
-    mineNext()
-    await IFAllocationMaster.disableTrack(trackNum)
-    mineNext()
-    expect((await IFAllocationMaster.tracks(trackNum)).disabled).to.equal(true)
-  })
+  //   // disable track as owner (should work)
+  //   mineNext()
+  //   await IFAllocationMaster.disableTrack(trackNum)
+  //   mineNext()
+  //   expect((await IFAllocationMaster.tracks(trackNum)).disabled).to.equal(true)
+  // })
 
   it('accrues stake weight', async () => {
     // add a track
