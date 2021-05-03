@@ -6,8 +6,8 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import 'hardhat/console.sol';
 
-// IFAllocationMaster is responsible for persisting all launchpad state between project launches
-// in order for the launches to have clean, self-enclosed, one-time-use states.
+// IFAllocationMaster is responsible for persisting all launchpad state between project token sales
+// in order for the sales to have clean, self-enclosed, one-time-use states.
 
 // IFAllocationMaster is the master of allocations. He can remember everything and he is a smart guy.
 contract IFAllocationMaster is Ownable {
@@ -131,7 +131,7 @@ contract IFAllocationMaster is Ownable {
         // add a new checkpoint with `disabled` set to true
         addTrackCheckpoint(trackId, 0, false, true);
 
-        // `disable track` event fired in function call above
+        // `disable track` event emitted in function call above
     }
 
     // gets a user's stake weight within a track at a particular block number
