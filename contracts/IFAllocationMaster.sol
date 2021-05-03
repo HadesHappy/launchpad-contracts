@@ -39,7 +39,7 @@ contract IFAllocationMaster is Ownable {
         // weight accrual rate for this track (stake weight increase per block per stake token)
         uint256 weightAccrualRate;
         // counts number of sales within this track
-        uint32 saleCounter;
+        uint24 saleCounter;
     }
 
     // TRACK INFO
@@ -117,7 +117,7 @@ contract IFAllocationMaster is Ownable {
     // bumps a track's sale counter
     function bumpSaleCounter(uint256 trackId) public onlyOwner {
         // get old count
-        uint32 oldCount = tracks[trackId].saleCounter;
+        uint24 oldCount = tracks[trackId].saleCounter;
 
         // increase sale counter
         tracks[trackId].saleCounter = oldCount + 1;
