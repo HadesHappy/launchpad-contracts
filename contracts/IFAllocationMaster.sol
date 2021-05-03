@@ -35,6 +35,8 @@ contract IFAllocationMaster is Ownable {
         uint256 totalStakeWeight;
         // whether track is disabled (once disabled, cannot undo)
         bool disabled;
+        // counts number of sales within this track
+        uint24 saleCounter;
     }
 
     // Info of each track.
@@ -45,8 +47,6 @@ contract IFAllocationMaster is Ownable {
         ERC20 stakeToken;
         // weight accrual rate for this track (stake weight increase per block per stake token)
         uint256 weightAccrualRate;
-        // counts number of sales within this track
-        uint24 saleCounter;
     }
 
     // TRACK INFO
@@ -112,8 +112,7 @@ contract IFAllocationMaster is Ownable {
             TrackInfo({
                 name: name, // name of track
                 stakeToken: stakeToken, // token to stake (e.g., IDIA)
-                weightAccrualRate: _weightAccrualRate, // rate of stake weight accrual
-                saleCounter: 0 // default 0
+                weightAccrualRate: _weightAccrualRate // rate of stake weight accrual
             })
         );
 
@@ -123,22 +122,18 @@ contract IFAllocationMaster is Ownable {
 
     // bumps a track's sale counter
     function bumpSaleCounter(uint256 trackId) public onlyOwner {
-        // get old count
-        uint24 oldCount = tracks[trackId].saleCounter;
+        // add a new checkpoint with saleCounter incremented by 1
+        addTrackCheckpoint(trackId, 0, false, false, true);
 
-        // increase sale counter
-        tracks[trackId].saleCounter = oldCount + 1;
-
-        // emit
-        emit BumpSaleCounter(trackId, oldCount + 1);
+        // `BumpSaleCounter` event emitted in function call above
     }
 
     // disables a track
     function disableTrack(uint256 trackId) public onlyOwner {
         // add a new checkpoint with `disabled` set to true
-        addTrackCheckpoint(trackId, 0, false, true);
+        addTrackCheckpoint(trackId, 0, false, true, false);
 
-        // `disable track` event emitted in function call above
+        // `DisableTrack` event emitted in function call above
     }
 
     // gets a user's stake weight within a track at a particular block number
@@ -392,7 +387,8 @@ contract IFAllocationMaster is Ownable {
         uint256 trackId, // track number
         uint256 amount, // delta on staked amount
         bool addElseSub, // true = adding; false = subtracting
-        bool disabled // whether track is disabled; cannot undo a disable
+        bool disabled, // whether track is disabled; cannot undo a disable
+        bool _bumpSaleCounter // whether to increase sale counter by 1
     ) internal {
         // get track info
         TrackInfo storage track = tracks[trackId];
@@ -407,7 +403,8 @@ contract IFAllocationMaster is Ownable {
                 blockNumber: block.number,
                 totalStaked: amount,
                 totalStakeWeight: 0,
-                disabled: false
+                disabled: disabled,
+                saleCounter: _bumpSaleCounter ? 1 : 0
             });
 
             // console.log('---- adding track checkpoint', nCheckpoints, ' ----');
@@ -458,29 +455,27 @@ contract IFAllocationMaster is Ownable {
                     blockNumber: block.number,
                     totalStaked: prev.totalStaked - amount,
                     totalStakeWeight: prev.totalStakeWeight,
-                    disabled: true
+                    disabled: true,
+                    saleCounter: prev.saleCounter
                 });
             } else {
-                if (addElseSub) {
-                    // add amount
-                    trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
-                        blockNumber: block.number,
-                        totalStaked: prev.totalStaked + amount,
-                        totalStakeWeight: prev.totalStakeWeight +
-                            marginalAccruedStakeWeight,
-                        disabled: disabled
-                    });
-                } else {
-                    // sub amount
-                    trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
-                        blockNumber: block.number,
-                        totalStaked: prev.totalStaked - amount,
-                        totalStakeWeight: prev.totalStakeWeight +
-                            marginalAccruedStakeWeight,
-                        disabled: disabled
-                    });
-                }
+                trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
+                    blockNumber: block.number,
+                    totalStaked: addElseSub
+                        ? prev.totalStaked + amount
+                        : prev.totalStaked - amount,
+                    totalStakeWeight: prev.totalStakeWeight +
+                        marginalAccruedStakeWeight,
+                    disabled: disabled,
+                    saleCounter: _bumpSaleCounter
+                        ? prev.saleCounter + 1
+                        : prev.saleCounter
+                });
 
+                // emit
+                if (_bumpSaleCounter) {
+                    emit BumpSaleCounter(trackId, prev.saleCounter + 1);
+                }
                 if (disabled) {
                     emit DisableTrack(trackId);
                 }
@@ -516,7 +511,7 @@ contract IFAllocationMaster is Ownable {
         addUserCheckpoint(trackId, amount, true);
 
         // add track checkpoint
-        addTrackCheckpoint(trackId, amount, true, false);
+        addTrackCheckpoint(trackId, amount, true, false, false);
 
         // emit
         emit Stake(_msgSender(), trackId, amount);
@@ -553,7 +548,7 @@ contract IFAllocationMaster is Ownable {
         addUserCheckpoint(trackId, amount, false);
 
         // add track checkpoint
-        addTrackCheckpoint(trackId, amount, false, false);
+        addTrackCheckpoint(trackId, amount, false, false, false);
 
         // emit
         emit Unstake(_msgSender(), trackId, amount);

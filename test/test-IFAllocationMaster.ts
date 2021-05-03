@@ -66,8 +66,15 @@ export default describe('IFAllocationMaster', function () {
     mineNext()
 
     // sale counter should update only by owner
-    const trackInfo = await IFAllocationMaster.tracks(trackNum)
-    expect(trackInfo.saleCounter).to.equal(1)
+    const nCheckpoints = await IFAllocationMaster.trackCheckpointCounts(
+      trackNum
+    )
+    const latestTrackCp = await IFAllocationMaster.trackCheckpoints(
+      trackNum,
+      nCheckpoints - 1
+    )
+    mineNext()
+    expect(latestTrackCp.saleCounter).to.equal(1) // only 1 not 2
   })
 
   it('can disable track', async () => {
