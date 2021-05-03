@@ -526,11 +526,6 @@ contract IFAllocationMaster is Ownable {
         // ensure amount <= user's current stake
         require(amount <= checkpoint.staked, 'amount > staked');
 
-        // cannot unstake within same block of stake
-        if (block.number == checkpoint.blockNumber) {
-            revert('unstake too soon');
-        }
-
         // transfer the specified amount of stake token from this contract to user
         track.stakeToken.safeTransfer(_msgSender(), amount);
 
