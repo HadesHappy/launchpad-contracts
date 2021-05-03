@@ -15,14 +15,14 @@ contract IFAllocationMaster is Ownable {
 
     // STRUCTS
 
-    // A checkpoint for marking stake amount at a given block
+    // A checkpoint for marking stake info at a given block
     struct UserCheckpoint {
         uint256 blockNumber;
         uint256 staked;
         uint256 stakeWeight;
     }
 
-    // A checkpoint for marking stake amount at a given block
+    // A checkpoint for marking stake info at a given block
     struct TrackCheckpoint {
         uint256 blockNumber;
         uint256 totalStaked;
@@ -38,7 +38,7 @@ contract IFAllocationMaster is Ownable {
         // weight accrual rate for this track (stake weight increase per block per stake token)
         uint256 weightAccrualRate;
         // counts number of sales within this track
-        uint256 saleCounter;
+        uint32 saleCounter;
     }
 
     // TRACK INFO
@@ -65,6 +65,11 @@ contract IFAllocationMaster is Ownable {
     // EVENTS
 
     event AddTrack(string indexed name, address indexed token);
+    event UpdateTrack(
+        uint256 indexed trackId,
+        uint256 _weightAccrualRate,
+        uint32 _saleCounter
+    );
     event AddUserCheckpoint(
         uint256 indexed blockNumber,
         uint256 indexed trackId
@@ -109,6 +114,20 @@ contract IFAllocationMaster is Ownable {
 
         // emit
         emit AddTrack(name, address(stakeToken));
+    }
+
+    // updates a track
+    function updateTrack(
+        uint256 trackId,
+        uint256 _weightAccrualRate,
+        uint32 _saleCounter
+    ) public onlyOwner {
+        // get track info
+        tracks[trackId].weightAccrualRate = _weightAccrualRate;
+        tracks[trackId].saleCounter = _saleCounter;
+
+        // emit
+        emit UpdateTrack(trackId, _weightAccrualRate, _saleCounter);
     }
 
     // gets a user's stake weight within a track at a particular block number

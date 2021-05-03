@@ -8,13 +8,15 @@ import { mineNext } from './helpers'
 export default describe('IFAllocationMaster', function () {
   // vars for all tests
   let owner: SignerWithAddress
+  let nonOwner: SignerWithAddress
   let TestToken: Contract
   let IFAllocationMaster: Contract
 
   // setup for each test
   beforeEach(async () => {
-    // get owner
+    // get test accounts
     owner = (await ethers.getSigners())[0]
+    nonOwner = (await ethers.getSigners())[1]
 
     // deploy test token
     const TestTokenFactory = await ethers.getContractFactory('TestToken')
@@ -47,13 +49,34 @@ export default describe('IFAllocationMaster', function () {
     expect(await IFAllocationMaster.trackCount()).to.equal(1)
   })
 
+  it('updates tracks', async () => {
+    // add a track
+    mineNext()
+    await IFAllocationMaster.addTrack('TEST Track', TestToken.address, 1000)
+
+    // update track
+    mineNext()
+    await IFAllocationMaster.updateTrack(0, 12345, 42)
+    mineNext()
+
+    // update track as non-owner (should fail)
+    mineNext()
+    await IFAllocationMaster.connect(nonOwner).updateTrack(0, 99999, 99)
+    mineNext()
+
+    // track info should update only by owner
+    const newTrackInfo = await IFAllocationMaster.tracks(0)
+    expect(newTrackInfo.weightAccrualRate).to.equal(12345)
+    expect(newTrackInfo.saleCounter).to.equal(42)
+  })
+
   it('accrues stake weight', async () => {
     // add a track
     mineNext()
     await IFAllocationMaster.addTrack(
       'TEST Track', // track name
       TestToken.address, // token
-      1000000000 // weight accrual rate
+      '1000000000' // weight accrual rate
     )
 
     const trackNum = await IFAllocationMaster.trackCount()
