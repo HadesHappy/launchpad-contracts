@@ -29,7 +29,7 @@ contract IFAllocationMaster is Ownable {
         uint256 totalStakeWeight;
     }
 
-    // Info of each pool.
+    // Info of each track.
     struct TrackInfo {
         // name of track
         string name;
@@ -39,6 +39,8 @@ contract IFAllocationMaster is Ownable {
         uint256 weightAccrualRate;
         // counts number of sales within this track
         uint32 saleCounter;
+        // whether track is disabled (if true, users can no longer stake)
+        bool disabled;
     }
 
     // TRACK INFO
@@ -65,11 +67,8 @@ contract IFAllocationMaster is Ownable {
     // EVENTS
 
     event AddTrack(string indexed name, address indexed token);
-    event UpdateTrack(
-        uint256 indexed trackId,
-        uint256 _weightAccrualRate,
-        uint32 _saleCounter
-    );
+    event BumpSaleCounter(uint256 indexed trackId, uint32 newCount);
+    event DisableTrack(uint256 indexed trackId);
     event AddUserCheckpoint(
         uint256 indexed blockNumber,
         uint256 indexed trackId
@@ -108,7 +107,8 @@ contract IFAllocationMaster is Ownable {
                 name: name, // name of track
                 stakeToken: stakeToken, // token to stake (e.g., IDIA)
                 weightAccrualRate: _weightAccrualRate, // rate of stake weight accrual
-                saleCounter: 0 // default 0
+                saleCounter: 0, // default 0
+                disabled: false // default false
             })
         );
 
@@ -116,18 +116,25 @@ contract IFAllocationMaster is Ownable {
         emit AddTrack(name, address(stakeToken));
     }
 
-    // updates a track
-    function updateTrack(
-        uint256 trackId,
-        uint256 _weightAccrualRate,
-        uint32 _saleCounter
-    ) public onlyOwner {
-        // get track info
-        tracks[trackId].weightAccrualRate = _weightAccrualRate;
-        tracks[trackId].saleCounter = _saleCounter;
+    // bumps a track's sale counter
+    function bumpSaleCounter(uint256 trackId) public onlyOwner {
+        // get old count
+        uint32 oldCount = tracks[trackId].saleCounter;
+
+        // increase sale counter
+        tracks[trackId].saleCounter = oldCount + 1;
 
         // emit
-        emit UpdateTrack(trackId, _weightAccrualRate, _saleCounter);
+        emit BumpSaleCounter(trackId, oldCount + 1);
+    }
+
+    // disables a track (cannot be undone)
+    function disableTrack(uint256 trackId) public onlyOwner {
+        // disable
+        tracks[trackId].disabled = true;
+
+        // emit
+        emit DisableTrack(trackId);
     }
 
     // gets a user's stake weight within a track at a particular block number
@@ -481,6 +488,9 @@ contract IFAllocationMaster is Ownable {
 
         // get track info
         TrackInfo storage track = tracks[trackId];
+
+        // cannot stake into disabled track
+        require(!track.disabled, 'track is disabled');
 
         // transfer the specified amount of stake token from user to this contract
         track.stakeToken.safeTransferFrom(_msgSender(), address(this), amount);

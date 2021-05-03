@@ -49,25 +49,44 @@ export default describe('IFAllocationMaster', function () {
     expect(await IFAllocationMaster.trackCount()).to.equal(1)
   })
 
-  it('updates tracks', async () => {
+  it('can bump sale counter', async () => {
     // add a track
     mineNext()
     await IFAllocationMaster.addTrack('TEST Track', TestToken.address, 1000)
+    const trackNum = 0
 
-    // update track
+    // bump sale counter
     mineNext()
-    await IFAllocationMaster.updateTrack(0, 12345, 42)
+    await IFAllocationMaster.bumpSaleCounter(trackNum)
     mineNext()
 
     // update track as non-owner (should fail)
     mineNext()
-    await IFAllocationMaster.connect(nonOwner).updateTrack(0, 99999, 99)
+    await IFAllocationMaster.connect(nonOwner).bumpSaleCounter(trackNum)
     mineNext()
 
-    // track info should update only by owner
-    const newTrackInfo = await IFAllocationMaster.tracks(0)
-    expect(newTrackInfo.weightAccrualRate).to.equal(12345)
-    expect(newTrackInfo.saleCounter).to.equal(42)
+    // sale counter should update only by owner
+    const trackInfo = await IFAllocationMaster.tracks(trackNum)
+    expect(trackInfo.saleCounter).to.equal(1)
+  })
+
+  it('can disable track', async () => {
+    // add a track
+    mineNext()
+    await IFAllocationMaster.addTrack('TEST Track', TestToken.address, 1000)
+    const trackNum = 0
+
+    // disable track as non-owner (should fail)
+    mineNext()
+    await IFAllocationMaster.connect(nonOwner).disableTrack(trackNum)
+    mineNext()
+    expect((await IFAllocationMaster.tracks(trackNum)).disabled).to.equal(false)
+
+    // disable track as owner (should work)
+    mineNext()
+    await IFAllocationMaster.disableTrack(trackNum)
+    mineNext()
+    expect((await IFAllocationMaster.tracks(trackNum)).disabled).to.equal(true)
   })
 
   it('accrues stake weight', async () => {
