@@ -17,16 +17,23 @@ contract IFAllocationMaster is Ownable {
 
     // A checkpoint for marking stake info at a given block
     struct UserCheckpoint {
+        // block number of checkpoint
         uint256 blockNumber;
+        // amount staked at checkpoint
         uint256 staked;
+        // amount of stake weight at checkpoint
         uint256 stakeWeight;
     }
 
     // A checkpoint for marking stake info at a given block
     struct TrackCheckpoint {
+        // block number of checkpoint
         uint256 blockNumber;
+        // amount staked at checkpoint
         uint256 totalStaked;
+        // amount of stake weight at checkpoint
         uint256 totalStakeWeight;
+        // whether track is disabled (once disabled, cannot undo)
         bool disabled;
     }
 
