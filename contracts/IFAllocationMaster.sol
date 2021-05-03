@@ -393,9 +393,9 @@ contract IFAllocationMaster is Ownable {
     }
 
     function addTrackCheckpoint(
-        uint256 trackId,
-        uint256 amount,
-        bool addElseSub
+        uint256 trackId, // track number
+        uint256 amount, // delta on staked amount
+        bool addElseSub // true = adding; false = subtracting
     ) internal {
         // get track info
         TrackInfo storage track = tracks[trackId];
@@ -500,7 +500,6 @@ contract IFAllocationMaster is Ownable {
     function stake(uint256 trackId, uint256 amount) external {
         // stake amount must be greater than 0
         require(amount > 0, 'amount is 0');
-        // TODO: stake amount must be <= user's limit
 
         // get track info
         TrackInfo storage track = tracks[trackId];
@@ -544,11 +543,6 @@ contract IFAllocationMaster is Ownable {
         if (block.number == checkpoint.blockNumber) {
             revert('unstake too soon');
         }
-
-        // // todo: cannot unstake within min duration
-        // if (checkpoint.blockNumber + minDuration < block.number) {
-        //     revert('not ready to unstake');
-        // }
 
         // transfer the specified amount of stake token from this contract to user
         track.stakeToken.safeTransfer(_msgSender(), amount);
