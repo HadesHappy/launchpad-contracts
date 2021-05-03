@@ -121,7 +121,7 @@ contract IFAllocationMaster is Ownable {
         require(blockNumber <= block.number, 'block # too high');
 
         // check number of checkpoints
-        uint32 nCheckpoints = userCheckpointCounts[trackId][msg.sender];
+        uint32 nCheckpoints = userCheckpointCounts[trackId][user];
         if (nCheckpoints == 0) {
             return 0;
         }
