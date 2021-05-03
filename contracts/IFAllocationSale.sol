@@ -9,6 +9,10 @@ import './IFAllocationMaster.sol';
 contract IFAllocationSale is Ownable {
     using SafeERC20 for ERC20;
 
+    // CONSTANTS
+
+    uint256 constant SALE_PRICE_DECIMALS = 10**18;
+
     // SALE STATE
 
     // amount of sale token to sell
@@ -18,9 +22,9 @@ contract IFAllocationSale is Ownable {
 
     // SALE CONSTRUCTOR PARAMS
 
-    // sale price; IMPORTANT - in units of [paymentToken / saleToken * 10**18]
+    // sale price; IMPORTANT - in units of ([paymentToken/saleToken] * SALE_PRICE_DECIMALS)
     //      for example, if selling ABC token for 10 IFUSD each, then
-    //      sale price will be 10 * 10**18 = 10_000_000_000_000_000_000
+    //      sale price will be 10 * SALE_PRICE_DECIMALS = 10_000_000_000_000_000_000
     uint256 public salePrice;
     // funder
     address public funder;
@@ -115,7 +119,7 @@ contract IFAllocationSale is Ownable {
 
         // CHECK AGAINST EXCEEDING ALLOCATION
 
-        // get user allocation as ratio (times 10**18, aka E18)
+        // get user allocation as ratio (multiply by 10**18, aka E18, for precision)
         uint256 userWeight =
             allocationMaster.getUserStakeWeight(
                 trackId,
@@ -131,7 +135,7 @@ contract IFAllocationSale is Ownable {
 
         // calculate equivalent value in payment token
         uint256 paymentTokenAllocation =
-            (saleTokenAllocationE18 * salePrice) / 10**18 / 10**18;
+            (saleTokenAllocationE18 * salePrice) / SALE_PRICE_DECIMALS / 10**18;
 
         // console.log('sale token allocation', saleTokenAllocationE18 / 10**18);
         // console.log('payment token allocation', paymentTokenAllocation);
@@ -166,9 +170,10 @@ contract IFAllocationSale is Ownable {
         uint256 payment = paymentReceived[_msgSender()];
 
         // calculate amount of sale token owed to buyer
-        uint256 saleTokenOwed = (payment * 10**18) / salePrice;
+        uint256 saleTokenOwed = (payment * SALE_PRICE_DECIMALS) / salePrice;
 
         // todo: make sure to check decimals of buy and sell tokens
+        // currently, assumes buy and sell tokens have same # of decimals
 
         // transfer owed sale token to buyer
         saleToken.safeTransfer(_msgSender(), saleTokenOwed);
