@@ -27,6 +27,7 @@ contract IFAllocationMaster is Ownable {
         uint256 blockNumber;
         uint256 totalStaked;
         uint256 totalStakeWeight;
+        bool disabled;
     }
 
     // Info of each track.
@@ -408,7 +409,8 @@ contract IFAllocationMaster is Ownable {
             trackCheckpoints[trackId][0] = TrackCheckpoint({
                 blockNumber: block.number,
                 totalStaked: amount,
-                totalStakeWeight: 0
+                totalStakeWeight: 0,
+                disabled: false
             });
 
             // increase new track's checkpoint count by 1
@@ -455,13 +457,26 @@ contract IFAllocationMaster is Ownable {
         // console.log('----');
 
         // add a new checkpoint for this track
-        if (addElseSub) {
+        if (prev.disabled) {
+            // if previous checkpoint was disabled, then total staked can only decrease
+            require(addElseSub == false, 'disabled track can only sub');
+
+            // if previous checkpoint was disabled, stakeweight cannot increase
+            // and new checkpoint must also be disabled
+            trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
+                blockNumber: block.number,
+                totalStaked: prev.totalStaked - amount,
+                totalStakeWeight: prev.totalStakeWeight,
+                disabled: true
+            });
+        } else if (addElseSub) {
             // add amount
             trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
                 blockNumber: block.number,
                 totalStaked: prev.totalStaked + amount,
                 totalStakeWeight: prev.totalStakeWeight +
-                    marginalAccruedStakeWeight
+                    marginalAccruedStakeWeight,
+                disabled: false
             });
         } else {
             // sub amount
@@ -469,7 +484,8 @@ contract IFAllocationMaster is Ownable {
                 blockNumber: block.number,
                 totalStaked: prev.totalStaked - amount,
                 totalStakeWeight: prev.totalStakeWeight +
-                    marginalAccruedStakeWeight
+                    marginalAccruedStakeWeight,
+                disabled: false
             });
         }
 
