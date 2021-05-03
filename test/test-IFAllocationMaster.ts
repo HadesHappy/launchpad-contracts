@@ -70,24 +70,34 @@ export default describe('IFAllocationMaster', function () {
     expect(trackInfo.saleCounter).to.equal(1)
   })
 
-  // it('can disable track', async () => {
-  //   // add a track
-  //   mineNext()
-  //   await IFAllocationMaster.addTrack('TEST Track', TestToken.address, 1000)
-  //   const trackNum = 0
+  it('can disable track', async () => {
+    // add a track
+    mineNext()
+    await IFAllocationMaster.addTrack('TEST Track', TestToken.address, 1000)
+    const trackNum = 0
 
-  //   // disable track as non-owner (should fail)
-  //   mineNext()
-  //   await IFAllocationMaster.connect(nonOwner).disableTrack(trackNum)
-  //   mineNext()
-  //   expect((await IFAllocationMaster.tracks(trackNum)).disabled).to.equal(false)
+    // disable track as non-owner (should fail)
+    mineNext()
+    await IFAllocationMaster.connect(nonOwner).disableTrack(trackNum)
+    mineNext()
 
-  //   // disable track as owner (should work)
-  //   mineNext()
-  //   await IFAllocationMaster.disableTrack(trackNum)
-  //   mineNext()
-  //   expect((await IFAllocationMaster.tracks(trackNum)).disabled).to.equal(true)
-  // })
+    // try to stake (should work)
+    await TestToken.approve(IFAllocationMaster.address, 100) // approve
+    await IFAllocationMaster.stake(trackNum, 100) // stake
+    mineNext()
+    expect(await TestToken.balanceOf(IFAllocationMaster.address)).to.equal(100)
+
+    // disable track as owner (should work)
+    mineNext()
+    await IFAllocationMaster.disableTrack(trackNum)
+    mineNext()
+
+    // try to stake (should not work)
+    await TestToken.approve(IFAllocationMaster.address, 5) // approve
+    await IFAllocationMaster.stake(trackNum, 5) // stake
+    mineNext()
+    expect(await TestToken.balanceOf(IFAllocationMaster.address)).to.equal(100)
+  })
 
   it('accrues stake weight', async () => {
     // add a track
