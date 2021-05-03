@@ -281,7 +281,7 @@ contract IFAllocationMaster is Ownable {
         TrackInfo storage track = tracks[trackId];
 
         // get user checkpoint count
-        uint32 nCheckpoints = userCheckpointCounts[trackId][msg.sender];
+        uint32 nCheckpoints = userCheckpointCounts[trackId][_msgSender()];
 
         // if this is first checkpoint
         if (nCheckpoints == 0) {
@@ -296,14 +296,14 @@ contract IFAllocationMaster is Ownable {
             // console.log('----');
 
             // add a first checkpoint for this user on this track
-            userCheckpoints[trackId][msg.sender][0] = UserCheckpoint({
+            userCheckpoints[trackId][_msgSender()][0] = UserCheckpoint({
                 blockNumber: block.number,
                 staked: amount,
                 stakeWeight: 0
             });
 
             // increment user's checkpoint count
-            userCheckpointCounts[trackId][msg.sender] = nCheckpoints + 1;
+            userCheckpointCounts[trackId][_msgSender()] = nCheckpoints + 1;
 
             // emit
             emit AddUserCheckpoint(block.number, trackId);
@@ -313,7 +313,7 @@ contract IFAllocationMaster is Ownable {
 
         // get previous checkpoint
         UserCheckpoint storage prev =
-            userCheckpoints[trackId][msg.sender][nCheckpoints - 1];
+            userCheckpoints[trackId][_msgSender()][nCheckpoints - 1];
 
         // calculate blocks elapsed since checkpoint
         uint256 additionalBlocks = (block.number - prev.blockNumber);
@@ -325,7 +325,7 @@ contract IFAllocationMaster is Ownable {
         // add a new checkpoint for user within this track
         if (addElseSub) {
             // add amount
-            userCheckpoints[trackId][msg.sender][
+            userCheckpoints[trackId][_msgSender()][
                 nCheckpoints
             ] = UserCheckpoint({
                 blockNumber: block.number,
@@ -334,7 +334,7 @@ contract IFAllocationMaster is Ownable {
             });
         } else {
             // sub amount
-            userCheckpoints[trackId][msg.sender][
+            userCheckpoints[trackId][_msgSender()][
                 nCheckpoints
             ] = UserCheckpoint({
                 blockNumber: block.number,
@@ -359,7 +359,7 @@ contract IFAllocationMaster is Ownable {
         // console.log('----');
 
         // increment user's checkpoint count
-        userCheckpointCounts[trackId][msg.sender] = nCheckpoints + 1;
+        userCheckpointCounts[trackId][_msgSender()] = nCheckpoints + 1;
 
         // emit
         emit AddUserCheckpoint(block.number, trackId);
@@ -464,11 +464,7 @@ contract IFAllocationMaster is Ownable {
         TrackInfo storage track = tracks[trackId];
 
         // transfer the specified amount of stake token from user to this contract
-        track.stakeToken.safeTransferFrom(
-            address(msg.sender),
-            address(this),
-            amount
-        );
+        track.stakeToken.safeTransferFrom(_msgSender(), address(this), amount);
 
         // add user checkpoint
         addUserCheckpoint(trackId, amount, true);
@@ -477,7 +473,7 @@ contract IFAllocationMaster is Ownable {
         addTrackCheckpoint(trackId, amount, true);
 
         // emit
-        emit Stake(msg.sender, trackId, amount);
+        emit Stake(_msgSender(), trackId, amount);
     }
 
     // unstake
@@ -489,11 +485,12 @@ contract IFAllocationMaster is Ownable {
         TrackInfo storage track = tracks[trackId];
 
         // get number of user's checkpoints within this track
-        uint32 userCheckpointCount = userCheckpointCounts[trackId][msg.sender];
+        uint32 userCheckpointCount =
+            userCheckpointCounts[trackId][_msgSender()];
 
         // get user's latest checkpoint
         UserCheckpoint storage checkpoint =
-            userCheckpoints[trackId][msg.sender][userCheckpointCount - 1];
+            userCheckpoints[trackId][_msgSender()][userCheckpointCount - 1];
 
         // ensure amount <= user's current stake
         require(amount <= checkpoint.staked, 'amount > staked');
@@ -509,7 +506,7 @@ contract IFAllocationMaster is Ownable {
         // }
 
         // transfer the specified amount of stake token from this contract to user
-        track.stakeToken.safeTransfer(address(msg.sender), amount);
+        track.stakeToken.safeTransfer(_msgSender(), amount);
 
         // add user checkpoint
         addUserCheckpoint(trackId, amount, false);
@@ -518,6 +515,6 @@ contract IFAllocationMaster is Ownable {
         addTrackCheckpoint(trackId, amount, false);
 
         // emit
-        emit Unstake(msg.sender, trackId, amount);
+        emit Unstake(_msgSender(), trackId, amount);
     }
 }
