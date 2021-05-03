@@ -101,7 +101,7 @@ contract IFAllocationSale is Ownable {
         saleAmount += amount;
 
         // emit
-        emit Fund(msg.sender, amount);
+        emit Fund(_msgSender(), amount);
     }
 
     // Function for making purchase in allocation sale
@@ -119,7 +119,7 @@ contract IFAllocationSale is Ownable {
         uint256 userWeight =
             allocationMaster.getUserStakeWeight(
                 trackId,
-                msg.sender,
+                _msgSender(),
                 allocSnapshotBlock
             );
         uint256 totalWeight =
@@ -138,23 +138,23 @@ contract IFAllocationSale is Ownable {
 
         // total payment received must not exceed paymentTokenAllocation
         require(
-            paymentReceived[msg.sender] + paymentAmount <=
+            paymentReceived[_msgSender()] + paymentAmount <=
                 paymentTokenAllocation,
             'exceeds allocation'
         );
 
         // transfer specified amount from user to this contract
         paymentToken.safeTransferFrom(
-            address(msg.sender),
+            address(_msgSender()),
             address(this),
             paymentAmount
         );
 
         // increase payment received amount
-        paymentReceived[msg.sender] += paymentAmount;
+        paymentReceived[_msgSender()] += paymentAmount;
 
         // emit
-        emit Purchase(msg.sender, paymentAmount);
+        emit Purchase(_msgSender(), paymentAmount);
     }
 
     // Function for withdrawing purchased sale token after sale end
@@ -163,7 +163,7 @@ contract IFAllocationSale is Ownable {
         require(endBlock < block.number, 'sale must be over');
 
         // get payment received
-        uint256 payment = paymentReceived[msg.sender];
+        uint256 payment = paymentReceived[_msgSender()];
 
         // calculate amount of sale token owed to buyer
         uint256 saleTokenOwed = (payment * 10**18) / salePrice;
@@ -171,10 +171,10 @@ contract IFAllocationSale is Ownable {
         // todo: make sure to check decimals of buy and sell tokens
 
         // transfer owed sale token to buyer
-        saleToken.safeTransfer(address(msg.sender), saleTokenOwed);
+        saleToken.safeTransfer(_msgSender(), saleTokenOwed);
 
         // emit
-        emit Withdraw(msg.sender);
+        emit Withdraw(_msgSender());
     }
 
     // Function for funder to cash in payment token
@@ -183,10 +183,10 @@ contract IFAllocationSale is Ownable {
         uint256 paymentTokenBal = paymentToken.balanceOf(address(this));
 
         // transfer all to owner
-        paymentToken.safeTransfer(address(msg.sender), paymentTokenBal);
+        paymentToken.safeTransfer(address(_msgSender()), paymentTokenBal);
 
         // emit
-        emit Cash(msg.sender, paymentTokenBal);
+        emit Cash(_msgSender(), paymentTokenBal);
     }
 
     // retrieve tokens erroneously sent in to this address
@@ -197,13 +197,13 @@ contract IFAllocationSale is Ownable {
 
         // transfer all
         ERC20(token).safeTransfer(
-            address(msg.sender),
+            _msgSender(),
             ERC20(token).balanceOf(address(this))
         );
 
         // emit
         emit EmergencyTokenRetrieve(
-            address(msg.sender),
+            _msgSender(),
             ERC20(token).balanceOf(address(this))
         );
     }
