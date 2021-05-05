@@ -75,14 +75,8 @@ contract IFAllocationMaster is Ownable {
     event AddTrack(string indexed name, address indexed token);
     event DisableTrack(uint256 indexed trackId);
     event BumpSaleCounter(uint256 indexed trackId, uint32 newCount);
-    event AddUserCheckpoint(
-        uint256 indexed blockNumber,
-        uint256 indexed trackId
-    );
-    event AddTrackCheckpoint(
-        uint256 indexed blockNumber,
-        uint256 indexed trackId
-    );
+    event AddUserCheckpoint(uint256 blockNumber, uint256 indexed trackId);
+    event AddTrackCheckpoint(uint256 blockNumber, uint256 indexed trackId);
     event Stake(address indexed user, uint256 indexed trackId, uint256 amount);
     event Unstake(
         address indexed user,
