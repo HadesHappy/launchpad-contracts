@@ -23,6 +23,8 @@ contract IFAllocationMaster is Ownable {
         uint256 staked;
         // amount of stake weight at checkpoint
         uint256 stakeWeight;
+        // number of finished sales
+        uint24 numFinishedSales;
     }
 
     // A checkpoint for marking stake info at a given block
@@ -35,8 +37,8 @@ contract IFAllocationMaster is Ownable {
         uint256 totalStakeWeight;
         // whether track is disabled (once disabled, cannot undo)
         bool disabled;
-        // counts number of sales within this track
-        uint24 saleCounter;
+        // number of finished sales
+        uint24 numFinishedSales;
     }
 
     // Info of each track. These parameters cannot be changed.
@@ -116,16 +118,16 @@ contract IFAllocationMaster is Ownable {
             0, // initialize with 0 stake
             false, // add or sub does not matter
             false, // initialize as not disabled
-            false // do not bump sale counter
+            false // do not bump finished sale counter
         );
 
         // emit
         emit AddTrack(name, address(stakeToken));
     }
 
-    // bumps a track's sale counter
+    // bumps a track's finished sale counter
     function bumpSaleCounter(uint256 trackId) public onlyOwner {
-        // add a new checkpoint with saleCounter incremented by 1
+        // add a new checkpoint with counter incremented by 1
         addTrackCheckpoint(trackId, 0, false, false, true);
 
         // `BumpSaleCounter` event emitted in function call above
@@ -296,14 +298,18 @@ contract IFAllocationMaster is Ownable {
         uint256 amount,
         bool addElseSub
     ) internal {
-        // get track info
-        TrackInfo storage track = tracks[trackId];
-
         // get user checkpoint count
-        uint32 nCheckpoints = userCheckpointCounts[trackId][_msgSender()];
+        uint32 nCheckpointsUser = userCheckpointCounts[trackId][_msgSender()];
+
+        // get track checkpoint count
+        uint32 nCheckpointsTrack = trackCheckpointCounts[trackId];
+
+        // get latest track checkpoint
+        TrackCheckpoint memory trackCp =
+            trackCheckpoints[trackId][nCheckpointsTrack - 1];
 
         // if this is first checkpoint
-        if (nCheckpoints == 0) {
+        if (nCheckpointsUser == 0) {
             // console.log(
             //     '---- adding user checkpoint',
             //     nCheckpoints,
@@ -318,12 +324,16 @@ contract IFAllocationMaster is Ownable {
             userCheckpoints[trackId][_msgSender()][0] = UserCheckpoint({
                 blockNumber: block.number,
                 staked: amount,
-                stakeWeight: 0
+                stakeWeight: 0,
+                numFinishedSales: trackCp.numFinishedSales
             });
         } else {
+            // get track info
+            TrackInfo storage track = tracks[trackId];
+
             // get previous checkpoint
             UserCheckpoint storage prev =
-                userCheckpoints[trackId][_msgSender()][nCheckpoints - 1];
+                userCheckpoints[trackId][_msgSender()][nCheckpointsUser - 1];
 
             // calculate blocks elapsed since checkpoint
             uint256 additionalBlocks = (block.number - prev.blockNumber);
@@ -335,13 +345,14 @@ contract IFAllocationMaster is Ownable {
 
             // add a new checkpoint for user within this track
             userCheckpoints[trackId][_msgSender()][
-                nCheckpoints
+                nCheckpointsUser
             ] = UserCheckpoint({
                 blockNumber: block.number,
                 staked: addElseSub
                     ? prev.staked + amount
                     : prev.staked - amount,
-                stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight
+                stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight,
+                numFinishedSales: trackCp.numFinishedSales
             });
 
             // console.log(
@@ -361,7 +372,7 @@ contract IFAllocationMaster is Ownable {
         }
 
         // increment user's checkpoint count
-        userCheckpointCounts[trackId][_msgSender()] = nCheckpoints + 1;
+        userCheckpointCounts[trackId][_msgSender()] = nCheckpointsUser + 1;
 
         // emit
         emit AddUserCheckpoint(block.number, trackId);
@@ -388,7 +399,7 @@ contract IFAllocationMaster is Ownable {
                 totalStaked: amount,
                 totalStakeWeight: 0,
                 disabled: disabled,
-                saleCounter: _bumpSaleCounter ? 1 : 0
+                numFinishedSales: _bumpSaleCounter ? 1 : 0
             });
 
             // console.log('---- adding track checkpoint', nCheckpoints, ' ----');
@@ -440,7 +451,7 @@ contract IFAllocationMaster is Ownable {
                     totalStaked: prev.totalStaked - amount,
                     totalStakeWeight: prev.totalStakeWeight,
                     disabled: true,
-                    saleCounter: prev.saleCounter
+                    numFinishedSales: prev.numFinishedSales
                 });
             } else {
                 trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
@@ -451,14 +462,14 @@ contract IFAllocationMaster is Ownable {
                     totalStakeWeight: prev.totalStakeWeight +
                         marginalAccruedStakeWeight,
                     disabled: disabled,
-                    saleCounter: _bumpSaleCounter
-                        ? prev.saleCounter + 1
-                        : prev.saleCounter
+                    numFinishedSales: _bumpSaleCounter
+                        ? prev.numFinishedSales + 1
+                        : prev.numFinishedSales
                 });
 
                 // emit
                 if (_bumpSaleCounter) {
-                    emit BumpSaleCounter(trackId, prev.saleCounter + 1);
+                    emit BumpSaleCounter(trackId, prev.numFinishedSales + 1);
                 }
                 if (disabled) {
                     emit DisableTrack(trackId);

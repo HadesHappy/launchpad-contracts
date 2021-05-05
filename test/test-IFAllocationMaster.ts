@@ -74,7 +74,7 @@ export default describe('IFAllocationMaster', function () {
       nCheckpoints - 1
     )
     mineNext()
-    expect(latestTrackCp.saleCounter).to.equal(1) // only 1 not 2
+    expect(latestTrackCp.numFinishedSales).to.equal(1) // only 1 not 2
   })
 
   it('can disable track', async () => {
