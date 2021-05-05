@@ -39,14 +39,14 @@ contract IFAllocationMaster is Ownable {
         uint24 saleCounter;
     }
 
-    // Info of each track.
+    // Info of each track. These parameters cannot be changed.
     struct TrackInfo {
         // name of track
         string name;
         // token to stake (IDIA)
         ERC20 stakeToken;
         // weight accrual rate for this track (stake weight increase per block per stake token)
-        uint256 weightAccrualRate;
+        uint80 weightAccrualRate;
     }
 
     // TRACK INFO
@@ -105,7 +105,7 @@ contract IFAllocationMaster is Ownable {
     function addTrack(
         string calldata name,
         ERC20 stakeToken,
-        uint256 _weightAccrualRate
+        uint80 _weightAccrualRate
     ) public onlyOwner {
         // add track
         tracks.push(
@@ -114,6 +114,15 @@ contract IFAllocationMaster is Ownable {
                 stakeToken: stakeToken, // token to stake (e.g., IDIA)
                 weightAccrualRate: _weightAccrualRate // rate of stake weight accrual
             })
+        );
+
+        // add first track checkpoint
+        addTrackCheckpoint(
+            tracks.length - 1, // latest track
+            0, // initialize with 0 stake
+            false, // add or sub does not matter
+            false, // initialize as not disabled
+            false // do not bump sale counter
         );
 
         // emit
@@ -286,15 +295,6 @@ contract IFAllocationMaster is Ownable {
 
         // return
         return closestCheckpoint.totalStakeWeight + marginalAccruedStakeWeight;
-    }
-
-    function getAccruedStakeWeight(
-        uint256 blocksElapsed,
-        uint256 accrualRate,
-        uint256 staked
-    ) external pure returns (uint256) {
-        // calculate marginal accrued stake weight
-        return (blocksElapsed * accrualRate * staked) / 10**18;
     }
 
     function addUserCheckpoint(
