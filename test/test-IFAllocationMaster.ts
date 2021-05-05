@@ -66,15 +66,37 @@ export default describe('IFAllocationMaster', function () {
     mineNext()
 
     // sale counter should update only by owner
-    const nCheckpoints = await IFAllocationMaster.trackCheckpointCounts(
+    const nTrackCheckpoints = await IFAllocationMaster.trackCheckpointCounts(
       trackNum
     )
     const latestTrackCp = await IFAllocationMaster.trackCheckpoints(
       trackNum,
-      nCheckpoints - 1
+      nTrackCheckpoints - 1
     )
     mineNext()
     expect(latestTrackCp.numFinishedSales).to.equal(1) // only 1 not 2
+
+    //// user checkpoint should record latest sale count
+
+    // approve
+    await TestToken.approve(IFAllocationMaster.address, '1000')
+    // stake
+    await IFAllocationMaster.stake(trackNum, '1000')
+    mineNext()
+
+    // get newly generated checkpoint info
+    const nUserCheckpoints = await IFAllocationMaster.userCheckpointCounts(
+      trackNum,
+      owner.address
+    )
+    const userCp = await IFAllocationMaster.userCheckpoints(
+      trackNum,
+      owner.address,
+      nUserCheckpoints - 1
+    )
+
+    // new user checkpoint's numFinishedSales should match
+    expect(userCp.numFinishedSales).to.equal(1)
   })
 
   it('can disable track', async () => {
@@ -166,7 +188,7 @@ export default describe('IFAllocationMaster', function () {
       // current block number
       const currBlock = await ethers.provider.getBlockNumber()
 
-      // user's staked amount
+      // get newly generated checkpoint info
       const nCheckpoints = await IFAllocationMaster.userCheckpointCounts(
         trackNum,
         owner.address
