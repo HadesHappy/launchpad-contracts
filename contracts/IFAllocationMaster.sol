@@ -52,7 +52,7 @@ contract IFAllocationMaster is Ownable {
     struct TrackInfo {
         // name of track
         string name;
-        // token to stake (IDIA)
+        // token to stake (e.g., IDIA)
         ERC20 stakeToken;
         // weight accrual rate for this track (stake weight increase per block per stake token)
         uint80 weightAccrualRate;
