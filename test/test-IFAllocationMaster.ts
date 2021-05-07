@@ -143,7 +143,7 @@ export default describe('IFAllocationMaster', function () {
     expect(await TestToken.balanceOf(IFAllocationMaster.address)).to.equal(100)
   })
 
-  it('accrues stake weight', async () => {
+  it('simulates', async () => {
     // add a track
     mineNext()
     await IFAllocationMaster.addTrack(
@@ -223,7 +223,8 @@ export default describe('IFAllocationMaster', function () {
           simulationInput[i].stakeAmount
         )
         // stake
-        await IFAllocationMaster.stake(trackNum, simulationInput[i].stakeAmount)
+        const receipt = await IFAllocationMaster.stake(trackNum, simulationInput[i].stakeAmount)
+        console.log(receipt.gasUsed)
       } else if (
         simulationInput[i].stakeAmount !== '0' &&
         simulationInput[i].stakeAmount[0] === '-'
@@ -282,11 +283,11 @@ export default describe('IFAllocationMaster', function () {
       console.log(
         'Block',
         (row.block - simStartBlock).toString(),
-        '| User stake',
+        '| User 1 stake',
         row.userStake.toString(),
-        '| User weight',
+        '| User 1 weight',
         row.userWeight.toString(),
-        '| User # sales',
+        '| User 1 cp # sales',
         row.userSaleCount.toString(),
         '| Total weight',
         row.totalWeight.toString(),
