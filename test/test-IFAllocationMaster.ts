@@ -223,8 +223,7 @@ export default describe('IFAllocationMaster', function () {
           simulationInput[i].stakeAmount
         )
         // stake
-        const receipt = await IFAllocationMaster.stake(trackNum, simulationInput[i].stakeAmount)
-        console.log(receipt.gasUsed)
+        await IFAllocationMaster.stake(trackNum, simulationInput[i].stakeAmount)
       } else if (
         simulationInput[i].stakeAmount !== '0' &&
         simulationInput[i].stakeAmount[0] === '-'
@@ -239,7 +238,13 @@ export default describe('IFAllocationMaster', function () {
       mineNext()
 
       // current block number
-      const currBlock = await ethers.provider.getBlockNumber()
+      const currBlockNum = await ethers.provider.getBlockNumber()
+
+      // current block
+      const currBlock = await ethers.provider.getBlock(currBlockNum)
+
+      // gas used
+      const gasUsed = currBlock.gasUsed
 
       // get newly generated checkpoint info
       const nUserCheckpoints = await IFAllocationMaster.userCheckpointCounts(
@@ -259,21 +264,22 @@ export default describe('IFAllocationMaster', function () {
         nTrackCheckpoints - 1
       )
 
-      // get current stake
+      // save data row
       simOutput.push({
-        block: currBlock,
+        block: currBlockNum,
         userStake: userCp.staked,
         userWeight: await IFAllocationMaster.getUserStakeWeight(
           trackNum,
           owner.address,
-          currBlock
+          currBlockNum
         ),
         userSaleCount: userCp.numFinishedSales,
         totalWeight: await IFAllocationMaster.getTotalStakeWeight(
           trackNum,
-          currBlock
+          currBlockNum
         ),
         trackSaleCount: trackCp.numFinishedSales,
+        gasUsed: gasUsed,
       })
     }
 
@@ -292,7 +298,9 @@ export default describe('IFAllocationMaster', function () {
         '| Total weight',
         row.totalWeight.toString(),
         '| Track # sales',
-        row.trackSaleCount.toString()
+        row.trackSaleCount.toString(),
+        '| Gas used',
+        row.gasUsed.toString()
       )
     })
 
