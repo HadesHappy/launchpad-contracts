@@ -42,7 +42,12 @@ export default describe('IFAllocationMaster', function () {
 
     // add a track
     mineNext()
-    await IFAllocationMaster.addTrack('TEST Track', TestToken.address, 1000)
+    await IFAllocationMaster.addTrack(
+      'TEST Track', // name
+      TestToken.address, // stake token
+      1000, // weight accrual rate
+      '200000000000000000' // passive rollover rate (20%)
+    )
 
     // num tracks should be 1
     mineNext()
@@ -52,7 +57,12 @@ export default describe('IFAllocationMaster', function () {
   it('can bump sale counter', async () => {
     // add a track
     mineNext()
-    await IFAllocationMaster.addTrack('TEST Track', TestToken.address, 1000)
+    await IFAllocationMaster.addTrack(
+      'TEST Track', // name
+      TestToken.address, // stake token
+      1000, // weight accrual rate
+      '200000000000000000' // passive rollover rate (20%)
+    )
     const trackNum = 0
 
     // bump sale counter
@@ -102,7 +112,12 @@ export default describe('IFAllocationMaster', function () {
   it('can disable track', async () => {
     // add a track
     mineNext()
-    await IFAllocationMaster.addTrack('TEST Track', TestToken.address, 1000)
+    await IFAllocationMaster.addTrack(
+      'TEST Track', // name
+      TestToken.address, // stake token
+      1000, // weight accrual rate
+      '200000000000000000' // passive rollover rate (20%)
+    )
     const trackNum = 0
 
     // disable track as non-owner (should fail)
@@ -132,9 +147,11 @@ export default describe('IFAllocationMaster', function () {
     // add a track
     mineNext()
     await IFAllocationMaster.addTrack(
-      'TEST Track', // track name
-      TestToken.address, // token
-      '1000000000' // weight accrual rate
+      'TEST Track', // name
+      TestToken.address, // stake token
+      '1000000000', // weight accrual rate
+
+      '200000000000000000' // passive rollover rate (20%)
     )
 
     const trackNum = await IFAllocationMaster.trackCount()

@@ -66,7 +66,12 @@ export default describe('IF Allocation Sale', function () {
     // add track on allocation master
     mineNext()
     mineNext()
-    await IFAllocationMaster.addTrack('IDIA track', StakeToken.address, 10)
+    await IFAllocationMaster.addTrack(
+      'IDIA track', // name
+      StakeToken.address, // stake token
+      10, // weight accrual rate
+      '200000000000000000' // passive rollover rate (20%)
+    )
 
     // get new track id
     mineNext()

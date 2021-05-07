@@ -257,9 +257,6 @@ contract IFAllocationMaster is Ownable {
         // get track info
         TrackInfo memory track = tracks[trackId];
 
-        // get track's weight accrual rate
-        uint80 weightAccrualRate = track.weightAccrualRate;
-
         // calculate stake weight given above delta
         uint256 stakeWeight;
         if (numFinishedSalesDelta == 0) {
@@ -271,7 +268,7 @@ contract IFAllocationMaster is Ownable {
             stakeWeight =
                 closestUserCheckpoint.stakeWeight +
                 (elapsedBlocks *
-                    weightAccrualRate *
+                    track.weightAccrualRate *
                     closestUserCheckpoint.staked) /
                 10**18;
 
@@ -297,7 +294,7 @@ contract IFAllocationMaster is Ownable {
                 stakeWeight =
                     stakeWeight +
                     (elapsedBlocks *
-                        weightAccrualRate *
+                        track.weightAccrualRate *
                         closestUserCheckpoint.staked) /
                     10**18;
 
@@ -320,7 +317,7 @@ contract IFAllocationMaster is Ownable {
                     ];
             stakeWeight +=
                 (remainingElapsed *
-                    weightAccrualRate *
+                    track.weightAccrualRate *
                     closestUserCheckpoint.staked) /
                 10**18;
         }
