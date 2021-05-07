@@ -23,7 +23,7 @@ contract IFAllocationMaster is Ownable {
         uint256 staked;
         // amount of stake weight at checkpoint
         uint256 stakeWeight;
-        // number of finished sales
+        // number of finished sales at time of checkpoint
         uint24 numFinishedSales;
     }
 
@@ -35,10 +35,12 @@ contract IFAllocationMaster is Ownable {
         uint256 totalStaked;
         // amount of stake weight at checkpoint
         uint256 totalStakeWeight;
+        // number of finished sales at time of checkpoint
+        uint24 numFinishedSales;
+        // record checkpoint number in struct
+        uint32 checkpointNumber;
         // whether track is disabled (once disabled, cannot undo)
         bool disabled;
-        // number of finished sales
-        uint24 numFinishedSales;
     }
 
     // Info of each track. These parameters cannot be changed.
@@ -50,6 +52,12 @@ contract IFAllocationMaster is Ownable {
         // weight accrual rate for this track (stake weight increase per block per stake token)
         uint80 weightAccrualRate;
     }
+
+    // INFO FOR FACTORING IN ROLLOVERS
+
+    // the number of checkpoints of a track -- (track, finished sale number) => block number
+    mapping(uint256 => mapping(uint24 => uint256))
+        public trackFinishedSaleBlocks;
 
     // TRACK INFO
 
@@ -127,6 +135,14 @@ contract IFAllocationMaster is Ownable {
 
     // bumps a track's finished sale counter
     function bumpSaleCounter(uint256 trackId) public onlyOwner {
+        // get number of finished sales of this track
+        uint24 nFinishedSales =
+            trackCheckpoints[trackId][trackCheckpointCounts[trackId] - 1]
+                .numFinishedSales;
+
+        // update map that tracks block numbers of finished sales
+        trackFinishedSaleBlocks[trackId][nFinishedSales] = block.number;
+
         // add a new checkpoint with counter incremented by 1
         addTrackCheckpoint(trackId, 0, false, false, true);
 
@@ -141,6 +157,59 @@ contract IFAllocationMaster is Ownable {
         // `DisableTrack` event emitted in function call above
     }
 
+    // get closest PRECEDING user checkpoint
+    function getClosestUserCheckpoint(
+        uint256 trackId,
+        address user,
+        uint256 blockNumber
+    ) private view returns (UserCheckpoint memory cp) {
+        // get total checkpoint count for user
+        uint32 nCheckpoints = userCheckpointCounts[trackId][user];
+
+        if (
+            userCheckpoints[trackId][user][nCheckpoints - 1].blockNumber <=
+            blockNumber
+        ) {
+            // First check most recent checkpoint
+
+            // return closest checkpoint
+            return userCheckpoints[trackId][user][nCheckpoints - 1];
+        } else if (
+            userCheckpoints[trackId][user][0].blockNumber > blockNumber
+        ) {
+            // Next check earliest checkpoint
+
+            // If specified block number is earlier than user's first checkpoint,
+            // return null checkpoint
+            return
+                UserCheckpoint({
+                    blockNumber: 0,
+                    staked: 0,
+                    stakeWeight: 0,
+                    numFinishedSales: 0
+                });
+        } else {
+            // binary search on checkpoints
+            uint32 lower = 0;
+            uint32 upper = nCheckpoints - 1;
+            while (upper > lower) {
+                uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
+                UserCheckpoint memory tempCp =
+                    userCheckpoints[trackId][user][center];
+                if (tempCp.blockNumber == blockNumber) {
+                    return tempCp;
+                } else if (tempCp.blockNumber < blockNumber) {
+                    lower = center;
+                } else {
+                    upper = center - 1;
+                }
+            }
+
+            // return closest checkpoint
+            return userCheckpoints[trackId][user][lower];
+        }
+    }
+
     // gets a user's stake weight within a track at a particular block number
     // logic extended from Compound COMP token `getPriorVotes` function
     function getUserStakeWeight(
@@ -150,75 +219,151 @@ contract IFAllocationMaster is Ownable {
     ) public view returns (uint256) {
         require(blockNumber <= block.number, 'block # too high');
 
-        // check number of checkpoints
-        uint32 nCheckpoints = userCheckpointCounts[trackId][user];
-        if (nCheckpoints == 0) {
+        // check number of user checkpoints
+        uint32 nUserCheckpoints = userCheckpointCounts[trackId][user];
+        if (nUserCheckpoints == 0) {
             return 0;
         }
 
-        // declare closest checkpoint
-        UserCheckpoint memory closestCheckpoint;
+        // get closest preceding user checkpoint
+        UserCheckpoint memory closestUserCheckpoint =
+            getClosestUserCheckpoint(trackId, user, blockNumber);
+
+        // check if closest preceding checkpoint was null checkpoint
+        if (closestUserCheckpoint.blockNumber == 0) {
+            return 0;
+        }
+
+        // get closest preceding track checkpoint
+        TrackCheckpoint memory closestTrackCheckpoint =
+            getClosestTrackCheckpoint(trackId, blockNumber);
+
+        // get number of finished sales between user's last checkpoint blockNumber and provided blockNumber
+        uint24 numFinishedSalesDelta =
+            closestTrackCheckpoint.numFinishedSales -
+                closestUserCheckpoint.numFinishedSales;
+
+        // get track's weight accrual rate
+        uint80 weightAccrualRate = tracks[trackId].weightAccrualRate;
+
+        // calculate stake weight given above delta
+        uint256 stakeWeight;
+        if (numFinishedSalesDelta == 0) {
+            // calculate normally without rollover decay
+
+            uint256 elapsedBlocks =
+                blockNumber - closestUserCheckpoint.blockNumber;
+
+            stakeWeight =
+                closestUserCheckpoint.stakeWeight +
+                (elapsedBlocks *
+                    weightAccrualRate *
+                    closestUserCheckpoint.staked) /
+                10**18;
+
+            return stakeWeight;
+        } else {
+            // calculate with rollover decay
+
+            // starting stakeweight
+            stakeWeight = closestUserCheckpoint.stakeWeight;
+            // current block for iteration
+            uint256 currBlock = closestUserCheckpoint.blockNumber;
+
+            // for each finished sale in between, get stake weight of that period
+            // and perform weighted sum
+            for (uint24 i = 0; i < numFinishedSalesDelta; i++) {
+                // get number of blocks passed at the current sale number
+                uint256 elapsedBlocks =
+                    trackFinishedSaleBlocks[trackId][
+                        closestUserCheckpoint.numFinishedSales + i
+                    ] - currBlock;
+
+                // update stake weight
+                stakeWeight =
+                    stakeWeight +
+                    (elapsedBlocks *
+                        weightAccrualRate *
+                        closestUserCheckpoint.staked) /
+                    10**18;
+
+                // factor in decay
+                stakeWeight = stakeWeight / 5;
+
+                // update currBlock for next round
+                currBlock = trackFinishedSaleBlocks[trackId][
+                    closestUserCheckpoint.numFinishedSales + i
+                ];
+            }
+
+            // add any remaining accrued stake weight at current finished sale count
+            uint256 remainingElapsed =
+                blockNumber -
+                    trackFinishedSaleBlocks[trackId][
+                        closestTrackCheckpoint.numFinishedSales - 1
+                    ];
+            stakeWeight +=
+                (remainingElapsed *
+                    weightAccrualRate *
+                    closestUserCheckpoint.staked) /
+                10**18;
+        }
+
+        // return
+        return stakeWeight;
+    }
+
+    // get closest PRECEDING track checkpoint
+    function getClosestTrackCheckpoint(uint256 trackId, uint256 blockNumber)
+        private
+        view
+        returns (TrackCheckpoint memory cp)
+    {
+        // get total checkpoint count for track
+        uint32 nCheckpoints = trackCheckpointCounts[trackId];
 
         if (
-            userCheckpoints[trackId][user][nCheckpoints - 1].blockNumber <=
+            trackCheckpoints[trackId][nCheckpoints - 1].blockNumber <=
             blockNumber
         ) {
             // First check most recent checkpoint
 
-            // set closest checkpoint
-            closestCheckpoint = userCheckpoints[trackId][user][
-                nCheckpoints - 1
-            ];
-        } else if (
-            userCheckpoints[trackId][user][0].blockNumber > blockNumber
-        ) {
+            // return closest checkpoint
+            return trackCheckpoints[trackId][nCheckpoints - 1];
+        } else if (trackCheckpoints[trackId][0].blockNumber > blockNumber) {
             // Next check earliest checkpoint
 
-            return 0;
+            // If specified block number is earlier than track's first checkpoint,
+            // return null checkpoint
+            return
+                TrackCheckpoint({
+                    blockNumber: 0,
+                    totalStaked: 0,
+                    totalStakeWeight: 0,
+                    disabled: false,
+                    numFinishedSales: 0,
+                    checkpointNumber: 0
+                });
         } else {
             // binary search on checkpoints
             uint32 lower = 0;
             uint32 upper = nCheckpoints - 1;
             while (upper > lower) {
                 uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
-                UserCheckpoint memory cp =
-                    userCheckpoints[trackId][user][center];
-                if (cp.blockNumber == blockNumber) {
-                    return cp.stakeWeight;
-                } else if (cp.blockNumber < blockNumber) {
+                TrackCheckpoint memory tempCp =
+                    trackCheckpoints[trackId][center];
+                if (tempCp.blockNumber == blockNumber) {
+                    return tempCp;
+                } else if (tempCp.blockNumber < blockNumber) {
                     lower = center;
                 } else {
                     upper = center - 1;
                 }
             }
 
-            // get closest checkpoint
-            closestCheckpoint = userCheckpoints[trackId][user][lower];
+            // return closest checkpoint
+            return trackCheckpoints[trackId][lower];
         }
-        // calculate blocks elapsed since checkpoint
-        uint256 additionalBlocks =
-            (blockNumber - closestCheckpoint.blockNumber);
-
-        // get track info
-        TrackInfo storage trackInfo = tracks[trackId];
-
-        // calculate marginal accrued stake weight
-        uint256 marginalAccruedStakeWeight =
-            (additionalBlocks *
-                trackInfo.weightAccrualRate *
-                closestCheckpoint.staked) / 10**18;
-
-        // debug
-        // console.log('user stake weight');
-        // console.log(
-        //     block.number,
-        //     closestCheckpoint.stakeWeight,
-        //     '+',
-        //     marginalAccruedStakeWeight
-        // );
-
-        // return
-        return closestCheckpoint.stakeWeight + marginalAccruedStakeWeight;
     }
 
     // gets total stake weight within a track at a particular block number
@@ -230,43 +375,10 @@ contract IFAllocationMaster is Ownable {
     {
         require(blockNumber <= block.number, 'block # too high');
 
-        // number of checkpoints
-        uint32 nCheckpoints = trackCheckpointCounts[trackId];
+        // get closest track checkpoint
+        TrackCheckpoint memory closestCheckpoint =
+            getClosestTrackCheckpoint(trackId, blockNumber);
 
-        // declare closest checkpoint
-        TrackCheckpoint memory closestCheckpoint;
-
-        if (
-            trackCheckpoints[trackId][nCheckpoints - 1].blockNumber <=
-            blockNumber
-        ) {
-            // First check most recent checkpoint
-
-            // set closest checkpoint
-            closestCheckpoint = trackCheckpoints[trackId][nCheckpoints - 1];
-        } else if (trackCheckpoints[trackId][0].blockNumber > blockNumber) {
-            // Next check earliest checkpoint
-
-            return 0;
-        } else {
-            // binary search on checkpoints
-            uint32 lower = 0;
-            uint32 upper = nCheckpoints - 1;
-            while (upper > lower) {
-                uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
-                TrackCheckpoint memory cp = trackCheckpoints[trackId][center];
-                if (cp.blockNumber == blockNumber) {
-                    return cp.totalStakeWeight;
-                } else if (cp.blockNumber < blockNumber) {
-                    lower = center;
-                } else {
-                    upper = center - 1;
-                }
-            }
-
-            // get closest checkpoint
-            closestCheckpoint = trackCheckpoints[trackId][lower];
-        }
         // calculate blocks elapsed since checkpoint
         uint256 additionalBlocks =
             (blockNumber - closestCheckpoint.blockNumber);
@@ -328,20 +440,9 @@ contract IFAllocationMaster is Ownable {
                 numFinishedSales: trackCp.numFinishedSales
             });
         } else {
-            // get track info
-            TrackInfo storage track = tracks[trackId];
-
             // get previous checkpoint
             UserCheckpoint storage prev =
                 userCheckpoints[trackId][_msgSender()][nCheckpointsUser - 1];
-
-            // calculate blocks elapsed since checkpoint
-            uint256 additionalBlocks = (block.number - prev.blockNumber);
-
-            // calculate marginal accrued stake weight
-            uint256 marginalAccruedStakeWeight =
-                (additionalBlocks * track.weightAccrualRate * prev.staked) /
-                    10**18;
 
             // add a new checkpoint for user within this track
             userCheckpoints[trackId][_msgSender()][
@@ -351,7 +452,11 @@ contract IFAllocationMaster is Ownable {
                 staked: addElseSub
                     ? prev.staked + amount
                     : prev.staked - amount,
-                stakeWeight: prev.stakeWeight + marginalAccruedStakeWeight,
+                stakeWeight: getUserStakeWeight(
+                    trackId,
+                    _msgSender(),
+                    block.number
+                ),
                 numFinishedSales: trackCp.numFinishedSales
             });
 
@@ -399,7 +504,8 @@ contract IFAllocationMaster is Ownable {
                 totalStaked: amount,
                 totalStakeWeight: 0,
                 disabled: disabled,
-                numFinishedSales: _bumpSaleCounter ? 1 : 0
+                numFinishedSales: _bumpSaleCounter ? 1 : 0,
+                checkpointNumber: 0
             });
 
             // console.log('---- adding track checkpoint', nCheckpoints, ' ----');
@@ -420,6 +526,15 @@ contract IFAllocationMaster is Ownable {
                 (additionalBlocks *
                     track.weightAccrualRate *
                     prev.totalStaked) / 10**18;
+
+            // calculate new stake weight
+            uint256 newStakeWeight =
+                prev.totalStakeWeight + marginalAccruedStakeWeight;
+
+            // factor in decay
+            if (_bumpSaleCounter) {
+                newStakeWeight = newStakeWeight / 5;
+            }
 
             // console.log('---- adding track checkpoint', nCheckpoints, ' ----');
             // console.log('block', block.number);
@@ -451,7 +566,8 @@ contract IFAllocationMaster is Ownable {
                     totalStaked: prev.totalStaked - amount,
                     totalStakeWeight: prev.totalStakeWeight,
                     disabled: true,
-                    numFinishedSales: prev.numFinishedSales
+                    numFinishedSales: prev.numFinishedSales,
+                    checkpointNumber: nCheckpoints
                 });
             } else {
                 trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
@@ -459,12 +575,12 @@ contract IFAllocationMaster is Ownable {
                     totalStaked: addElseSub
                         ? prev.totalStaked + amount
                         : prev.totalStaked - amount,
-                    totalStakeWeight: prev.totalStakeWeight +
-                        marginalAccruedStakeWeight,
+                    totalStakeWeight: newStakeWeight,
                     disabled: disabled,
                     numFinishedSales: _bumpSaleCounter
                         ? prev.numFinishedSales + 1
-                        : prev.numFinishedSales
+                        : prev.numFinishedSales,
+                    checkpointNumber: nCheckpoints
                 });
 
                 // emit
