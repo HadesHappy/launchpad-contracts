@@ -1,7 +1,7 @@
 import '@nomiclabs/hardhat-ethers'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import { mineNext } from './helpers'
+import { getGasUsed, mineNext } from './helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from '@ethersproject/contracts'
 
@@ -136,6 +136,11 @@ export default describe('IF Allocation Sale', function () {
     )
     await IFAllocationSale.connect(buyer).purchase(paymentAmount)
 
+    mineNext()
+
+    // gas used in purchase
+    expect((await getGasUsed()).toString()).to.equal('188563')
+
     // fast forward blocks to get to end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {
       mineNext()
@@ -145,6 +150,11 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
     await IFAllocationSale.connect(buyer).withdraw()
     mineNext()
+
+    // gas used in withdraw
+    expect((await getGasUsed()).toString()).to.equal('54387')
+
+    // expect balance to increase by fund amount
     expect(await SaleToken.balanceOf(buyer.address)).to.equal(fundAmount)
   })
 })
