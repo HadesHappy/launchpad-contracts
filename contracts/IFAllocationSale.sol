@@ -11,7 +11,8 @@ contract IFAllocationSale is Ownable {
 
     // CONSTANTS
 
-    uint256 constant SALE_PRICE_DECIMALS = 10**18;
+    // number of decimals of sale price
+    uint64 constant SALE_PRICE_DECIMALS = 10**18;
 
     // SALE STATE
 

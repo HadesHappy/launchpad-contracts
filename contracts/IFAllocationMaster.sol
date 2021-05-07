@@ -13,6 +13,11 @@ import 'hardhat/console.sol';
 contract IFAllocationMaster is Ownable {
     using SafeERC20 for ERC20;
 
+    // CONSTANTS
+
+    // number of decimals of rollover factors
+    uint64 constant ROLLOVER_FACTOR_DECIMALS = 10**18;
+
     // STRUCTS
 
     // A checkpoint for marking stake info at a given block
@@ -51,6 +56,10 @@ contract IFAllocationMaster is Ownable {
         ERC20 stakeToken;
         // weight accrual rate for this track (stake weight increase per block per stake token)
         uint80 weightAccrualRate;
+        // amount rolled over when finished sale counter increases (with decimals == ROLLOVER_FACTOR_DECIMALS)
+        // e.g., if rolling over 20% when sale finishes, then this is 0.2 * ROLLOVER_FACTOR_DECIMALS, or
+        // 200_000_000_000_000_000
+        uint64 passiveRolloverRate;
     }
 
     // INFO FOR FACTORING IN ROLLOVERS
@@ -109,14 +118,16 @@ contract IFAllocationMaster is Ownable {
     function addTrack(
         string calldata name,
         ERC20 stakeToken,
-        uint80 _weightAccrualRate
+        uint80 _weightAccrualRate,
+        uint64 _passiveRolloverRate
     ) public onlyOwner {
         // add track
         tracks.push(
             TrackInfo({
                 name: name, // name of track
                 stakeToken: stakeToken, // token to stake (e.g., IDIA)
-                weightAccrualRate: _weightAccrualRate // rate of stake weight accrual
+                weightAccrualRate: _weightAccrualRate, // rate of stake weight accrual
+                passiveRolloverRate: _passiveRolloverRate
             })
         );
 
@@ -243,8 +254,11 @@ contract IFAllocationMaster is Ownable {
             closestTrackCheckpoint.numFinishedSales -
                 closestUserCheckpoint.numFinishedSales;
 
+        // get track info
+        TrackInfo memory track = tracks[trackId];
+
         // get track's weight accrual rate
-        uint80 weightAccrualRate = tracks[trackId].weightAccrualRate;
+        uint80 weightAccrualRate = track.weightAccrualRate;
 
         // calculate stake weight given above delta
         uint256 stakeWeight;
@@ -288,7 +302,9 @@ contract IFAllocationMaster is Ownable {
                     10**18;
 
                 // factor in decay
-                stakeWeight = stakeWeight / 5;
+                stakeWeight =
+                    (stakeWeight * track.passiveRolloverRate) /
+                    ROLLOVER_FACTOR_DECIMALS;
 
                 // update currBlock for next round
                 currBlock = trackFinishedSaleBlocks[trackId][
@@ -533,7 +549,9 @@ contract IFAllocationMaster is Ownable {
 
             // factor in decay
             if (_bumpSaleCounter) {
-                newStakeWeight = newStakeWeight / 5;
+                newStakeWeight =
+                    (newStakeWeight * track.passiveRolloverRate) /
+                    ROLLOVER_FACTOR_DECIMALS;
             }
 
             // console.log('---- adding track checkpoint', nCheckpoints, ' ----');
