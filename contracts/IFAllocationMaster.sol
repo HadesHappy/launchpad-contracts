@@ -482,16 +482,6 @@ contract IFAllocationMaster is Ownable {
 
         // if this is first checkpoint
         if (nCheckpointsUser == 0) {
-            // console.log(
-            //     '---- adding user checkpoint',
-            //     nCheckpoints,
-            //     '(stake) ----'
-            // );
-            // console.log('block', block.number);
-            // console.log('staked', amount);
-            // console.log('weight', 0);
-            // console.log('----');
-
             // add a first checkpoint for this user on this track
             userCheckpoints[trackId][_msgSender()][0] = UserCheckpoint({
                 blockNumber: uint80(block.number),
@@ -505,8 +495,7 @@ contract IFAllocationMaster is Ownable {
                 userCheckpoints[trackId][_msgSender()][nCheckpointsUser - 1];
 
             // ensure block number downcast to uint80 is monotonically increasing (prevent overflow)
-            // this should never happen within the lifetime of the universe
-            // however, if it does, this prevents a catastrophe; also, allocation must then be redeployed
+            // this should never happen within the lifetime of the universe, but if it does, this prevents a catastrophe
             require(
                 prev.blockNumber <= uint80(block.number),
                 'block # overflow'
@@ -559,20 +548,13 @@ contract IFAllocationMaster is Ownable {
                 disabled: disabled,
                 numFinishedSales: _bumpSaleCounter ? 1 : 0
             });
-
-            // console.log('---- adding track checkpoint', nCheckpoints, ' ----');
-            // console.log('block', block.number);
-            // console.log('total staked', amount);
-            // console.log('total weight', 0);
-            // console.log('----');
         } else {
             // get previous checkpoint
             TrackCheckpoint storage prev =
                 trackCheckpoints[trackId][nCheckpoints - 1];
 
             // ensure block number downcast to uint80 is monotonically increasing (prevent overflow)
-            // this should never happen within the lifetime of the universe
-            // however, if it does, this prevents a catastrophe; also, allocation must then be redeployed
+            // this should never happen within the lifetime of the universe, but if it does, this prevents a catastrophe
             require(
                 prev.blockNumber <= uint80(block.number),
                 'block # overflow'
