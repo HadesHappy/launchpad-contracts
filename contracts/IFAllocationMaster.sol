@@ -67,17 +67,17 @@ contract IFAllocationMaster is Ownable {
     // INFO FOR FACTORING IN ROLLOVERS
 
     // the number of checkpoints of a track -- (track, finished sale count) => block number
-    mapping(uint256 => mapping(uint24 => uint256))
+    mapping(uint24 => mapping(uint24 => uint256))
         public trackFinishedSaleBlocks;
 
     // amount each user actively rolls over for a given track and a finished sale count
     // (track, user, finished sale count) => amount of stake weight
-    mapping(uint256 => mapping(address => mapping(uint24 => uint256)))
+    mapping(uint24 => mapping(address => mapping(uint24 => uint256)))
         public trackActiveRollOvers;
 
     // total amount actively rolled over for a given track and a finished sale count
     // (track, finished sale count) => total amount of stake weight
-    mapping(uint256 => mapping(uint24 => uint256))
+    mapping(uint24 => mapping(uint24 => uint256))
         public trackTotalActiveRollOvers;
 
     // TRACK INFO
@@ -86,34 +86,30 @@ contract IFAllocationMaster is Ownable {
     TrackInfo[] public tracks;
 
     // the number of checkpoints of a track -- (track) => checkpoint count
-    mapping(uint256 => uint32) public trackCheckpointCounts;
+    mapping(uint24 => uint32) public trackCheckpointCounts;
 
     // track checkpoint mapping -- (track, checkpoint number) => TrackCheckpoint
-    mapping(uint256 => mapping(uint32 => TrackCheckpoint))
+    mapping(uint24 => mapping(uint32 => TrackCheckpoint))
         public trackCheckpoints;
 
     // USER INFO
 
     // the number of checkpoints of a user for a track -- (track, user address) => checkpoint count
-    mapping(uint256 => mapping(address => uint32)) public userCheckpointCounts;
+    mapping(uint24 => mapping(address => uint32)) public userCheckpointCounts;
 
     // user checkpoint mapping -- (track, user address, checkpoint number) => UserCheckpoint
-    mapping(uint256 => mapping(address => mapping(uint32 => UserCheckpoint)))
+    mapping(uint24 => mapping(address => mapping(uint32 => UserCheckpoint)))
         public userCheckpoints;
 
     // EVENTS
 
     event AddTrack(string indexed name, address indexed token);
-    event DisableTrack(uint256 indexed trackId);
-    event BumpSaleCounter(uint256 indexed trackId, uint32 newCount);
-    event AddUserCheckpoint(uint256 blockNumber, uint256 indexed trackId);
-    event AddTrackCheckpoint(uint256 blockNumber, uint256 indexed trackId);
-    event Stake(address indexed user, uint256 indexed trackId, uint256 amount);
-    event Unstake(
-        address indexed user,
-        uint256 indexed trackId,
-        uint256 amount
-    );
+    event DisableTrack(uint24 indexed trackId);
+    event BumpSaleCounter(uint24 indexed trackId, uint32 newCount);
+    event AddUserCheckpoint(uint256 blockNumber, uint24 indexed trackId);
+    event AddTrackCheckpoint(uint256 blockNumber, uint24 indexed trackId);
+    event Stake(address indexed user, uint24 indexed trackId, uint256 amount);
+    event Unstake(address indexed user, uint24 indexed trackId, uint256 amount);
 
     // CONSTRUCTOR
 
@@ -122,8 +118,8 @@ contract IFAllocationMaster is Ownable {
     // FUNCTIONS
 
     // number of tracks
-    function trackCount() external view returns (uint256) {
-        return tracks.length;
+    function trackCount() external view returns (uint24) {
+        return uint24(tracks.length);
     }
 
     // adds a new track
@@ -147,7 +143,7 @@ contract IFAllocationMaster is Ownable {
 
         // add first track checkpoint
         addTrackCheckpoint(
-            tracks.length - 1, // latest track
+            uint24(tracks.length - 1), // latest track
             0, // initialize with 0 stake
             false, // add or sub does not matter
             false, // initialize as not disabled
@@ -159,7 +155,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // bumps a track's finished sale counter
-    function bumpSaleCounter(uint256 trackId) public onlyOwner {
+    function bumpSaleCounter(uint24 trackId) public onlyOwner {
         // get number of finished sales of this track
         uint24 nFinishedSales =
             trackCheckpoints[trackId][trackCheckpointCounts[trackId] - 1]
@@ -175,7 +171,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // disables a track
-    function disableTrack(uint256 trackId) public onlyOwner {
+    function disableTrack(uint24 trackId) public onlyOwner {
         // add a new checkpoint with `disabled` set to true
         addTrackCheckpoint(trackId, 0, false, true, false);
 
@@ -183,7 +179,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // perform active rollover
-    function activeRollOver(uint256 trackId) public {
+    function activeRollOver(uint24 trackId) public {
         // add new user checkpoint
         addUserCheckpoint(trackId, 0, false);
 
@@ -211,7 +207,7 @@ contract IFAllocationMaster is Ownable {
 
     // get closest PRECEDING user checkpoint
     function getClosestUserCheckpoint(
-        uint256 trackId,
+        uint24 trackId,
         address user,
         uint256 blockNumber
     ) private view returns (UserCheckpoint memory cp) {
@@ -265,7 +261,7 @@ contract IFAllocationMaster is Ownable {
     // gets a user's stake weight within a track at a particular block number
     // logic extended from Compound COMP token `getPriorVotes` function
     function getUserStakeWeight(
-        uint256 trackId,
+        uint24 trackId,
         address user,
         uint256 blockNumber
     ) public view returns (uint256) {
@@ -379,7 +375,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // get closest PRECEDING track checkpoint
-    function getClosestTrackCheckpoint(uint256 trackId, uint256 blockNumber)
+    function getClosestTrackCheckpoint(uint24 trackId, uint256 blockNumber)
         private
         view
         returns (TrackCheckpoint memory cp)
@@ -433,7 +429,7 @@ contract IFAllocationMaster is Ownable {
 
     // gets total stake weight within a track at a particular block number
     // logic extended from Compound COMP token `getPriorVotes` function
-    function getTotalStakeWeight(uint256 trackId, uint256 blockNumber)
+    function getTotalStakeWeight(uint24 trackId, uint256 blockNumber)
         public
         view
         returns (uint256)
@@ -471,7 +467,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     function addUserCheckpoint(
-        uint256 trackId,
+        uint24 trackId,
         uint256 amount,
         bool addElseSub
     ) internal {
@@ -549,7 +545,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     function addTrackCheckpoint(
-        uint256 trackId, // track number
+        uint24 trackId, // track number
         uint256 amount, // delta on staked amount
         bool addElseSub, // true = adding; false = subtracting
         bool disabled, // whether track is disabled; cannot undo a disable
@@ -677,7 +673,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // stake
-    function stake(uint256 trackId, uint256 amount) external {
+    function stake(uint24 trackId, uint256 amount) external {
         // stake amount must be greater than 0
         require(amount > 0, 'amount is 0');
 
@@ -705,7 +701,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // unstake
-    function unstake(uint256 trackId, uint256 amount) external {
+    function unstake(uint24 trackId, uint256 amount) external {
         // amount must be greater than 0
         require(amount > 0, 'amount is 0');
 
