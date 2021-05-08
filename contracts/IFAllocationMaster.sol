@@ -42,8 +42,6 @@ contract IFAllocationMaster is Ownable {
         uint104 totalStakeWeight;
         // number of finished sales at time of checkpoint
         uint24 numFinishedSales;
-        // record checkpoint number in struct
-        uint32 checkpointNumber;
         // whether track is disabled (once disabled, cannot undo)
         bool disabled;
     }
@@ -67,8 +65,7 @@ contract IFAllocationMaster is Ownable {
     // INFO FOR FACTORING IN ROLLOVERS
 
     // the number of checkpoints of a track -- (track, finished sale count) => block number
-    mapping(uint24 => mapping(uint24 => uint80))
-        public trackFinishedSaleBlocks;
+    mapping(uint24 => mapping(uint24 => uint80)) public trackFinishedSaleBlocks;
 
     // stake weight each user actively rolls over for a given track and a finished sale count
     // (track, user, finished sale count) => amount of stake weight
@@ -162,9 +159,7 @@ contract IFAllocationMaster is Ownable {
                 .numFinishedSales;
 
         // update map that tracks block numbers of finished sales
-        trackFinishedSaleBlocks[trackId][nFinishedSales] = uint80(
-            block.number
-        );
+        trackFinishedSaleBlocks[trackId][nFinishedSales] = uint80(block.number);
 
         // add a new checkpoint with counter incremented by 1
         addTrackCheckpoint(trackId, 0, false, false, true);
@@ -404,8 +399,7 @@ contract IFAllocationMaster is Ownable {
                     totalStaked: 0,
                     totalStakeWeight: 0,
                     disabled: false,
-                    numFinishedSales: 0,
-                    checkpointNumber: 0
+                    numFinishedSales: 0
                 });
         } else {
             // binary search on checkpoints
@@ -443,8 +437,7 @@ contract IFAllocationMaster is Ownable {
             getClosestTrackCheckpoint(trackId, blockNumber);
 
         // calculate blocks elapsed since checkpoint
-        uint80 additionalBlocks =
-            (blockNumber - closestCheckpoint.blockNumber);
+        uint80 additionalBlocks = (blockNumber - closestCheckpoint.blockNumber);
 
         // get track info
         TrackInfo storage trackInfo = tracks[trackId];
@@ -575,8 +568,7 @@ contract IFAllocationMaster is Ownable {
                 totalStaked: amount,
                 totalStakeWeight: 0,
                 disabled: disabled,
-                numFinishedSales: _bumpSaleCounter ? 1 : 0,
-                checkpointNumber: 0
+                numFinishedSales: _bumpSaleCounter ? 1 : 0
             });
 
             // console.log('---- adding track checkpoint', nCheckpoints, ' ----');
@@ -598,8 +590,7 @@ contract IFAllocationMaster is Ownable {
             );
 
             // calculate blocks elapsed since checkpoint
-            uint80 additionalBlocks =
-                (uint80(block.number) - prev.blockNumber);
+            uint80 additionalBlocks = (uint80(block.number) - prev.blockNumber);
 
             // calculate marginal accrued stake weight
             uint104 marginalAccruedStakeWeight =
@@ -657,8 +648,7 @@ contract IFAllocationMaster is Ownable {
                     totalStaked: prev.totalStaked - amount,
                     totalStakeWeight: prev.totalStakeWeight,
                     disabled: true,
-                    numFinishedSales: prev.numFinishedSales,
-                    checkpointNumber: nCheckpoints
+                    numFinishedSales: prev.numFinishedSales
                 });
             } else {
                 trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
@@ -670,8 +660,7 @@ contract IFAllocationMaster is Ownable {
                     disabled: disabled,
                     numFinishedSales: _bumpSaleCounter
                         ? prev.numFinishedSales + 1
-                        : prev.numFinishedSales,
-                    checkpointNumber: nCheckpoints
+                        : prev.numFinishedSales
                 });
 
                 // emit
