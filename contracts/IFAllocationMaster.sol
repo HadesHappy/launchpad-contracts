@@ -102,11 +102,12 @@ contract IFAllocationMaster is Ownable {
 
     event AddTrack(string indexed name, address indexed token);
     event DisableTrack(uint24 indexed trackId);
+    event ActiveRollOver(uint24 indexed trackId, address indexed user);
     event BumpSaleCounter(uint24 indexed trackId, uint32 newCount);
-    event AddUserCheckpoint(uint80 blockNumber, uint24 indexed trackId);
-    event AddTrackCheckpoint(uint80 blockNumber, uint24 indexed trackId);
-    event Stake(address indexed user, uint24 indexed trackId, uint104 amount);
-    event Unstake(address indexed user, uint24 indexed trackId, uint104 amount);
+    event AddUserCheckpoint(uint24 indexed trackId, uint80 blockNumber);
+    event AddTrackCheckpoint(uint24 indexed trackId, uint80 blockNumber);
+    event Stake(uint24 indexed trackId, address indexed user, uint104 amount);
+    event Unstake(uint24 indexed trackId, address indexed user, uint104 amount);
 
     // CONSTRUCTOR
 
@@ -200,6 +201,9 @@ contract IFAllocationMaster is Ownable {
 
         // add new user rollover amount to total
         trackTotalActiveRollOvers[trackId][saleCount] += userCp.stakeWeight;
+
+        // emit
+        emit ActiveRollOver(trackId, _msgSender());
     }
 
     // get closest PRECEDING user checkpoint
@@ -544,7 +548,7 @@ contract IFAllocationMaster is Ownable {
         userCheckpointCounts[trackId][_msgSender()] = nCheckpointsUser + 1;
 
         // emit
-        emit AddUserCheckpoint(uint80(block.number), trackId);
+        emit AddUserCheckpoint(trackId, uint80(block.number));
     }
 
     function addTrackCheckpoint(
@@ -677,7 +681,7 @@ contract IFAllocationMaster is Ownable {
         trackCheckpointCounts[trackId]++;
 
         // emit
-        emit AddTrackCheckpoint(uint80(block.number), trackId);
+        emit AddTrackCheckpoint(trackId, uint80(block.number));
     }
 
     // stake
@@ -705,7 +709,7 @@ contract IFAllocationMaster is Ownable {
         addTrackCheckpoint(trackId, amount, true, false, false);
 
         // emit
-        emit Stake(_msgSender(), trackId, amount);
+        emit Stake(trackId, _msgSender(), amount);
     }
 
     // unstake
@@ -737,6 +741,6 @@ contract IFAllocationMaster is Ownable {
         addTrackCheckpoint(trackId, amount, false, false, false);
 
         // emit
-        emit Unstake(_msgSender(), trackId, amount);
+        emit Unstake(trackId, _msgSender(), amount);
     }
 }
