@@ -507,6 +507,14 @@ contract IFAllocationMaster is Ownable {
             UserCheckpoint storage prev =
                 userCheckpoints[trackId][_msgSender()][nCheckpointsUser - 1];
 
+            // ensure block number downcast to uint128 is monotonically increasing (prevent overflow)
+            // this should never happen within the lifetime of the universe
+            // however, if it does, this prevents a catastrophe; also, allocation must then be redeployed
+            require(
+                prev.blockNumber <= uint128(block.number),
+                'block # overflow'
+            );
+
             // add a new checkpoint for user within this track
             userCheckpoints[trackId][_msgSender()][
                 nCheckpointsUser
@@ -580,6 +588,14 @@ contract IFAllocationMaster is Ownable {
             // get previous checkpoint
             TrackCheckpoint storage prev =
                 trackCheckpoints[trackId][nCheckpoints - 1];
+
+            // ensure block number downcast to uint128 is monotonically increasing (prevent overflow)
+            // this should never happen within the lifetime of the universe
+            // however, if it does, this prevents a catastrophe; also, allocation must then be redeployed
+            require(
+                prev.blockNumber <= uint128(block.number),
+                'block # overflow'
+            );
 
             // calculate blocks elapsed since checkpoint
             uint128 additionalBlocks =
