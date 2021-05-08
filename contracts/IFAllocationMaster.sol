@@ -440,6 +440,11 @@ contract IFAllocationMaster is Ownable {
         TrackCheckpoint memory closestCheckpoint =
             getClosestTrackCheckpoint(trackId, blockNumber);
 
+        // check if closest preceding checkpoint was null checkpoint
+        if (closestCheckpoint.blockNumber == 0) {
+            return 0;
+        }
+
         // calculate blocks elapsed since checkpoint
         uint80 additionalBlocks = (blockNumber - closestCheckpoint.blockNumber);
 
