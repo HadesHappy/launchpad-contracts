@@ -140,7 +140,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in purchase
-    expect((await getGasUsed()).toString()).to.equal('187159')
+    expect((await getGasUsed()).toString()).to.equal('181761')
 
     // fast forward blocks to get to end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {

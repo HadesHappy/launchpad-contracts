@@ -25,9 +25,9 @@ contract IFAllocationMaster is Ownable {
         // block number of checkpoint
         uint256 blockNumber;
         // amount staked at checkpoint
-        uint256 staked;
+        uint104 staked;
         // amount of stake weight at checkpoint
-        uint256 stakeWeight;
+        uint104 stakeWeight;
         // number of finished sales at time of checkpoint
         uint24 numFinishedSales;
     }
@@ -37,9 +37,9 @@ contract IFAllocationMaster is Ownable {
         // block number of checkpoint
         uint256 blockNumber;
         // amount staked at checkpoint
-        uint256 totalStaked;
+        uint104 totalStaked;
         // amount of stake weight at checkpoint
-        uint256 totalStakeWeight;
+        uint104 totalStakeWeight;
         // number of finished sales at time of checkpoint
         uint24 numFinishedSales;
         // record checkpoint number in struct
@@ -70,14 +70,14 @@ contract IFAllocationMaster is Ownable {
     mapping(uint24 => mapping(uint24 => uint256))
         public trackFinishedSaleBlocks;
 
-    // amount each user actively rolls over for a given track and a finished sale count
+    // stake weight each user actively rolls over for a given track and a finished sale count
     // (track, user, finished sale count) => amount of stake weight
-    mapping(uint24 => mapping(address => mapping(uint24 => uint256)))
+    mapping(uint24 => mapping(address => mapping(uint24 => uint104)))
         public trackActiveRollOvers;
 
-    // total amount actively rolled over for a given track and a finished sale count
+    // total stake weight actively rolled over for a given track and a finished sale count
     // (track, finished sale count) => total amount of stake weight
-    mapping(uint24 => mapping(uint24 => uint256))
+    mapping(uint24 => mapping(uint24 => uint104))
         public trackTotalActiveRollOvers;
 
     // TRACK INFO
@@ -108,8 +108,8 @@ contract IFAllocationMaster is Ownable {
     event BumpSaleCounter(uint24 indexed trackId, uint32 newCount);
     event AddUserCheckpoint(uint256 blockNumber, uint24 indexed trackId);
     event AddTrackCheckpoint(uint256 blockNumber, uint24 indexed trackId);
-    event Stake(address indexed user, uint24 indexed trackId, uint256 amount);
-    event Unstake(address indexed user, uint24 indexed trackId, uint256 amount);
+    event Stake(address indexed user, uint24 indexed trackId, uint104 amount);
+    event Unstake(address indexed user, uint24 indexed trackId, uint104 amount);
 
     // CONSTRUCTOR
 
@@ -264,7 +264,7 @@ contract IFAllocationMaster is Ownable {
         uint24 trackId,
         address user,
         uint256 blockNumber
-    ) public view returns (uint256) {
+    ) public view returns (uint104) {
         require(blockNumber <= block.number, 'block # too high');
 
         // check number of user checkpoints
@@ -295,7 +295,7 @@ contract IFAllocationMaster is Ownable {
         TrackInfo memory track = tracks[trackId];
 
         // calculate stake weight given above delta
-        uint256 stakeWeight;
+        uint104 stakeWeight;
         if (numFinishedSalesDelta == 0) {
             // calculate normally without rollover decay
 
@@ -304,7 +304,7 @@ contract IFAllocationMaster is Ownable {
 
             stakeWeight =
                 closestUserCheckpoint.stakeWeight +
-                (elapsedBlocks *
+                (uint104(elapsedBlocks) *
                     track.weightAccrualRate *
                     closestUserCheckpoint.staked) /
                 10**18;
@@ -330,13 +330,13 @@ contract IFAllocationMaster is Ownable {
                 // update stake weight
                 stakeWeight =
                     stakeWeight +
-                    (elapsedBlocks *
+                    (uint104(elapsedBlocks) *
                         track.weightAccrualRate *
                         closestUserCheckpoint.staked) /
                     10**18;
 
                 // get amount of stake weight actively rolled over for this sale number
-                uint256 activeRolloverWeight =
+                uint104 activeRolloverWeight =
                     trackActiveRollOvers[trackId][user][
                         closestUserCheckpoint.numFinishedSales + i
                     ];
@@ -364,7 +364,7 @@ contract IFAllocationMaster is Ownable {
                         closestTrackCheckpoint.numFinishedSales - 1
                     ];
             stakeWeight +=
-                (remainingElapsed *
+                (uint104(remainingElapsed) *
                     track.weightAccrualRate *
                     closestUserCheckpoint.staked) /
                 10**18;
@@ -468,7 +468,7 @@ contract IFAllocationMaster is Ownable {
 
     function addUserCheckpoint(
         uint24 trackId,
-        uint256 amount,
+        uint104 amount,
         bool addElseSub
     ) internal {
         // get user checkpoint count
@@ -546,7 +546,7 @@ contract IFAllocationMaster is Ownable {
 
     function addTrackCheckpoint(
         uint24 trackId, // track number
-        uint256 amount, // delta on staked amount
+        uint104 amount, // delta on staked amount
         bool addElseSub, // true = adding; false = subtracting
         bool disabled, // whether track is disabled; cannot undo a disable
         bool _bumpSaleCounter // whether to increase sale counter by 1
@@ -583,19 +583,19 @@ contract IFAllocationMaster is Ownable {
             uint256 additionalBlocks = (block.number - prev.blockNumber);
 
             // calculate marginal accrued stake weight
-            uint256 marginalAccruedStakeWeight =
-                (additionalBlocks *
+            uint104 marginalAccruedStakeWeight =
+                (uint104(additionalBlocks) *
                     track.weightAccrualRate *
                     prev.totalStaked) / 10**18;
 
             // calculate new stake weight
-            uint256 newStakeWeight =
+            uint104 newStakeWeight =
                 prev.totalStakeWeight + marginalAccruedStakeWeight;
 
             // factor in passive and active rollover decay
             if (_bumpSaleCounter) {
                 // get total active rollover amount
-                uint256 activeRolloverWeight =
+                uint104 activeRolloverWeight =
                     trackTotalActiveRollOvers[trackId][prev.numFinishedSales];
 
                 newStakeWeight =
@@ -673,7 +673,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // stake
-    function stake(uint24 trackId, uint256 amount) external {
+    function stake(uint24 trackId, uint104 amount) external {
         // stake amount must be greater than 0
         require(amount > 0, 'amount is 0');
 
@@ -701,7 +701,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // unstake
-    function unstake(uint24 trackId, uint256 amount) external {
+    function unstake(uint24 trackId, uint104 amount) external {
         // amount must be greater than 0
         require(amount > 0, 'amount is 0');
 
