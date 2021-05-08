@@ -171,27 +171,39 @@ export default describe('IFAllocationMaster', function () {
     // how much to stake on a block-by-block basis
     const simulationInput = [
       {
-        stakeAmounts: [{ user: simUser1, amount: '1000000000' }], // 1 gwei
+        stakeAmounts: [
+          { user: simUser1, amount: '1000000000' }, // 1 gwei
+          { user: simUser2, amount: '1000000000' }, // 1 gwei
+        ],
       },
       {},
       {},
       {},
       {},
       {
-        stakeAmounts: [{ user: simUser1, amount: '50000000000' }], // 50 gwei
+        stakeAmounts: [
+          { user: simUser1, amount: '50000000000' }, // 50 gwei
+          { user: simUser2, amount: '50000000000' }, // 50 gwei
+        ],
       },
       {},
       { bumpSaleCounter: true },
       {},
       {},
       {
-        stakeAmounts: [{ user: simUser1, amount: '-50000000000' }], // -50 gwei
+        stakeAmounts: [
+          { user: simUser1, amount: '-50000000000' }, // -50 gwei
+          { user: simUser2, amount: '-50000000000' }, // -50 gwei
+        ],
       },
       {},
       {},
       {},
       {
-        stakeAmounts: [{ user: simUser1, amount: '2500000000' }], // 2.5 gwei
+        stakeAmounts: [
+          { user: simUser1, amount: '2500000000' }, // 2.5 gwei
+          { user: simUser2, amount: '2500000000' }, // 2.5 gwei
+        ],
         bumpSaleCounter: true,
       },
       { bumpSaleCounter: true },
@@ -205,7 +217,10 @@ export default describe('IFAllocationMaster', function () {
       {},
       {},
       {
-        stakeAmounts: [{ user: simUser1, amount: '500000000000' }], // 500 gwei
+        stakeAmounts: [
+          { user: simUser1, amount: '500000000000' }, // 500 gwei
+          { user: simUser2, amount: '500000000000' }, // 500 gwei
+        ],
       },
       {},
       {},
@@ -214,9 +229,12 @@ export default describe('IFAllocationMaster', function () {
       {},
       {},
       {},
-      { activeRollOvers: [simUser1] },
+      { activeRollOvers: [simUser1, simUser2] },
       {
-        stakeAmounts: [{ user: simUser1, amount: '10000000000' }], // 10 gwei
+        stakeAmounts: [
+          { user: simUser1, amount: '10000000000' },
+          { user: simUser2, amount: '10000000000' }, // 10 gwei
+        ],
       },
       {},
       {},
