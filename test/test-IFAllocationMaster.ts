@@ -46,7 +46,8 @@ export default describe('IFAllocationMaster', function () {
       'TEST Track', // name
       TestToken.address, // stake token
       1000, // weight accrual rate
-      '200000000000000000' // passive rollover rate (20%)
+      '100000000000000000', // passive rollover rate (10%)
+      '200000000000000000' // active rollover rate (20%)
     )
 
     // num tracks should be 1
@@ -61,7 +62,8 @@ export default describe('IFAllocationMaster', function () {
       'TEST Track', // name
       TestToken.address, // stake token
       1000, // weight accrual rate
-      '200000000000000000' // passive rollover rate (20%)
+      '100000000000000000', // passive rollover rate (10%)
+      '200000000000000000' // active rollover rate (20%)
     )
     const trackNum = 0
 
@@ -116,7 +118,8 @@ export default describe('IFAllocationMaster', function () {
       'TEST Track', // name
       TestToken.address, // stake token
       1000, // weight accrual rate
-      '200000000000000000' // passive rollover rate (20%)
+      '100000000000000000', // passive rollover rate (10%)
+      '200000000000000000' // active rollover rate (20%)
     )
     const trackNum = 0
 
@@ -150,8 +153,8 @@ export default describe('IFAllocationMaster', function () {
       'TEST Track', // name
       TestToken.address, // stake token
       '1000000000', // weight accrual rate
-
-      '200000000000000000' // passive rollover rate (20%)
+      '100000000000000000', // passive rollover rate (10%)
+      '200000000000000000' // active rollover rate (20%)
     )
 
     const trackNum = await IFAllocationMaster.trackCount()
@@ -193,8 +196,24 @@ export default describe('IFAllocationMaster', function () {
       { stakeAmount: '0' },
       { stakeAmount: '0' },
       {
-        stakeAmount: '50000000000', // 50 gwei
+        stakeAmount: '500000000000', // 500 gwei
       },
+      { stakeAmount: '0' },
+      { stakeAmount: '0' },
+      { stakeAmount: '0' },
+      { stakeAmount: '0', bumpSaleCounter: true },
+      { stakeAmount: '0' },
+      { stakeAmount: '0' },
+      { stakeAmount: '0' },
+      { stakeAmount: '0', activeRollOver: true },
+      { stakeAmount: '10000000000' }, // 10 gwei
+      { stakeAmount: '0' },
+      { stakeAmount: '0' },
+      { stakeAmount: '0' },
+      { stakeAmount: '0', bumpSaleCounter: true },
+      { stakeAmount: '0' },
+      { stakeAmount: '0' },
+      { stakeAmount: '0' },
       { stakeAmount: '0' },
     ]
 
@@ -207,9 +226,14 @@ export default describe('IFAllocationMaster', function () {
 
     // simulation
     for (let i = 0; i < simulationInput.length; i++) {
-      // sale counter increments over time
+      // bump sale counter if specified
       if (simulationInput[i].bumpSaleCounter) {
         await IFAllocationMaster.bumpSaleCounter(trackNum)
+      }
+
+      // perform active rollover if specified
+      if (simulationInput[i].activeRollOver) {
+        await IFAllocationMaster.activeRollOver(trackNum)
       }
 
       // owner stakes/unstakes according to stakesOverTime
@@ -289,11 +313,11 @@ export default describe('IFAllocationMaster', function () {
       console.log(
         'Block',
         (row.block - simStartBlock).toString(),
-        '| User 1 stake',
+        '| User1 stake',
         row.userStake.toString(),
-        '| User 1 weight',
+        '| User1 weight',
         row.userWeight.toString(),
-        '| User 1 cp # sales',
+        '| User1 cp # sales',
         row.userSaleCount.toString(),
         '| Total weight',
         row.totalWeight.toString(),

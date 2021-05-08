@@ -60,13 +60,25 @@ contract IFAllocationMaster is Ownable {
         // e.g., if rolling over 20% when sale finishes, then this is 0.2 * ROLLOVER_FACTOR_DECIMALS, or
         // 200_000_000_000_000_000
         uint64 passiveRolloverRate;
+        // amount rolled over when finished sale counter increases, and user actively elected to roll over
+        uint64 activeRolloverRate;
     }
 
     // INFO FOR FACTORING IN ROLLOVERS
 
-    // the number of checkpoints of a track -- (track, finished sale number) => block number
+    // the number of checkpoints of a track -- (track, finished sale count) => block number
     mapping(uint256 => mapping(uint24 => uint256))
         public trackFinishedSaleBlocks;
+
+    // amount each user actively rolls over for a given track and a finished sale count
+    // (track, user, finished sale count) => amount of stake weight
+    mapping(uint256 => mapping(address => mapping(uint24 => uint256)))
+        public trackActiveRollOvers;
+
+    // total amount actively rolled over for a given track and a finished sale count
+    // (track, finished sale count) => total amount of stake weight
+    mapping(uint256 => mapping(uint24 => uint256))
+        public trackTotalActiveRollOvers;
 
     // TRACK INFO
 
@@ -119,7 +131,8 @@ contract IFAllocationMaster is Ownable {
         string calldata name,
         ERC20 stakeToken,
         uint80 _weightAccrualRate,
-        uint64 _passiveRolloverRate
+        uint64 _passiveRolloverRate,
+        uint64 _activeRolloverRate
     ) public onlyOwner {
         // add track
         tracks.push(
@@ -127,7 +140,8 @@ contract IFAllocationMaster is Ownable {
                 name: name, // name of track
                 stakeToken: stakeToken, // token to stake (e.g., IDIA)
                 weightAccrualRate: _weightAccrualRate, // rate of stake weight accrual
-                passiveRolloverRate: _passiveRolloverRate
+                passiveRolloverRate: _passiveRolloverRate, // passive rollover
+                activeRolloverRate: _activeRolloverRate // active rollover
             })
         );
 
@@ -166,6 +180,33 @@ contract IFAllocationMaster is Ownable {
         addTrackCheckpoint(trackId, 0, false, true, false);
 
         // `DisableTrack` event emitted in function call above
+    }
+
+    // perform active rollover
+    function activeRollOver(uint256 trackId) public {
+        // add new user checkpoint
+        addUserCheckpoint(trackId, 0, false);
+
+        // get new user checkpoint
+        UserCheckpoint memory userCp =
+            userCheckpoints[trackId][_msgSender()][
+                userCheckpointCounts[trackId][_msgSender()] - 1
+            ];
+
+        // current sale count
+        uint24 saleCount = userCp.numFinishedSales;
+
+        // subtract old user rollover amount from total
+        trackTotalActiveRollOvers[trackId][saleCount] -= trackActiveRollOvers[
+            trackId
+        ][_msgSender()][saleCount];
+
+        // update user rollover amount
+        trackActiveRollOvers[trackId][_msgSender()][saleCount] = userCp
+            .stakeWeight;
+
+        // add new user rollover amount to total
+        trackTotalActiveRollOvers[trackId][saleCount] += userCp.stakeWeight;
     }
 
     // get closest PRECEDING user checkpoint
@@ -298,9 +339,20 @@ contract IFAllocationMaster is Ownable {
                         closestUserCheckpoint.staked) /
                     10**18;
 
-                // factor in decay
+                // get amount of stake weight actively rolled over for this sale number
+                uint256 activeRolloverWeight =
+                    trackActiveRollOvers[trackId][user][
+                        closestUserCheckpoint.numFinishedSales + i
+                    ];
+
+                // factor in passive and active rollover decay
                 stakeWeight =
-                    (stakeWeight * track.passiveRolloverRate) /
+                    // decay active weight
+                    (activeRolloverWeight * track.activeRolloverRate) /
+                    ROLLOVER_FACTOR_DECIMALS +
+                    // decay passive weight
+                    ((stakeWeight - activeRolloverWeight) *
+                        track.passiveRolloverRate) /
                     ROLLOVER_FACTOR_DECIMALS;
 
                 // update currBlock for next round
@@ -544,10 +596,19 @@ contract IFAllocationMaster is Ownable {
             uint256 newStakeWeight =
                 prev.totalStakeWeight + marginalAccruedStakeWeight;
 
-            // factor in decay
+            // factor in passive and active rollover decay
             if (_bumpSaleCounter) {
+                // get total active rollover amount
+                uint256 activeRolloverWeight =
+                    trackTotalActiveRollOvers[trackId][prev.numFinishedSales];
+
                 newStakeWeight =
-                    (newStakeWeight * track.passiveRolloverRate) /
+                    // decay active weight
+                    (activeRolloverWeight * track.activeRolloverRate) /
+                    ROLLOVER_FACTOR_DECIMALS +
+                    // decay passive weight
+                    ((newStakeWeight - activeRolloverWeight) *
+                        track.passiveRolloverRate) /
                     ROLLOVER_FACTOR_DECIMALS;
             }
 

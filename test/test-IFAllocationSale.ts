@@ -70,7 +70,8 @@ export default describe('IF Allocation Sale', function () {
       'IDIA track', // name
       StakeToken.address, // stake token
       10, // weight accrual rate
-      '200000000000000000' // passive rollover rate (20%)
+      '100000000000000000', // passive rollover rate (10%)
+      '200000000000000000' // active rollover rate (20%)
     )
 
     // get new track id
@@ -139,7 +140,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in purchase
-    expect((await getGasUsed()).toString()).to.equal('188563')
+    expect((await getGasUsed()).toString()).to.equal('188764')
 
     // fast forward blocks to get to end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {
