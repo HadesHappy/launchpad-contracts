@@ -9,6 +9,8 @@ export default describe('IFAllocationMaster', function () {
   // vars for all tests
   let owner: SignerWithAddress
   let nonOwner: SignerWithAddress
+  let simUser1: SignerWithAddress
+  let simUser2: SignerWithAddress
   let TestToken: Contract
   let IFAllocationMaster: Contract
 
@@ -17,6 +19,8 @@ export default describe('IFAllocationMaster', function () {
     // get test accounts
     owner = (await ethers.getSigners())[0]
     nonOwner = (await ethers.getSigners())[1]
+    simUser1 = (await ethers.getSigners())[2]
+    simUser2 = (await ethers.getSigners())[3]
 
     // deploy test token
     const TestTokenFactory = await ethers.getContractFactory('TestToken')
@@ -147,6 +151,11 @@ export default describe('IFAllocationMaster', function () {
   })
 
   it('simulates', async () => {
+    // allocate stake token to simulation user1 and user2
+    mineNext()
+    await TestToken.transfer(simUser1.address, '10000000000000000000000000') // 10M tokens
+    await TestToken.transfer(simUser2.address, '10000000000000000000000000') // 10M tokens
+
     // add a track
     mineNext()
     await IFAllocationMaster.addTrack(
@@ -162,59 +171,61 @@ export default describe('IFAllocationMaster', function () {
     // how much to stake on a block-by-block basis
     const simulationInput = [
       {
-        stakeAmount: '1000000000', // 1 gwei
+        stakeAmounts: [{ user: simUser1, amount: '1000000000' }], // 1 gwei
       },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
+      {},
+      {},
+      {},
+      {},
       {
-        stakeAmount: '50000000000', // 50 gwei
+        stakeAmounts: [{ user: simUser1, amount: '50000000000' }], // 50 gwei
       },
-      { stakeAmount: '0' },
-      { stakeAmount: '0', bumpSaleCounter: true },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
+      {},
+      { bumpSaleCounter: true },
+      {},
+      {},
       {
-        stakeAmount: '-50000000000', // -50 gwei
+        stakeAmounts: [{ user: simUser1, amount: '-50000000000' }], // -50 gwei
       },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
+      {},
+      {},
+      {},
       {
-        stakeAmount: '2500000000', // 2.5 gwei
+        stakeAmounts: [{ user: simUser1, amount: '2500000000' }], // 2.5 gwei
         bumpSaleCounter: true,
       },
-      { stakeAmount: '0', bumpSaleCounter: true },
-      { stakeAmount: '0', bumpSaleCounter: true },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0', bumpSaleCounter: true },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
+      { bumpSaleCounter: true },
+      { bumpSaleCounter: true },
+      {},
+      {},
+      {},
+      {},
+      {},
+      { bumpSaleCounter: true },
+      {},
+      {},
       {
-        stakeAmount: '500000000000', // 500 gwei
+        stakeAmounts: [{ user: simUser1, amount: '500000000000' }], // 500 gwei
       },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0', bumpSaleCounter: true },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0', activeRollOver: true },
-      { stakeAmount: '10000000000' }, // 10 gwei
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0', bumpSaleCounter: true },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
-      { stakeAmount: '0' },
+      {},
+      {},
+      {},
+      { bumpSaleCounter: true },
+      {},
+      {},
+      {},
+      { activeRollOvers: [simUser1] },
+      {
+        stakeAmounts: [{ user: simUser1, amount: '10000000000' }], // 10 gwei
+      },
+      {},
+      {},
+      {},
+      { bumpSaleCounter: true },
+      {},
+      {},
+      {},
+      {},
     ]
 
     //// block-by-block simulation
@@ -232,31 +243,30 @@ export default describe('IFAllocationMaster', function () {
       }
 
       // perform active rollover if specified
-      if (simulationInput[i].activeRollOver) {
-        await IFAllocationMaster.activeRollOver(trackNum)
+      if (simulationInput[i].activeRollOvers) {
+        for (let user of simulationInput[i].activeRollOvers)
+          await IFAllocationMaster.connect(user).activeRollOver(trackNum)
       }
 
-      // owner stakes/unstakes according to stakesOverTime
-      if (
-        simulationInput[i].stakeAmount !== '0' &&
-        simulationInput[i].stakeAmount[0] !== '-'
-      ) {
-        // approve
-        await TestToken.approve(
-          IFAllocationMaster.address,
-          simulationInput[i].stakeAmount
-        )
-        // stake
-        await IFAllocationMaster.stake(trackNum, simulationInput[i].stakeAmount)
-      } else if (
-        simulationInput[i].stakeAmount !== '0' &&
-        simulationInput[i].stakeAmount[0] === '-'
-      ) {
-        // unstake
-        await IFAllocationMaster.unstake(
-          trackNum,
-          simulationInput[i].stakeAmount.substring(1)
-        )
+      // user stakes/unstakes according to stakesOverTime
+      if (simulationInput[i].stakeAmounts) {
+        for (let { user, amount } of simulationInput[i].stakeAmounts) {
+          if (amount !== '0' && amount[0] !== '-') {
+            // approve
+            await TestToken.connect(user).approve(
+              IFAllocationMaster.address,
+              amount
+            )
+            // stake
+            await IFAllocationMaster.connect(user).stake(trackNum, amount)
+          } else if (amount !== '0' && amount[0] === '-') {
+            // unstake
+            await IFAllocationMaster.connect(user).unstake(
+              trackNum,
+              amount.substring(1)
+            )
+          }
+        }
       }
 
       mineNext()
@@ -270,16 +280,7 @@ export default describe('IFAllocationMaster', function () {
       // gas used
       const gasUsed = currBlock.gasUsed
 
-      // get newly generated checkpoint info
-      const nUserCheckpoints = await IFAllocationMaster.userCheckpointCounts(
-        trackNum,
-        owner.address
-      )
-      const userCp = await IFAllocationMaster.userCheckpoints(
-        trackNum,
-        owner.address,
-        nUserCheckpoints - 1
-      )
+      // get track checkpoint
       const nTrackCheckpoints = await IFAllocationMaster.trackCheckpointCounts(
         trackNum
       )
@@ -288,16 +289,27 @@ export default describe('IFAllocationMaster', function () {
         nTrackCheckpoints - 1
       )
 
+      // get checkpoints of users
+      const nUserCheckpoints = await IFAllocationMaster.userCheckpointCounts(
+        trackNum,
+        simUser1.address
+      )
+      const user1Cp = await IFAllocationMaster.userCheckpoints(
+        trackNum,
+        simUser1.address,
+        nUserCheckpoints - 1
+      )
+
       // save data row
       simOutput.push({
         block: currBlockNum,
-        userStake: userCp.staked,
+        userStake: user1Cp.staked,
         userWeight: await IFAllocationMaster.getUserStakeWeight(
           trackNum,
-          owner.address,
+          simUser1.address,
           currBlockNum
         ),
-        userSaleCount: userCp.numFinishedSales,
+        userSaleCount: user1Cp.numFinishedSales,
         totalWeight: await IFAllocationMaster.getTotalStakeWeight(
           trackNum,
           currBlockNum
