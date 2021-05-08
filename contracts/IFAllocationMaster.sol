@@ -527,21 +527,6 @@ contract IFAllocationMaster is Ownable {
                 ),
                 numFinishedSales: trackCp.numFinishedSales
             });
-
-            // console.log(
-            //     '---- adding user checkpoint',
-            //     nCheckpoints,
-            //     '(stake) ----'
-            // );
-            // console.log('block', block.number);
-            // console.log('staked', prev.staked, '+', amount);
-            // console.log(
-            //     'weight',
-            //     prev.stakeWeight,
-            //     addElseSub ? '+' : '-',
-            //     marginalAccruedStakeWeight
-            // );
-            // console.log('----');
         }
 
         // increment user's checkpoint count
@@ -621,22 +606,6 @@ contract IFAllocationMaster is Ownable {
                         track.passiveRolloverRate) /
                     ROLLOVER_FACTOR_DECIMALS;
             }
-
-            // console.log('---- adding track checkpoint', nCheckpoints, ' ----');
-            // console.log('block', block.number);
-            // console.log(
-            //     'total staked',
-            //     prev.totalStaked,
-            //     addElseSub ? '+' : '-',
-            //     amount
-            // );
-            // console.log(
-            //     'total weight',
-            //     prev.totalStakeWeight,
-            //     '+',
-            //     marginalAccruedStakeWeight
-            // );
-            // console.log('----');
 
             // add a new checkpoint for this track
             if (prev.disabled) {
