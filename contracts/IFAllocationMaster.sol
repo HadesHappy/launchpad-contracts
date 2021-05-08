@@ -23,7 +23,7 @@ contract IFAllocationMaster is Ownable {
     // A checkpoint for marking stake info at a given block
     struct UserCheckpoint {
         // block number of checkpoint
-        uint128 blockNumber;
+        uint80 blockNumber;
         // amount staked at checkpoint
         uint104 staked;
         // amount of stake weight at checkpoint
@@ -35,7 +35,7 @@ contract IFAllocationMaster is Ownable {
     // A checkpoint for marking stake info at a given block
     struct TrackCheckpoint {
         // block number of checkpoint
-        uint128 blockNumber;
+        uint80 blockNumber;
         // amount staked at checkpoint
         uint104 totalStaked;
         // amount of stake weight at checkpoint
@@ -67,7 +67,7 @@ contract IFAllocationMaster is Ownable {
     // INFO FOR FACTORING IN ROLLOVERS
 
     // the number of checkpoints of a track -- (track, finished sale count) => block number
-    mapping(uint24 => mapping(uint24 => uint128))
+    mapping(uint24 => mapping(uint24 => uint80))
         public trackFinishedSaleBlocks;
 
     // stake weight each user actively rolls over for a given track and a finished sale count
@@ -106,8 +106,8 @@ contract IFAllocationMaster is Ownable {
     event AddTrack(string indexed name, address indexed token);
     event DisableTrack(uint24 indexed trackId);
     event BumpSaleCounter(uint24 indexed trackId, uint32 newCount);
-    event AddUserCheckpoint(uint128 blockNumber, uint24 indexed trackId);
-    event AddTrackCheckpoint(uint128 blockNumber, uint24 indexed trackId);
+    event AddUserCheckpoint(uint80 blockNumber, uint24 indexed trackId);
+    event AddTrackCheckpoint(uint80 blockNumber, uint24 indexed trackId);
     event Stake(address indexed user, uint24 indexed trackId, uint104 amount);
     event Unstake(address indexed user, uint24 indexed trackId, uint104 amount);
 
@@ -162,7 +162,7 @@ contract IFAllocationMaster is Ownable {
                 .numFinishedSales;
 
         // update map that tracks block numbers of finished sales
-        trackFinishedSaleBlocks[trackId][nFinishedSales] = uint128(
+        trackFinishedSaleBlocks[trackId][nFinishedSales] = uint80(
             block.number
         );
 
@@ -211,7 +211,7 @@ contract IFAllocationMaster is Ownable {
     function getClosestUserCheckpoint(
         uint24 trackId,
         address user,
-        uint128 blockNumber
+        uint80 blockNumber
     ) private view returns (UserCheckpoint memory cp) {
         // get total checkpoint count for user
         uint32 nCheckpoints = userCheckpointCounts[trackId][user];
@@ -265,7 +265,7 @@ contract IFAllocationMaster is Ownable {
     function getUserStakeWeight(
         uint24 trackId,
         address user,
-        uint128 blockNumber
+        uint80 blockNumber
     ) public view returns (uint104) {
         require(blockNumber <= block.number, 'block # too high');
 
@@ -301,7 +301,7 @@ contract IFAllocationMaster is Ownable {
         if (numFinishedSalesDelta == 0) {
             // calculate normally without rollover decay
 
-            uint128 elapsedBlocks =
+            uint80 elapsedBlocks =
                 blockNumber - closestUserCheckpoint.blockNumber;
 
             stakeWeight =
@@ -318,13 +318,13 @@ contract IFAllocationMaster is Ownable {
             // starting stakeweight
             stakeWeight = closestUserCheckpoint.stakeWeight;
             // current block for iteration
-            uint128 currBlock = closestUserCheckpoint.blockNumber;
+            uint80 currBlock = closestUserCheckpoint.blockNumber;
 
             // for each finished sale in between, get stake weight of that period
             // and perform weighted sum
             for (uint24 i = 0; i < numFinishedSalesDelta; i++) {
                 // get number of blocks passed at the current sale number
-                uint128 elapsedBlocks =
+                uint80 elapsedBlocks =
                     trackFinishedSaleBlocks[trackId][
                         closestUserCheckpoint.numFinishedSales + i
                     ] - currBlock;
@@ -360,7 +360,7 @@ contract IFAllocationMaster is Ownable {
             }
 
             // add any remaining accrued stake weight at current finished sale count
-            uint128 remainingElapsed =
+            uint80 remainingElapsed =
                 blockNumber -
                     trackFinishedSaleBlocks[trackId][
                         closestTrackCheckpoint.numFinishedSales - 1
@@ -377,7 +377,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // get closest PRECEDING track checkpoint
-    function getClosestTrackCheckpoint(uint24 trackId, uint128 blockNumber)
+    function getClosestTrackCheckpoint(uint24 trackId, uint80 blockNumber)
         private
         view
         returns (TrackCheckpoint memory cp)
@@ -431,7 +431,7 @@ contract IFAllocationMaster is Ownable {
 
     // gets total stake weight within a track at a particular block number
     // logic extended from Compound COMP token `getPriorVotes` function
-    function getTotalStakeWeight(uint24 trackId, uint128 blockNumber)
+    function getTotalStakeWeight(uint24 trackId, uint80 blockNumber)
         public
         view
         returns (uint104)
@@ -443,7 +443,7 @@ contract IFAllocationMaster is Ownable {
             getClosestTrackCheckpoint(trackId, blockNumber);
 
         // calculate blocks elapsed since checkpoint
-        uint128 additionalBlocks =
+        uint80 additionalBlocks =
             (blockNumber - closestCheckpoint.blockNumber);
 
         // get track info
@@ -497,7 +497,7 @@ contract IFAllocationMaster is Ownable {
 
             // add a first checkpoint for this user on this track
             userCheckpoints[trackId][_msgSender()][0] = UserCheckpoint({
-                blockNumber: uint128(block.number),
+                blockNumber: uint80(block.number),
                 staked: amount,
                 stakeWeight: 0,
                 numFinishedSales: trackCp.numFinishedSales
@@ -507,11 +507,11 @@ contract IFAllocationMaster is Ownable {
             UserCheckpoint storage prev =
                 userCheckpoints[trackId][_msgSender()][nCheckpointsUser - 1];
 
-            // ensure block number downcast to uint128 is monotonically increasing (prevent overflow)
+            // ensure block number downcast to uint80 is monotonically increasing (prevent overflow)
             // this should never happen within the lifetime of the universe
             // however, if it does, this prevents a catastrophe; also, allocation must then be redeployed
             require(
-                prev.blockNumber <= uint128(block.number),
+                prev.blockNumber <= uint80(block.number),
                 'block # overflow'
             );
 
@@ -519,14 +519,14 @@ contract IFAllocationMaster is Ownable {
             userCheckpoints[trackId][_msgSender()][
                 nCheckpointsUser
             ] = UserCheckpoint({
-                blockNumber: uint128(block.number),
+                blockNumber: uint80(block.number),
                 staked: addElseSub
                     ? prev.staked + amount
                     : prev.staked - amount,
                 stakeWeight: getUserStakeWeight(
                     trackId,
                     _msgSender(),
-                    uint128(block.number)
+                    uint80(block.number)
                 ),
                 numFinishedSales: trackCp.numFinishedSales
             });
@@ -551,7 +551,7 @@ contract IFAllocationMaster is Ownable {
         userCheckpointCounts[trackId][_msgSender()] = nCheckpointsUser + 1;
 
         // emit
-        emit AddUserCheckpoint(uint128(block.number), trackId);
+        emit AddUserCheckpoint(uint80(block.number), trackId);
     }
 
     function addTrackCheckpoint(
@@ -571,7 +571,7 @@ contract IFAllocationMaster is Ownable {
         if (nCheckpoints == 0) {
             // add a first checkpoint for this track
             trackCheckpoints[trackId][0] = TrackCheckpoint({
-                blockNumber: uint128(block.number),
+                blockNumber: uint80(block.number),
                 totalStaked: amount,
                 totalStakeWeight: 0,
                 disabled: disabled,
@@ -589,17 +589,17 @@ contract IFAllocationMaster is Ownable {
             TrackCheckpoint storage prev =
                 trackCheckpoints[trackId][nCheckpoints - 1];
 
-            // ensure block number downcast to uint128 is monotonically increasing (prevent overflow)
+            // ensure block number downcast to uint80 is monotonically increasing (prevent overflow)
             // this should never happen within the lifetime of the universe
             // however, if it does, this prevents a catastrophe; also, allocation must then be redeployed
             require(
-                prev.blockNumber <= uint128(block.number),
+                prev.blockNumber <= uint80(block.number),
                 'block # overflow'
             );
 
             // calculate blocks elapsed since checkpoint
-            uint128 additionalBlocks =
-                (uint128(block.number) - prev.blockNumber);
+            uint80 additionalBlocks =
+                (uint80(block.number) - prev.blockNumber);
 
             // calculate marginal accrued stake weight
             uint104 marginalAccruedStakeWeight =
@@ -653,7 +653,7 @@ contract IFAllocationMaster is Ownable {
                 // if previous checkpoint was disabled, stakeweight cannot increase
                 // and new checkpoint must also be disabled
                 trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
-                    blockNumber: uint128(block.number),
+                    blockNumber: uint80(block.number),
                     totalStaked: prev.totalStaked - amount,
                     totalStakeWeight: prev.totalStakeWeight,
                     disabled: true,
@@ -662,7 +662,7 @@ contract IFAllocationMaster is Ownable {
                 });
             } else {
                 trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
-                    blockNumber: uint128(block.number),
+                    blockNumber: uint80(block.number),
                     totalStaked: addElseSub
                         ? prev.totalStaked + amount
                         : prev.totalStaked - amount,
@@ -688,7 +688,7 @@ contract IFAllocationMaster is Ownable {
         trackCheckpointCounts[trackId]++;
 
         // emit
-        emit AddTrackCheckpoint(uint128(block.number), trackId);
+        emit AddTrackCheckpoint(uint80(block.number), trackId);
     }
 
     // stake

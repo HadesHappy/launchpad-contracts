@@ -38,7 +38,7 @@ contract IFAllocationSale is Ownable {
     // track id
     uint24 public trackId;
     // allocation snapshot block
-    uint128 public allocSnapshotBlock;
+    uint80 public allocSnapshotBlock;
     // start block when sale is active (inclusive)
     uint256 public startBlock;
     // end block when sale is active (inclusive)
@@ -65,7 +65,7 @@ contract IFAllocationSale is Ownable {
         ERC20 _saleToken,
         IFAllocationMaster _allocationMaster,
         uint24 _trackId,
-        uint128 _allocSnapshotBlock,
+        uint80 _allocSnapshotBlock,
         uint256 _startBlock,
         uint256 _endBlock,
         uint256 _minDeposit,
