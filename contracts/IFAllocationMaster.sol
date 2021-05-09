@@ -485,6 +485,9 @@ contract IFAllocationMaster is Ownable {
                 stakeWeight: 0,
                 numFinishedSales: trackCp.numFinishedSales
             });
+
+            // increment user's checkpoint count
+            userCheckpointCounts[trackId][_msgSender()] = nCheckpointsUser + 1;
         } else {
             // get previous checkpoint
             UserCheckpoint storage prev =
@@ -498,24 +501,34 @@ contract IFAllocationMaster is Ownable {
             );
 
             // add a new checkpoint for user within this track
-            userCheckpoints[trackId][_msgSender()][
-                nCheckpointsUser
-            ] = UserCheckpoint({
-                blockNumber: uint80(block.number),
-                staked: addElseSub
+            // if no blocks elapsed, just update prev checkpoint (so checkpoints can be uniquely identified by block number)
+            if (prev.blockNumber == uint80(block.number)) {
+                prev.staked = addElseSub
                     ? prev.staked + amount
-                    : prev.staked - amount,
-                stakeWeight: getUserStakeWeight(
-                    trackId,
-                    _msgSender(),
-                    uint80(block.number)
-                ),
-                numFinishedSales: trackCp.numFinishedSales
-            });
-        }
+                    : prev.staked - amount;
+                prev.numFinishedSales = trackCp.numFinishedSales;
+            } else {
+                userCheckpoints[trackId][_msgSender()][
+                    nCheckpointsUser
+                ] = UserCheckpoint({
+                    blockNumber: uint80(block.number),
+                    staked: addElseSub
+                        ? prev.staked + amount
+                        : prev.staked - amount,
+                    stakeWeight: getUserStakeWeight(
+                        trackId,
+                        _msgSender(),
+                        uint80(block.number)
+                    ),
+                    numFinishedSales: trackCp.numFinishedSales
+                });
 
-        // increment user's checkpoint count
-        userCheckpointCounts[trackId][_msgSender()] = nCheckpointsUser + 1;
+                // increment user's checkpoint count
+                userCheckpointCounts[trackId][_msgSender()] =
+                    nCheckpointsUser +
+                    1;
+            }
+        }
 
         // emit
         emit AddUserCheckpoint(trackId, uint80(block.number));
