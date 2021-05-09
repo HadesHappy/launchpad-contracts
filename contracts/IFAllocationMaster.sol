@@ -457,15 +457,6 @@ contract IFAllocationMaster is Ownable {
                 trackInfo.weightAccrualRate *
                 closestCheckpoint.totalStaked) / 10**18;
 
-        // debug
-        // console.log('total stake weight');
-        // console.log(
-        //     block.number,
-        //     closestCheckpoint.totalStakeWeight,
-        //     '+',
-        //     marginalAccruedStakeWeight
-        // );
-
         // return
         return closestCheckpoint.totalStakeWeight + marginalAccruedStakeWeight;
     }
@@ -553,10 +544,20 @@ contract IFAllocationMaster is Ownable {
                 disabled: disabled,
                 numFinishedSales: _bumpSaleCounter ? 1 : 0
             });
+
+            // increase new track's checkpoint count by 1
+            trackCheckpointCounts[trackId]++;
         } else {
             // get previous checkpoint
             TrackCheckpoint storage prev =
                 trackCheckpoints[trackId][nCheckpoints - 1];
+
+            if (prev.disabled) {
+                // if previous checkpoint was disabled, then disabled cannot be false going forward
+                require(disabled == true, 'disabled: cannot undo disable');
+                // if previous checkpoint was disabled, then cannot increase stake going forward
+                require(addElseSub == false, 'disabled: cannot add stake');
+            }
 
             // ensure block number downcast to uint80 is monotonically increasing (prevent overflow)
             // this should never happen within the lifetime of the universe, but if it does, this prevents a catastrophe
@@ -595,46 +596,43 @@ contract IFAllocationMaster is Ownable {
             }
 
             // add a new checkpoint for this track
-            if (prev.disabled) {
-                // if previous checkpoint was disabled, then total staked can only decrease
-                require(addElseSub == false, 'disabled track can only sub');
-                // if previous checkpoint was disabled, then disabled cannot be false going forward
-                require(disabled == true, 'cannot undo disable');
-
-                // if previous checkpoint was disabled, stakeweight cannot increase
-                // and new checkpoint must also be disabled
-                trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
-                    blockNumber: uint80(block.number),
-                    totalStaked: prev.totalStaked - amount,
-                    totalStakeWeight: prev.totalStakeWeight,
-                    disabled: true,
-                    numFinishedSales: prev.numFinishedSales
-                });
+            // if no blocks elapsed, just update prev checkpoint (so checkpoints can be uniquely identified by block number)
+            if (additionalBlocks == 0) {
+                prev.totalStaked = addElseSub
+                    ? prev.totalStaked + amount
+                    : prev.totalStaked - amount;
+                prev.disabled = disabled;
+                prev.numFinishedSales = _bumpSaleCounter
+                    ? prev.numFinishedSales + 1
+                    : prev.numFinishedSales;
             } else {
                 trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
                     blockNumber: uint80(block.number),
                     totalStaked: addElseSub
                         ? prev.totalStaked + amount
                         : prev.totalStaked - amount,
-                    totalStakeWeight: newStakeWeight,
+                    totalStakeWeight: prev.disabled
+                        ? prev.totalStakeWeight
+                        : newStakeWeight,
                     disabled: disabled,
                     numFinishedSales: _bumpSaleCounter
                         ? prev.numFinishedSales + 1
                         : prev.numFinishedSales
                 });
 
-                // emit
-                if (_bumpSaleCounter) {
-                    emit BumpSaleCounter(trackId, prev.numFinishedSales + 1);
-                }
-                if (disabled) {
-                    emit DisableTrack(trackId);
-                }
+                // increase new track's checkpoint count by 1
+                trackCheckpointCounts[trackId]++;
+            }
+
+            // emit
+            if (_bumpSaleCounter) {
+                emit BumpSaleCounter(trackId, prev.numFinishedSales + 1);
+            }
+
+            if (!prev.disabled && disabled) {
+                emit DisableTrack(trackId);
             }
         }
-
-        // increase new track's checkpoint count by 1
-        trackCheckpointCounts[trackId]++;
 
         // emit
         emit AddTrackCheckpoint(trackId, uint80(block.number));

@@ -376,5 +376,16 @@ export default describe('IFAllocationMaster', function () {
         checkpoint.numFinishedSales.toString()
       )
     }
+
+    // get a historical checkpoint
+    console.log(
+      'Historical checkpoint',
+      (
+        await IFAllocationMaster.getTotalStakeWeight(
+          trackNum,
+          simStartBlock + 35
+        )
+      ).toString()
+    )
   })
 })
