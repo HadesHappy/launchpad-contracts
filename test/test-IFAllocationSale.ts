@@ -10,6 +10,7 @@ export default describe('IF Allocation Sale', function () {
   let owner: SignerWithAddress
   let buyer: SignerWithAddress
   let seller: SignerWithAddress
+  let casher: SignerWithAddress
 
   // contract vars
   let StakeToken: Contract
@@ -38,6 +39,7 @@ export default describe('IF Allocation Sale', function () {
     owner = (await ethers.getSigners())[0]
     buyer = (await ethers.getSigners())[1]
     seller = (await ethers.getSigners())[2]
+    casher = (await ethers.getSigners())[3]
 
     // deploy test tokens
     const TestTokenFactory = await ethers.getContractFactory('TestToken')
@@ -120,7 +122,7 @@ export default describe('IF Allocation Sale', function () {
     ).to.equal(stakeAmount)
   })
 
-  it('can purchase', async function () {
+  it('can purchase, withdraw, and cash', async function () {
     // amount to pay
     const paymentAmount = '333330'
 
@@ -157,5 +159,17 @@ export default describe('IF Allocation Sale', function () {
 
     // expect balance to increase by fund amount
     expect(await SaleToken.balanceOf(buyer.address)).to.equal(fundAmount)
+
+    // test cash
+    // set the casher address
+    await IFAllocationSale.setCasher(casher.address)
+    mineNext()
+
+    // attempt cashing
+    await IFAllocationSale.connect(casher).cash()
+    mineNext()
+
+    // expect balance to increase by cash amount
+    expect(await PaymentToken.balanceOf(casher.address)).to.equal(paymentAmount)
   })
 })

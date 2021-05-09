@@ -23,12 +23,14 @@ contract IFAllocationSale is Ownable {
 
     // SALE CONSTRUCTOR PARAMS
 
-    // sale price; IMPORTANT - in units of ([paymentToken/saleToken] * SALE_PRICE_DECIMALS)
+    // sale price in units of paymentToken/saleToken with SALE_PRICE_DECIMALS decimals
     //      for example, if selling ABC token for 10 IFUSD each, then
     //      sale price will be 10 * SALE_PRICE_DECIMALS = 10_000_000_000_000_000_000
     uint256 public salePrice;
     // funder
     address public funder;
+    // optional casher (settable by owner)
+    address public casher;
     // payment token
     ERC20 public paymentToken;
     // sale token
@@ -51,6 +53,7 @@ contract IFAllocationSale is Ownable {
     // EVENTS
 
     event Fund(address indexed sender, uint256 amount);
+    event SetCasher(address indexed casher);
     event Purchase(address indexed sender, uint256 paymentAmount);
     event Withdraw(address indexed sender);
     event Cash(address indexed sender, uint256 balance);
@@ -92,6 +95,15 @@ contract IFAllocationSale is Ownable {
         _;
     }
 
+    // Throws if called by any account other than the casher.
+    modifier onlyCasherOrOwner() {
+        require(
+            _msgSender() == casher || _msgSender() == owner(),
+            'caller is not the casher or owner'
+        );
+        _;
+    }
+
     // FUNCTIONS
 
     // Function for funding sale with sale token (called by project team)
@@ -107,6 +119,14 @@ contract IFAllocationSale is Ownable {
 
         // emit
         emit Fund(_msgSender(), amount);
+    }
+
+    // Function for owner to set an optional, separate casher
+    function setCasher(address _casher) external onlyOwner {
+        casher = _casher;
+
+        // emit
+        emit SetCasher(_casher);
     }
 
     // Function for making purchase in allocation sale
@@ -184,7 +204,7 @@ contract IFAllocationSale is Ownable {
     }
 
     // Function for funder to cash in payment token
-    function cash() external onlyFunder {
+    function cash() external onlyCasherOrOwner {
         // get amount of payment token received
         uint256 paymentTokenBal = paymentToken.balanceOf(address(this));
 
