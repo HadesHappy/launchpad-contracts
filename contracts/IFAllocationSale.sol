@@ -23,9 +23,10 @@ contract IFAllocationSale is Ownable {
 
     // SALE CONSTRUCTOR PARAMS
 
-    // sale price in units of paymentToken/saleToken with SALE_PRICE_DECIMALS decimals
-    //      for example, if selling ABC token for 10 IFUSD each, then
-    //      sale price will be 10 * SALE_PRICE_DECIMALS = 10_000_000_000_000_000_000
+    // Sale price in units of paymentToken/saleToken with SALE_PRICE_DECIMALS decimals
+    // For example, if selling ABC token for 10 IFUSD each, then
+    // sale price will be 10 * SALE_PRICE_DECIMALS = 10_000_000_000_000_000_000
+    // NOTE: sale price must accomodate any differences in decimals between sale and payment tokens
     uint256 public salePrice;
     // funder
     address public funder;
@@ -192,9 +193,6 @@ contract IFAllocationSale is Ownable {
 
         // calculate amount of sale token owed to buyer
         uint256 saleTokenOwed = (payment * SALE_PRICE_DECIMALS) / salePrice;
-
-        // todo: make sure to check decimals of buy and sell tokens
-        // currently, assumes buy and sell tokens have same # of decimals
 
         // transfer owed sale token to buyer
         saleToken.safeTransfer(_msgSender(), saleTokenOwed);
