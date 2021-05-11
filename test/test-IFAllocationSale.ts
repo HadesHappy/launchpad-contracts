@@ -9,6 +9,7 @@ export default describe('IF Allocation Sale', function () {
   // deployer address
   let owner: SignerWithAddress
   let buyer: SignerWithAddress
+  let buyer2: SignerWithAddress
   let seller: SignerWithAddress
   let casher: SignerWithAddress
 
@@ -31,7 +32,8 @@ export default describe('IF Allocation Sale', function () {
   const maxDeposit = '25000000000000000000000000' // max deposit
 
   // other vars
-  const fundAmount = '33333'
+  // const fundAmount = '33333'
+  const fundAmount = '1000000000'
 
   // setup for each test
   beforeEach(async () => {
@@ -40,6 +42,7 @@ export default describe('IF Allocation Sale', function () {
     buyer = (await ethers.getSigners())[1]
     seller = (await ethers.getSigners())[2]
     casher = (await ethers.getSigners())[3]
+    buyer2 = (await ethers.getSigners())[4]
 
     // deploy test tokens
     const TestTokenFactory = await ethers.getContractFactory('TestToken')
@@ -59,6 +62,10 @@ export default describe('IF Allocation Sale', function () {
       '21000000000000000000000000' // 21 million * 10**18
     )
 
+    // redistribute tokens
+    mineNext()
+    StakeToken.connect(buyer).transfer(buyer2.address, '1000000000000000000')
+
     // deploy allocation master
     const IFAllocationMasterFactory = await ethers.getContractFactory(
       'IFAllocationMaster'
@@ -71,7 +78,7 @@ export default describe('IF Allocation Sale', function () {
     await IFAllocationMaster.addTrack(
       'IDIA track', // name
       StakeToken.address, // stake token
-      10, // weight accrual rate
+      10000, // weight accrual rate
       '100000000000000000', // passive rollover rate (10%)
       '200000000000000000' // active rollover rate (20%)
     )
@@ -108,18 +115,25 @@ export default describe('IF Allocation Sale', function () {
 
     // stake and accrue stake weight
     mineNext()
-    const stakeAmount = '1000000000000000000'
+    const stakeAmount = 100000000000000
+    // buyer 1
     await StakeToken.connect(buyer).approve(
       IFAllocationMaster.address,
       stakeAmount
     ) // approve
     await IFAllocationMaster.connect(buyer).stake(trackId, stakeAmount) // stake
+    // buyer 2
+    await StakeToken.connect(buyer2).approve(
+      IFAllocationMaster.address,
+      stakeAmount
+    ) // approve
+    await IFAllocationMaster.connect(buyer2).stake(trackId, stakeAmount) // stake
 
     // expect staked amount to match
     mineNext()
     expect(
       (await StakeToken.balanceOf(IFAllocationMaster.address)).toString()
-    ).to.equal(stakeAmount)
+    ).to.equal((stakeAmount*2).toString())
   })
 
   it('can purchase, withdraw, and cash', async function () {
@@ -155,10 +169,18 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in withdraw
-    expect((await getGasUsed()).toString()).to.equal('54387')
+    expect((await getGasUsed()).toString()).to.equal('91973')
 
     // expect balance to increase by fund amount
-    expect(await SaleToken.balanceOf(buyer.address)).to.equal(fundAmount)
+    expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
+
+    // test repeated withdraw (should fail)
+    mineNext()
+    await IFAllocationSale.connect(buyer).withdraw()
+    mineNext()
+
+    // expect balance to remain the same
+    expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
 
     // test cash
     // set the casher address

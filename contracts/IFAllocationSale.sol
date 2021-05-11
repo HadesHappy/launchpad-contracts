@@ -20,6 +20,8 @@ contract IFAllocationSale is Ownable {
     uint256 public saleAmount;
     // tracks amount purchased by each address
     mapping(address => uint256) public paymentReceived;
+    // tracks whether user has already successfully withdrawn
+    mapping(address => bool) public hasWithdrawn;
 
     // SALE CONSTRUCTOR PARAMS
 
@@ -187,12 +189,17 @@ contract IFAllocationSale is Ownable {
     function withdraw() external {
         // sale must be over
         require(endBlock < block.number, 'sale must be over');
+        // prevent repeat withdraw
+        require(hasWithdrawn[_msgSender()] == false, 'already withdrawn');
 
         // get payment received
         uint256 payment = paymentReceived[_msgSender()];
 
         // calculate amount of sale token owed to buyer
         uint256 saleTokenOwed = (payment * SALE_PRICE_DECIMALS) / salePrice;
+
+        // set withdrawn to true
+        hasWithdrawn[_msgSender()] = true;
 
         // transfer owed sale token to buyer
         saleToken.safeTransfer(_msgSender(), saleTokenOwed);
