@@ -28,8 +28,7 @@ export default describe('IF Allocation Sale', function () {
   const snapshotBlock = 90 // block at which to take allocation snapshot
   const startBlock = 100 // start block of sale (inclusive)
   const endBlock = 200 // end block of sale (inclusive)
-  const minDeposit = '250000000000000000000000' // min deposit
-  const maxDeposit = '25000000000000000000000000' // max deposit
+  const maxTotalDeposit = '25000000000000000000000000' // max deposit
 
   // other vars
   // const fundAmount = '33333'
@@ -101,8 +100,7 @@ export default describe('IF Allocation Sale', function () {
       snapshotBlock,
       startBlock,
       endBlock,
-      minDeposit,
-      maxDeposit
+      maxTotalDeposit
     )
 
     // fund sale
@@ -133,7 +131,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
     expect(
       (await StakeToken.balanceOf(IFAllocationMaster.address)).toString()
-    ).to.equal((stakeAmount*2).toString())
+    ).to.equal((stakeAmount * 2).toString())
   })
 
   it('can purchase, withdraw, and cash', async function () {
@@ -156,7 +154,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in purchase
-    expect((await getGasUsed()).toString()).to.equal('179964')
+    expect((await getGasUsed()).toString()).to.equal('182508')
 
     // fast forward blocks to get to end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {

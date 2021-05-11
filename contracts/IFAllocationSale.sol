@@ -48,10 +48,8 @@ contract IFAllocationSale is Ownable {
     uint256 public startBlock;
     // end block when sale is active (inclusive)
     uint256 public endBlock;
-    // min for deposits, to ensure that every track has some liquidity in the long run
-    uint256 public minDeposit;
-    // max for deposits, where penalty may be levied later on
-    uint256 public maxDeposit;
+    // max for payment token amount
+    uint256 public maxTotalPayment;
 
     // EVENTS
 
@@ -74,8 +72,7 @@ contract IFAllocationSale is Ownable {
         uint80 _allocSnapshotBlock,
         uint256 _startBlock,
         uint256 _endBlock,
-        uint256 _minDeposit,
-        uint256 _maxDeposit
+        uint256 _maxTotalPayment
     ) {
         salePrice = _salePrice;
         funder = _funder;
@@ -86,8 +83,7 @@ contract IFAllocationSale is Ownable {
         allocSnapshotBlock = _allocSnapshotBlock;
         startBlock = _startBlock;
         endBlock = _endBlock;
-        minDeposit = _minDeposit;
-        maxDeposit = _maxDeposit;
+        maxTotalPayment = _maxTotalPayment;
     }
 
     // MODIFIERS
@@ -164,6 +160,11 @@ contract IFAllocationSale is Ownable {
         // console.log('sale token allocation', saleTokenAllocationE18 / 10**18);
         // console.log('payment token allocation', paymentTokenAllocation);
 
+        // total payment received must not exceed max payment amount
+        require(
+            paymentReceived[_msgSender()] + paymentAmount <= maxTotalPayment,
+            'exceeds max payment'
+        );
         // total payment received must not exceed paymentTokenAllocation
         require(
             paymentReceived[_msgSender()] + paymentAmount <=
