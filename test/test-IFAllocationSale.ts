@@ -4,6 +4,11 @@ import { expect } from 'chai'
 import { getGasUsed, mineNext } from './helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from '@ethersproject/contracts'
+import {
+  computeMerkleRoot,
+  computeMerkleProof,
+  getAddressIndex,
+} from '../library/merkleWhitelist'
 
 export default describe('IF Allocation Sale', function () {
   // deployer address
@@ -154,7 +159,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in purchase
-    expect((await getGasUsed()).toString()).to.equal('182508')
+    expect((await getGasUsed()).toString()).to.equal('184615')
 
     // fast forward blocks to get to end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {
@@ -191,5 +196,35 @@ export default describe('IF Allocation Sale', function () {
 
     // expect balance to increase by cash amount
     expect(await PaymentToken.balanceOf(casher.address)).to.equal(paymentAmount)
+
+    //// test whitelisting
+
+    // whitelisted addresses (must be sorted)
+    const addresses = [buyer.address, buyer2.address].sort() // when sorted, buyer2 is first
+
+    console.log('buyer2', buyer2.address)
+    console.log('buyer', buyer.address)
+
+    // get merkle root
+    const merkleRoot = computeMerkleRoot(addresses)
+
+    console.log('root', merkleRoot)
+
+    // add whitelist merkleroot to sale
+    await IFAllocationSale.setWhitelist(merkleRoot)
+    mineNext()
+    console.log(
+      'proof',
+      computeMerkleProof(addresses, getAddressIndex(addresses, buyer.address)),
+      getAddressIndex(addresses, buyer.address)
+    )
+
+    // test checking whitelist
+    expect(
+      await IFAllocationSale.connect(buyer).checkWhitelist(
+        getAddressIndex(addresses, buyer.address),
+        computeMerkleProof(addresses, getAddressIndex(addresses, buyer.address))
+      )
+    ).to.equal(true)
   })
 })

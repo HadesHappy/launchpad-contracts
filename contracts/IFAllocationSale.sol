@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import './IFAllocationMaster.sol';
 
@@ -16,6 +17,8 @@ contract IFAllocationSale is Ownable {
 
     // SALE STATE
 
+    // whitelist merkle root; if not set, then sale is open to everyone that has allocation
+    bytes32 whitelistRootHash;
     // amount of sale token to sell
     uint256 public saleAmount;
     // tracks amount purchased by each address
@@ -128,11 +131,64 @@ contract IFAllocationSale is Ownable {
         emit SetCasher(_casher);
     }
 
+    // Function for owner to set a whitelist; if not set, then everyone allowed
+    function setWhitelist(bytes32 _whitelistRootHash) external onlyOwner {
+        whitelistRootHash = _whitelistRootHash;
+    }
+
+    // Returns true if user is on whitelist, otherwise false
+    function checkWhitelist(uint256 index, bytes32[] calldata merkleProof)
+        public
+        view
+        returns (bool)
+    {
+        // compute merkle leaf from input
+        bytes32 leaf = keccak256(abi.encodePacked(index, _msgSender()));
+
+        // console.log(_msgSender(),'foo', user);
+        console.log('leaf');
+        console.logBytes32(leaf);
+
+        bytes32 computedHash = leaf;
+        console.log('loop');
+        for (uint256 i = 0; i < merkleProof.length; i++) {
+            bytes32 proofElement = merkleProof[i];
+
+            if (computedHash <= proofElement) {
+                console.logBytes(abi.encodePacked(computedHash, proofElement));
+
+                // Hash(current computed hash + current element of the proof)
+                computedHash = keccak256(
+                    abi.encodePacked(computedHash, proofElement)
+                );
+
+                console.logBytes32(computedHash);
+                console.logBytes32(proofElement);
+            } else {
+                console.logBytes(abi.encodePacked(computedHash, proofElement));
+
+                // Hash(current element of the proof + current computed hash)
+                computedHash = keccak256(
+                    abi.encodePacked(proofElement, computedHash)
+                );
+
+                console.logBytes32(computedHash);
+                console.logBytes32(proofElement);
+            }
+        }
+
+        // compute merkle proof and return result
+        return MerkleProof.verify(merkleProof, whitelistRootHash, leaf);
+    }
+
     // Function for making purchase in allocation sale
-    function purchase(uint256 paymentAmount) external {
+    function purchase(uint256 paymentAmount) public {
         // sale must be active
         require(startBlock <= block.number, 'sale has not begun');
         require(block.number <= endBlock, 'sale over');
+
+        // there must not be a whitelist set (sales that use whitelist must be used with whitelistedPurchase)
+        require(whitelistRootHash == 0, 'use whitelistedPurchase');
 
         // amount must be greater than 0
         require(paymentAmount > 0, 'amount is 0');
@@ -184,6 +240,17 @@ contract IFAllocationSale is Ownable {
 
         // emit
         emit Purchase(_msgSender(), paymentAmount);
+    }
+
+    function whitelistedPurchase(
+        uint256 paymentAmount,
+        uint256 index,
+        bytes32[] calldata merkleProof
+    ) external {
+        // require that user is whitelisted by checking proof
+        require(checkWhitelist(index, merkleProof), 'proof invalid');
+
+        purchase(paymentAmount);
     }
 
     // Function for withdrawing purchased sale token after sale end
