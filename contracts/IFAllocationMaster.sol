@@ -614,6 +614,13 @@ contract IFAllocationMaster is Ownable {
                 prev.totalStaked = addElseSub
                     ? prev.totalStaked + amount
                     : prev.totalStaked - amount;
+                prev.totalStakeWeight = prev.disabled
+                    ? (
+                        prev.totalStakeWeight < newStakeWeight
+                            ? prev.totalStakeWeight
+                            : newStakeWeight
+                    )
+                    : newStakeWeight;
                 prev.disabled = disabled;
                 prev.numFinishedSales = _bumpSaleCounter
                     ? prev.numFinishedSales + 1
@@ -625,7 +632,11 @@ contract IFAllocationMaster is Ownable {
                         ? prev.totalStaked + amount
                         : prev.totalStaked - amount,
                     totalStakeWeight: prev.disabled
-                        ? prev.totalStakeWeight
+                        ? (
+                            prev.totalStakeWeight < newStakeWeight
+                                ? prev.totalStakeWeight
+                                : newStakeWeight
+                        )
                         : newStakeWeight,
                     disabled: disabled,
                     numFinishedSales: _bumpSaleCounter
