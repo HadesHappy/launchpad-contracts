@@ -145,39 +145,7 @@ contract IFAllocationSale is Ownable {
         // compute merkle leaf from input
         bytes32 leaf = keccak256(abi.encodePacked(index, _msgSender()));
 
-        // console.log(_msgSender(),'foo', user);
-        console.log('leaf');
-        console.logBytes32(leaf);
-
-        bytes32 computedHash = leaf;
-        console.log('loop');
-        for (uint256 i = 0; i < merkleProof.length; i++) {
-            bytes32 proofElement = merkleProof[i];
-
-            if (computedHash <= proofElement) {
-                console.logBytes(abi.encodePacked(computedHash, proofElement));
-
-                // Hash(current computed hash + current element of the proof)
-                computedHash = keccak256(
-                    abi.encodePacked(computedHash, proofElement)
-                );
-
-                console.logBytes32(computedHash);
-                console.logBytes32(proofElement);
-            } else {
-                console.logBytes(abi.encodePacked(computedHash, proofElement));
-
-                // Hash(current element of the proof + current computed hash)
-                computedHash = keccak256(
-                    abi.encodePacked(proofElement, computedHash)
-                );
-
-                console.logBytes32(computedHash);
-                console.logBytes32(proofElement);
-            }
-        }
-
-        // compute merkle proof and return result
+        // verify merkle proof
         return MerkleProof.verify(merkleProof, whitelistRootHash, leaf);
     }
 

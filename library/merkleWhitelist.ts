@@ -9,13 +9,16 @@ Decimal.set({ precision: 64 })
 
 // searches for an address and returns its index
 export const getAddressIndex = (addresses: string[], address: string) => {
-  // get lookup address normalized
-  const normAddress = normalizeAddress(address)
+  // get leaves from addresses
+  const leaves = computeLeaves(addresses)
 
+  console.log('getting idx', address)
   // get index
   let index = -1
-  addresses.forEach((a, i) => {
-    if (normalizeAddress(a) === normAddress) index = i
+  leaves.forEach((leaf) => {
+    for (let i = -1; i <= 1; i++) {
+      if (leaf === hashAddress(address, i)) index = i
+    }
   })
 
   return index
@@ -30,19 +33,16 @@ export const computeMerkleProof = (addresses: string[], index: number) => {
   let path = index
   let proof = []
   let tempLeaves = [...leaves]
-  console.log('templeaves', leaves)
   while (tempLeaves.length > 1) {
     if (path % 2 == 1) proof.push(tempLeaves[path - 1])
     else proof.push(tempLeaves[path + 1])
 
     // reduce merkle tree one level
-    merkleReduce(tempLeaves)
+    tempLeaves = merkleReduce(tempLeaves)
 
     // move up
     path = Math.floor(path / 2)
   }
-
-  console.log('proof', proof)
 
   return proof
 }
@@ -51,15 +51,11 @@ export const computeMerkleProof = (addresses: string[], index: number) => {
 export const computeMerkleRoot = (addresses: string[]) => {
   const leaves = computeLeaves(addresses)
 
-  console.log('leaves in compute root', leaves)
-
   // compute root
   let tempLeaves = [...leaves]
   while (tempLeaves.length > 1) {
     tempLeaves = merkleReduce(tempLeaves)
   }
-
-  console.log(tempLeaves)
 
   return tempLeaves[0]
 }
@@ -67,28 +63,26 @@ export const computeMerkleRoot = (addresses: string[]) => {
 // compute leaves from packages
 const computeLeaves = (addresses: string[]) => {
   // normalize addresses
-  const normalized = addresses.map((a) => normalizeAddress(a))
-
-  // sort
-  let sorted = [...normalized].sort((a, b) => {
-    const lowerA = normalizeAddress(a)
-    const lowerB = normalizeAddress(b)
-    if (lowerA < lowerB) return -1
-    if (lowerA > lowerB) return 1
-  })
-
-  console.log(sorted)
+  const normalized = addresses.sort()
 
   // hash
-  sorted = sorted.map((a, i) => hashAddress(a, i))
+  const hashed = [...normalized].map((a, i) => {
+    console.log(a, i)
+    return hashAddress(a, i)
+  })
 
-  sorted = sorted.sort()
+  // pairwise sort
+  const pairwiseSorted = []
+  while (hashed.length) {
+    const leaf1 = hashed.shift()
+    const leaf2 = hashed.length === 0 ? leaf1 : hashed.shift()
+    // sort leaf 1 and leaf 2
+    const [left, right] = leaf1 <= leaf2 ? [leaf1, leaf2] : [leaf2, leaf1]
+    pairwiseSorted.push(left)
+    if (left !== right) pairwiseSorted.push(right)
+  }
 
-  // prepend `0x`
-  // sorted = sorted.map((a) => '0x' + a)
-
-  console.log('leaves', sorted)
-  return sorted
+  return pairwiseSorted
 }
 
 // hash an address
@@ -97,7 +91,7 @@ const hashAddress = (address: string, index: number) => {
   const paddedIndex = pad(index.toString(16))
 
   // generate string to hash
-  const hashString = '0x' + paddedIndex + address
+  const hashString = '0x' + paddedIndex + normalizeAddress(address)
 
   // hash
   return ethers.utils.keccak256(hashString)
@@ -113,10 +107,13 @@ const merkleReduce = (leaves: string[]) => {
   let output = []
 
   while (leaves.length) {
-    const left = leaves.shift().replace(/^0x/, '')
-    const right = leaves.length === 0 ? left : leaves.shift().replace(/^0x/, '')
+    const leaf1 = leaves.shift().replace(/^0x/, '')
+    const leaf2 =
+      leaves.length === 0 ? leaf1 : leaves.shift().replace(/^0x/, '')
 
-    console.log('lr', left, right)
+    // sort leaf 1 and leaf 2
+    const [left, right] = leaf1 <= leaf2 ? [leaf1, leaf2] : [leaf2, leaf1]
+
     output.push(ethers.utils.keccak256('0x' + left + right))
   }
 
