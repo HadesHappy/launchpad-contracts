@@ -149,14 +149,12 @@ contract IFAllocationSale is Ownable {
         return MerkleProof.verify(merkleProof, whitelistRootHash, leaf);
     }
 
-    // Function for making purchase in allocation sale
-    function purchase(uint256 paymentAmount) public {
+    // Internal function for making purchase in allocation sale
+    // Used by external functions `purchase` and `whitelistedPurchase`
+    function _purchase(uint256 paymentAmount) internal {
         // sale must be active
         require(startBlock <= block.number, 'sale has not begun');
         require(block.number <= endBlock, 'sale over');
-
-        // there must not be a whitelist set (sales that use whitelist must be used with whitelistedPurchase)
-        require(whitelistRootHash == 0, 'use whitelistedPurchase');
 
         // amount must be greater than 0
         require(paymentAmount > 0, 'amount is 0');
@@ -210,6 +208,15 @@ contract IFAllocationSale is Ownable {
         emit Purchase(_msgSender(), paymentAmount);
     }
 
+    // purchase function when there is no whitelist
+    function purchase(uint256 paymentAmount) external {
+        // there must not be a whitelist set (sales that use whitelist must be used with whitelistedPurchase)
+        require(whitelistRootHash == 0, 'use whitelistedPurchase');
+
+        _purchase(paymentAmount);
+    }
+
+    // purchase function when there is a whitelist
     function whitelistedPurchase(
         uint256 paymentAmount,
         uint256 index,
@@ -218,7 +225,7 @@ contract IFAllocationSale is Ownable {
         // require that user is whitelisted by checking proof
         require(checkWhitelist(index, merkleProof), 'proof invalid');
 
-        purchase(paymentAmount);
+        _purchase(paymentAmount);
     }
 
     // Function for withdrawing purchased sale token after sale end
