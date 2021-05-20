@@ -170,6 +170,11 @@ contract IFAllocationSale is Ownable {
             );
         uint256 totalWeight =
             allocationMaster.getTotalStakeWeight(trackId, allocSnapshotBlock);
+
+        // amount must be greater than 0
+        require(totalWeight > 0, 'total weight is 0');
+
+        // calculate allocation (times 10**18)
         uint256 allocationE18 = (userWeight * 10**18) / totalWeight;
 
         // calculate max amount of obtainable sale token
