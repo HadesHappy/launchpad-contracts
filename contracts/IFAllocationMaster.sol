@@ -4,13 +4,14 @@ pragma solidity ^0.8.4;
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import 'hardhat/console.sol';
 
 // IFAllocationMaster is responsible for persisting all launchpad state between project token sales
 // in order for the sales to have clean, self-enclosed, one-time-use states.
 
 // IFAllocationMaster is the master of allocations. He can remember everything and he is a smart guy.
-contract IFAllocationMaster is Ownable {
+contract IFAllocationMaster is Ownable, ReentrancyGuard {
     using SafeERC20 for ERC20;
 
     // CONSTANTS
@@ -663,7 +664,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // stake
-    function stake(uint24 trackId, uint104 amount) external {
+    function stake(uint24 trackId, uint104 amount) external nonReentrant {
         // stake amount must be greater than 0
         require(amount > 0, 'amount is 0');
 
@@ -691,7 +692,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // unstake
-    function unstake(uint24 trackId, uint104 amount) external {
+    function unstake(uint24 trackId, uint104 amount) external nonReentrant {
         // amount must be greater than 0
         require(amount > 0, 'amount is 0');
 
