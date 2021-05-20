@@ -127,7 +127,7 @@ contract IFAllocationMaster is Ownable {
         uint80 _weightAccrualRate,
         uint64 _passiveRolloverRate,
         uint64 _activeRolloverRate
-    ) public onlyOwner {
+    ) external onlyOwner {
         // add track
         tracks.push(
             TrackInfo({
@@ -153,7 +153,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // bumps a track's finished sale counter
-    function bumpSaleCounter(uint24 trackId) public onlyOwner {
+    function bumpSaleCounter(uint24 trackId) external onlyOwner {
         // get number of finished sales of this track
         uint24 nFinishedSales =
             trackCheckpoints[trackId][trackCheckpointCounts[trackId] - 1]
@@ -169,7 +169,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // disables a track
-    function disableTrack(uint24 trackId) public onlyOwner {
+    function disableTrack(uint24 trackId) external onlyOwner {
         // add a new checkpoint with `disabled` set to true
         addTrackCheckpoint(trackId, 0, false, true, false);
 
@@ -177,7 +177,7 @@ contract IFAllocationMaster is Ownable {
     }
 
     // perform active rollover
-    function activeRollOver(uint24 trackId) public {
+    function activeRollOver(uint24 trackId) external {
         // add new user checkpoint
         addUserCheckpoint(trackId, 0, false);
 
@@ -430,7 +430,7 @@ contract IFAllocationMaster is Ownable {
     // gets total stake weight within a track at a particular block number
     // logic extended from Compound COMP token `getPriorVotes` function
     function getTotalStakeWeight(uint24 trackId, uint80 blockNumber)
-        public
+        external
         view
         returns (uint104)
     {
