@@ -567,9 +567,9 @@ contract IFAllocationMaster is Ownable {
 
             if (prev.disabled) {
                 // if previous checkpoint was disabled, then disabled cannot be false going forward
-                require(disabled == true, 'disabled: cannot undo disable');
+                require(disabled, 'disabled: cannot undo disable');
                 // if previous checkpoint was disabled, then cannot increase stake going forward
-                require(addElseSub == false, 'disabled: cannot add stake');
+                require(!addElseSub, 'disabled: cannot add stake');
             }
 
             // ensure block number downcast to uint80 is monotonically increasing (prevent overflow)
