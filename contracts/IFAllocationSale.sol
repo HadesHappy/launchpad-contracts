@@ -5,9 +5,10 @@ import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import './IFAllocationMaster.sol';
 
-contract IFAllocationSale is Ownable {
+contract IFAllocationSale is Ownable, ReentrancyGuard {
     using SafeERC20 for ERC20;
 
     // CONSTANTS
@@ -151,7 +152,7 @@ contract IFAllocationSale is Ownable {
 
     // Internal function for making purchase in allocation sale
     // Used by external functions `purchase` and `whitelistedPurchase`
-    function _purchase(uint256 paymentAmount) internal {
+    function _purchase(uint256 paymentAmount) internal nonReentrant {
         // sale must be active
         require(startBlock <= block.number, 'sale has not begun');
         require(block.number <= endBlock, 'sale over');
@@ -234,7 +235,7 @@ contract IFAllocationSale is Ownable {
     }
 
     // Function for withdrawing purchased sale token after sale end
-    function withdraw() external {
+    function withdraw() external nonReentrant {
         // sale must be over
         require(endBlock < block.number, 'sale must be over');
         // prevent repeat withdraw
