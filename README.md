@@ -2,9 +2,8 @@
 
 In this repo, we will feature a new IDIA staking launchpad mechanism.
 
-For a full write up on our launchpad logic, please visit here:
-
-Key changes in this contract include:
+For documentation on our launchpad logic, please visit here:
+https://abcstablexyz.gitbook.io/impossiblefinance/launchpad/launchpad-smart-contracts/ifallocationsale.sol
 
 ## Setup
 
