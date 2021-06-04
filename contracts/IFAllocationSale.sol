@@ -64,7 +64,11 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     event SetWhitelistSetter(address indexed whitelistSetter);
     event Purchase(address indexed sender, uint256 paymentAmount);
     event Withdraw(address indexed sender);
-    event Cash(address indexed sender, uint256 balance);
+    event Cash(
+        address indexed sender,
+        uint256 paymentTokenBalance,
+        uint256 saleTokenBalance
+    );
     event EmergencyTokenRetrieve(address indexed sender, uint256 amount);
 
     // CONSTRUCTOR
@@ -280,7 +284,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         emit Withdraw(_msgSender());
     }
 
-    // Function for funder to cash in payment token
+    // Function for funder to cash in payment token and unsold sale token
     function cash() external onlyCasherOrOwner {
         // sale must be over
         require(endBlock < block.number, 'sale must be over');
@@ -288,11 +292,17 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         // get amount of payment token received
         uint256 paymentTokenBal = paymentToken.balanceOf(address(this));
 
-        // transfer all to owner
+        // transfer all
         paymentToken.safeTransfer(address(_msgSender()), paymentTokenBal);
 
+        // get amount of unsold sale token
+        uint256 saleTokenBal = saleToken.balanceOf(address(this));
+
+        // transfer all
+        saleToken.safeTransfer(address(_msgSender()), saleTokenBal);
+
         // emit
-        emit Cash(_msgSender(), paymentTokenBal);
+        emit Cash(_msgSender(), paymentTokenBal, saleTokenBal);
     }
 
     // retrieve tokens erroneously sent in to this address
