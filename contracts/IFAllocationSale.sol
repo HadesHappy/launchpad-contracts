@@ -38,6 +38,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     address public funder;
     // optional casher (settable by owner)
     address public casher;
+    // optional whitelist setter (settable by owner)
+    address public whitelistSetter;
     // payment token
     ERC20 public paymentToken;
     // sale token
@@ -59,6 +61,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
 
     event Fund(address indexed sender, uint256 amount);
     event SetCasher(address indexed casher);
+    event SetWhitelistSetter(address indexed whitelistSetter);
     event Purchase(address indexed sender, uint256 paymentAmount);
     event Withdraw(address indexed sender);
     event Cash(address indexed sender, uint256 balance);
@@ -94,7 +97,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
 
     // Throws if called by any account other than the funder.
     modifier onlyFunder() {
-        require(_msgSender() == funder, 'caller is not the funder');
+        require(_msgSender() == funder, 'caller not funder');
         _;
     }
 
@@ -102,7 +105,16 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     modifier onlyCasherOrOwner() {
         require(
             _msgSender() == casher || _msgSender() == owner(),
-            'caller is not the casher or owner'
+            'caller not casher or owner'
+        );
+        _;
+    }
+
+    // Throws if called by any account other than the whitelist setter.
+    modifier onlyWhitelistSetterOrOwner() {
+        require(
+            _msgSender() == whitelistSetter || _msgSender() == owner(),
+            'caller not whitelist setter or owner'
         );
         _;
     }
@@ -132,8 +144,19 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         emit SetCasher(_casher);
     }
 
-    // Function for owner to set a whitelist; if not set, then everyone allowed
-    function setWhitelist(bytes32 _whitelistRootHash) external onlyOwner {
+    // Function for owner to set an optional, separate whitelist setter
+    function setWhitelistSetter(address _whitelistSetter) external onlyOwner {
+        whitelistSetter = _whitelistSetter;
+
+        // emit
+        emit SetWhitelistSetter(_whitelistSetter);
+    }
+
+    // Function for owner or whitelist setter to set a whitelist; if not set, then everyone allowed
+    function setWhitelist(bytes32 _whitelistRootHash)
+        external
+        onlyWhitelistSetterOrOwner
+    {
         whitelistRootHash = _whitelistRootHash;
     }
 
@@ -259,6 +282,9 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
 
     // Function for funder to cash in payment token
     function cash() external onlyCasherOrOwner {
+        // sale must be over
+        require(endBlock < block.number, 'sale must be over');
+
         // get amount of payment token received
         uint256 paymentTokenBal = paymentToken.balanceOf(address(this));
 
