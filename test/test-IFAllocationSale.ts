@@ -172,7 +172,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in withdraw
-    expect((await getGasUsed()).toString()).to.equal('94283')
+    expect((await getGasUsed()).toString()).to.equal('94305')
 
     // expect balance to increase by fund amount
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
@@ -199,24 +199,25 @@ export default describe('IF Allocation Sale', function () {
 
     //// test whitelisting
 
-    // // whitelisted addresses (sorted)
-    // const addresses = (await ethers.getSigners()).map((s) => s.address).sort()
+    // whitelisted addresses (sorted)
+    const addresses = (await ethers.getSigners())
+      .map((s) => s.address.toLowerCase())
+      .sort()
 
-    // // get merkle root
-    // const merkleRoot = computeMerkleRoot(addresses)
+    // get merkle root
+    const merkleRoot = computeMerkleRoot(addresses)
 
-    // // add whitelist merkleroot to sale
-    // await IFAllocationSale.setWhitelist(merkleRoot)
-    // mineNext()
+    // add whitelist merkleroot to sale
+    await IFAllocationSale.setWhitelist(merkleRoot)
+    mineNext()
 
-    // // test checking whitelist
-    // const account = casher
-    // const acctIdx = getAddressIndex(addresses, account.address)
-    // expect(
-    //   await IFAllocationSale.connect(account).checkWhitelist(
-    //     acctIdx,
-    //     computeMerkleProof(addresses, acctIdx)
-    //   )
-    // ).to.equal(true)
+    // test checking whitelist
+    const account = casher
+    const acctIdx = getAddressIndex(addresses, account.address)
+    expect(
+      await IFAllocationSale.connect(account).checkWhitelist(
+        computeMerkleProof(addresses, acctIdx)
+      )
+    ).to.equal(true)
   })
 })

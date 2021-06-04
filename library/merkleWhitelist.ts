@@ -12,14 +12,12 @@ export const getAddressIndex = (addresses: string[], address: string) => {
   // get leaves from addresses
   const leaves = computeLeaves(addresses)
 
-  console.log('getting idx', address)
   // get index
   let index = -1
-  leaves.forEach((leaf) => {
-    for (let i = -1; i <= 1; i++) {
-      if (leaf === hashAddress(address, i)) index = i
-    }
+  leaves.forEach((leaf, i) => {
+    if (leaf === hashAddress(address)) index = i
   })
+  // console.log('getting idx', address, index)
 
   return index
 }
@@ -66,10 +64,12 @@ const computeLeaves = (addresses: string[]) => {
   const normalized = addresses.sort()
 
   // hash
-  const hashed = [...normalized].map((a, i) => {
-    console.log(a, i)
-    return hashAddress(a, i)
+  const hashed = [...normalized].map((a) => {
+    // console.log('hashing', a, hashAddress(a))
+    return hashAddress(a)
   })
+
+  // console.log('----')
 
   // pairwise sort
   const pairwiseSorted = []
@@ -86,12 +86,12 @@ const computeLeaves = (addresses: string[]) => {
 }
 
 // hash an address
-const hashAddress = (address: string, index: number) => {
+const hashAddress = (address: string) => {
   // leftpad
-  const paddedIndex = pad(index.toString(16))
+  // const paddedIndex = pad(index.toString(16))
 
   // generate string to hash
-  const hashString = '0x' + paddedIndex + normalizeAddress(address)
+  const hashString = '0x' + normalizeAddress(address)
 
   // hash
   return ethers.utils.keccak256(hashString)

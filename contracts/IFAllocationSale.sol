@@ -165,13 +165,13 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     }
 
     // Returns true if user is on whitelist, otherwise false
-    function checkWhitelist(uint256 index, bytes32[] calldata merkleProof)
+    function checkWhitelist(bytes32[] calldata merkleProof)
         public
         view
         returns (bool)
     {
         // compute merkle leaf from input
-        bytes32 leaf = keccak256(abi.encodePacked(index, _msgSender()));
+        bytes32 leaf = keccak256(abi.encodePacked(_msgSender()));
 
         // verify merkle proof
         return MerkleProof.verify(merkleProof, whitelistRootHash, leaf);
@@ -252,11 +252,10 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // purchase function when there is a whitelist
     function whitelistedPurchase(
         uint256 paymentAmount,
-        uint256 index,
         bytes32[] calldata merkleProof
     ) external {
         // require that user is whitelisted by checking proof
-        require(checkWhitelist(index, merkleProof), 'proof invalid');
+        require(checkWhitelist(merkleProof), 'proof invalid');
 
         _purchase(paymentAmount);
     }
