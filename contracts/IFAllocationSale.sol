@@ -54,12 +54,20 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     uint256 public startBlock;
     // end block when sale is active (inclusive)
     uint256 public endBlock;
+    // optional min for payment token amount
+    uint256 public minTotalPayment;
     // max for payment token amount
     uint256 public maxTotalPayment;
+    // optional flat allocation override
+    uint256 public paymentTokenAllocationOverride;
 
     // EVENTS
 
     event Fund(address indexed sender, uint256 amount);
+    event SetMinTotalPayment(uint256 indexed minTotalPayment);
+    event SetPaymentTokenAllocationOverride(
+        uint256 indexed paymentTokenAllocationOverride
+    );
     event SetCasher(address indexed casher);
     event SetWhitelistSetter(address indexed whitelistSetter);
     event Purchase(address indexed sender, uint256 paymentAmount);
@@ -140,8 +148,35 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         emit Fund(_msgSender(), amount);
     }
 
+    // Function for owner to set an optional, minTotalPayment
+    function setMinTotalPayment(uint256 _minTotalPayment) external onlyOwner {
+        // sale must not have started
+        require(block.number < startBlock, 'sale already started');
+
+        minTotalPayment = _minTotalPayment;
+
+        // emit
+        emit SetMinTotalPayment(_minTotalPayment);
+    }
+
+    // Function for owner to set an optional, flat allocation override
+    function setPaymentTokenAllocationOverride(
+        uint256 _paymentTokenAllocationOverride
+    ) external onlyOwner {
+        // sale must not have started
+        require(block.number < startBlock, 'sale already started');
+
+        paymentTokenAllocationOverride = _paymentTokenAllocationOverride;
+
+        // emit
+        emit SetPaymentTokenAllocationOverride(_paymentTokenAllocationOverride);
+    }
+
     // Function for owner to set an optional, separate casher
     function setCasher(address _casher) external onlyOwner {
+        // sale must not have started
+        require(block.number < startBlock, 'sale already started');
+
         casher = _casher;
 
         // emit
@@ -150,6 +185,9 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
 
     // Function for owner to set an optional, separate whitelist setter
     function setWhitelistSetter(address _whitelistSetter) external onlyOwner {
+        // sale must not have started
+        require(block.number < startBlock, 'sale already started');
+
         whitelistSetter = _whitelistSetter;
 
         // emit
@@ -184,10 +222,9 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         require(startBlock <= block.number, 'sale has not begun');
         require(block.number <= endBlock, 'sale over');
 
-        // amount must be greater than 0
-        require(paymentAmount > 0, 'amount is 0');
-
-        // CHECK AGAINST EXCEEDING ALLOCATION
+        // amount must be greater than minTotalPayment
+        // by default, minTotalPayment is 0 unless otherwise set
+        require(paymentAmount > minTotalPayment, 'amount below min');
 
         // get user allocation as ratio (multiply by 10**18, aka E18, for precision)
         uint256 userWeight =
@@ -199,18 +236,29 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         uint256 totalWeight =
             allocationMaster.getTotalStakeWeight(trackId, allocSnapshotBlock);
 
-        // amount must be greater than 0
+        // total weight must be greater than 0
         require(totalWeight > 0, 'total weight is 0');
 
-        // calculate allocation (times 10**18)
-        uint256 allocationE18 = (userWeight * 10**18) / totalWeight;
+        // determine allocation
+        uint256 paymentTokenAllocation;
 
-        // calculate max amount of obtainable sale token
-        uint256 saleTokenAllocationE18 = (saleAmount * allocationE18);
+        // different calculation for whether override is set
+        if (paymentTokenAllocationOverride == 0) {
+            // calculate allocation (times 10**18)
+            uint256 allocationE18 = (userWeight * 10**18) / totalWeight;
 
-        // calculate equivalent value in payment token
-        uint256 paymentTokenAllocation =
-            (saleTokenAllocationE18 * salePrice) / SALE_PRICE_DECIMALS / 10**18;
+            // calculate max amount of obtainable sale token
+            uint256 saleTokenAllocationE18 = (saleAmount * allocationE18);
+
+            // calculate equivalent value in payment token
+            paymentTokenAllocation =
+                (saleTokenAllocationE18 * salePrice) /
+                SALE_PRICE_DECIMALS /
+                10**18;
+        } else {
+            // override payment token allocation
+            paymentTokenAllocation = paymentTokenAllocationOverride;
+        }
 
         // console.log('sale token allocation', saleTokenAllocationE18 / 10**18);
         // console.log('payment token allocation', paymentTokenAllocation);
@@ -254,6 +302,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         uint256 paymentAmount,
         bytes32[] calldata merkleProof
     ) external {
+        // console.log('whitelisted purchase', checkWhitelist(merkleProof));
+
         // require that user is whitelisted by checking proof
         require(checkWhitelist(merkleProof), 'proof invalid');
 

@@ -29,18 +29,25 @@ export default describe('IF Allocation Sale', function () {
   let trackId: number
 
   // launchpad vars
+  let snapshotBlock: number // block at which to take allocation snapshot
+  let startBlock: number // start block of sale (inclusive)
+  let endBlock: number // end block of sale (inclusive)
   const salePrice = '10000000000000000000' // 10 PAY per SALE
-  const snapshotBlock = 90 // block at which to take allocation snapshot
-  const startBlock = 100 // start block of sale (inclusive)
-  const endBlock = 200 // end block of sale (inclusive)
   const maxTotalDeposit = '25000000000000000000000000' // max deposit
-
   // other vars
   // const fundAmount = '33333'
   const fundAmount = '1000000000'
 
   // setup for each test
   beforeEach(async () => {
+    // set launchpad blocks in future
+    mineNext()
+    const currBlock = await ethers.provider.getBlockNumber()
+    mineNext()
+    snapshotBlock = currBlock + 90
+    startBlock = currBlock + 100
+    endBlock = currBlock + 200
+
     // get test accounts
     owner = (await ethers.getSigners())[0]
     buyer = (await ethers.getSigners())[1]
@@ -107,6 +114,11 @@ export default describe('IF Allocation Sale', function () {
       endBlock,
       maxTotalDeposit
     )
+    mineNext()
+
+    // set the casher address
+    await IFAllocationSale.setCasher(casher.address)
+    mineNext()
 
     // fund sale
     mineNext()
@@ -140,6 +152,8 @@ export default describe('IF Allocation Sale', function () {
   })
 
   it('can purchase, withdraw, and cash', async function () {
+    mineNext()
+
     // amount to pay
     const paymentAmount = '333330'
 
@@ -159,7 +173,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in purchase
-    expect((await getGasUsed()).toString()).to.equal('187021')
+    expect((await getGasUsed()).toString()).to.equal('191258')
 
     // fast forward blocks to get to end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {
@@ -172,7 +186,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in withdraw
-    expect((await getGasUsed()).toString()).to.equal('94305')
+    expect((await getGasUsed()).toString()).to.equal('94327')
 
     // expect balance to increase by fund amount
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
@@ -186,18 +200,15 @@ export default describe('IF Allocation Sale', function () {
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
 
     // test cash
-    // set the casher address
-    await IFAllocationSale.setCasher(casher.address)
-    mineNext()
-
-    // attempt cashing
     await IFAllocationSale.connect(casher).cash()
     mineNext()
 
     // expect balance to increase by cash amount
     expect(await PaymentToken.balanceOf(casher.address)).to.equal(paymentAmount)
+  })
 
-    //// test whitelisting
+  it('can whitelist purchase', async function () {
+    mineNext()
 
     // whitelisted addresses (sorted)
     const addresses = (await ethers.getSigners())
@@ -212,12 +223,85 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // test checking whitelist
-    const account = casher
+    const account = buyer
     const acctIdx = getAddressIndex(addresses, account.address)
     expect(
       await IFAllocationSale.connect(account).checkWhitelist(
         computeMerkleProof(addresses, acctIdx)
       )
     ).to.equal(true)
+
+    // amount to pay
+    const paymentAmount = '333330'
+
+    // fast forward blocks to get to start block
+    while ((await ethers.provider.getBlockNumber()) < startBlock) {
+      mineNext()
+    }
+
+    // test whitelist purchase
+    mineNext()
+    await PaymentToken.connect(account).approve(
+      IFAllocationSale.address,
+      paymentAmount
+    )
+    await IFAllocationSale.connect(account).whitelistedPurchase(
+      paymentAmount,
+      computeMerkleProof(addresses, acctIdx)
+    )
+
+    mineNext()
+
+    // fast forward blocks to get to end block
+    while ((await ethers.provider.getBlockNumber()) <= endBlock) {
+      mineNext()
+    }
+
+    // test withdraw
+    mineNext()
+    await IFAllocationSale.connect(account).withdraw()
+    mineNext()
+
+    // expect balance to increase by fund amount
+    expect(await SaleToken.balanceOf(account.address)).to.equal('33333')
+  })
+
+  it('can override payment token allocations', async function () {
+    mineNext()
+
+    // amount to pay (should fail)
+    const paymentAmount = '100001'
+
+    // set payment token allocation override
+    await IFAllocationSale.setPaymentTokenAllocationOverride(100000)
+    mineNext()
+
+    // fast forward blocks to get to start block
+    while ((await ethers.provider.getBlockNumber()) < startBlock) {
+      mineNext()
+    }
+
+    // test purchase
+    mineNext()
+    await PaymentToken.connect(buyer).approve(
+      IFAllocationSale.address,
+      paymentAmount
+    )
+    await IFAllocationSale.connect(buyer).purchase(paymentAmount)
+
+    mineNext()
+
+    // fast forward blocks to get to end block
+    while ((await ethers.provider.getBlockNumber()) <= endBlock) {
+      mineNext()
+    }
+
+    // test withdraw
+    mineNext()
+    await IFAllocationSale.connect(buyer).withdraw()
+    mineNext()
+
+    // expect balance to be 0
+    expect(await SaleToken.balanceOf(buyer.address)).to.equal('0')
   })
 })
