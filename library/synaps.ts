@@ -60,4 +60,4 @@ const getValidated = async (apiKey: string) => {
   return sessionStates
 }
 
-getValidated(process.env.KEY).then((r) => console.log(r))
+getValidated(process.env.SYNAPS_API_KEY).then((r) => console.log(r))
