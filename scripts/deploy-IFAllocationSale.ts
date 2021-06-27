@@ -17,8 +17,8 @@ export async function main() {
   let snapshotBlock: number = parseInt(process.env.SNAP_BLOCK) // block at which to take allocation snapshot
   let startBlock: number = parseInt(process.env.START_BLOCK) // start block of sale (inclusive)
   let endBlock: number = parseInt(process.env.END_BLOCK) // end block of sale (inclusive)
-  const salePrice = parseInt(process.env.SALE_PRICE) // amount of payment token per sale token
-  const maxTotalDeposit = parseInt(process.env.MAX_TOTAL_DEPOSIT) // max deposit
+  const salePrice = process.env.SALE_PRICE // amount of payment token per sale token
+  const maxTotalDeposit = process.env.MAX_TOTAL_DEPOSIT // max deposit
 
   // We get the contract to deploy
   const IFAllocationSaleFactory = await hre.ethers.getContractFactory("IFAllocationSale");
