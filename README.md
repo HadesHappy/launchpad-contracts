@@ -3,7 +3,7 @@
 In this repo, we will feature a new IDIA staking launchpad mechanism.
 
 For documentation on our launchpad logic, please visit here:
-https://abcstablexyz.gitbook.io/impossiblefinance/launchpad/launchpad-smart-contracts/ifallocationsale.sol
+https://docs.impossible.finance/launchpad/smart-contracts
 
 ## Setup
 
@@ -19,8 +19,32 @@ npx hardhat test
 
 ## Deploy
 
-DEPLOY SCRIPT TO BE WRITTEN
+### Testnet
 
 ```
-npx hardhat run ./scripts/deploy.js
+# test tokens
+npx hardhat run ./scripts/deploy-TestToken.ts --network bsc_test
+
+# allocation master
+npx hardhat run ./scripts/deploy-IFAllocationMaster.ts --network bsc_test
+
+# allocation sale
+SELLER=0xABCD PAY_TOKEN=0xABCD SALE_TOKEN=0xABCD ALLOCATION_MASTER=0xABCD TRACK_ID=123 SNAP_BLOCK=123456 START_BLOCK=123456 END_BLOCK=123456 SALE_PRICE=100000000000000000000 MAX_TOTAL_DEPOSIT=10000000000000000000000 npx hardhat run ./scripts/deploy-IFAllocationSale.ts --network bsc_test
+```
+
+### Production
+
+For production, the deploy command is similar to the one for testnet but you must supply an account / mnemonic.
+For obvious security reasons, this is not included in the hardhat config - this should be specified via
+environment variable.
+
+```
+# test tokens
+npx hardhat run ./scripts/deploy-TestToken.ts --network bsc_main
+
+# allocation master
+npx hardhat run ./scripts/deploy-IFAllocationMaster.ts --network bsc_main
+
+# allocation sale
+SELLER=0xABCD PAY_TOKEN=0xABCD SALE_TOKEN=0xABCD ALLOCATION_MASTER=0xABCD TRACK_ID=123 SNAP_BLOCK=123456 START_BLOCK=123456 END_BLOCK=123456 SALE_PRICE=100000000000000000000 MAX_TOTAL_DEPOSIT=10000000000000000000000 npx hardhat run ./scripts/deploy-IFAllocationSale.ts --network bsc_main
 ```

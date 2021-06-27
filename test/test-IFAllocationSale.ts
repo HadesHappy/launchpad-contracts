@@ -28,7 +28,7 @@ export default describe('IF Allocation Sale', function () {
   // allocation master vars
   let trackId: number
 
-  // launchpad vars
+  // sale contract vars
   let snapshotBlock: number // block at which to take allocation snapshot
   let startBlock: number // start block of sale (inclusive)
   let endBlock: number // end block of sale (inclusive)
