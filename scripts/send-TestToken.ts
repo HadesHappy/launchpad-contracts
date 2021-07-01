@@ -18,12 +18,16 @@ export async function main() {
   let tokenContract = new hre.ethers.Contract(token, TestToken.abi)
 
   // transfer
-  tokenContract.transfer(to, amount)
+  const result = await tokenContract
+    .connect((await hre.ethers.getSigners())[0])
+    .transfer(to, amount)
 
   // log
   console.log('Token', token)
   console.log('Amount', amount)
   console.log('Sent to', to)
+  console.log('----')
+  console.log('Tx hash', result.hash)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

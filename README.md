@@ -54,5 +54,5 @@ SELLER=0xABCD PAY_TOKEN=0xABCD SALE_TOKEN=0xABCD ALLOCATION_MASTER=0xABCD TRACK_
 ### Sending tokens
 
 ```
-TOKEN=0x... TO=0x... AMOUNT=10000000000000000000000 npx hardhat run ./scripts/send-TestToken.ts
+TOKEN=0x... TO=0x... AMOUNT=10000000000000000000000 npx hardhat run ./scripts/send-TestToken.ts --network <bsc_main/bsc_test>
 ```
