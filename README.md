@@ -48,3 +48,11 @@ npx hardhat run ./scripts/deploy-IFAllocationMaster.ts --network bsc_main
 # allocation sale
 SELLER=0xABCD PAY_TOKEN=0xABCD SALE_TOKEN=0xABCD ALLOCATION_MASTER=0xABCD TRACK_ID=123 SNAP_BLOCK=123456 START_BLOCK=123456 END_BLOCK=123456 SALE_PRICE=100000000000000000000 MAX_TOTAL_DEPOSIT=10000000000000000000000 npx hardhat run ./scripts/deploy-IFAllocationSale.ts --network bsc_main
 ```
+
+## Other utilities
+
+### Sending tokens
+
+```
+TOKEN=0x... TO=0x... AMOUNT=10000000000000000000000 npx hardhat run ./scripts/send-TestToken.ts
+```
