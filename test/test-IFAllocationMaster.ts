@@ -262,13 +262,13 @@ export default describe('IFAllocationMaster', function () {
 
       // perform active rollover if specified
       if (simulationInput[i].activeRollOvers) {
-        for (let user of simulationInput[i].activeRollOvers)
+        for (let user of simulationInput[i].activeRollOvers || [])
           await IFAllocationMaster.connect(user).activeRollOver(trackNum)
       }
 
       // user stakes/unstakes according to stakesOverTime
       if (simulationInput[i].stakeAmounts) {
-        for (let { user, amount } of simulationInput[i].stakeAmounts) {
+        for (let { user, amount } of simulationInput[i].stakeAmounts || []) {
           if (amount !== '0' && amount[0] !== '-') {
             // approve
             await TestToken.connect(user).approve(
