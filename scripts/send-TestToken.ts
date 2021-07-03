@@ -23,11 +23,11 @@ export async function main() {
     .transfer(to, amount)
 
   // log
-  console.log('Token', token)
-  console.log('Amount', amount)
-  console.log('Sent to', to)
-  console.log('----')
-  console.log('Tx hash', result.hash)
+  console.log('Token:', token)
+  console.log('Amount:', amount)
+  console.log('Sent to:', to)
+  console.log('---- Output ----')
+  console.log('Tx hash:', result.hash)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

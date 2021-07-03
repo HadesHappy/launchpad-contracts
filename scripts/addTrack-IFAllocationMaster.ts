@@ -28,6 +28,11 @@ export async function main() {
     IFAllocationMaster.abi
   )
 
+  // get track number before adding
+  const trackNum = await allocationMasterContract
+    .connect((await hre.ethers.getSigners())[0])
+    .trackCount()
+
   // transfer
   const result = await allocationMasterContract
     .connect((await hre.ethers.getSigners())[0])
@@ -40,13 +45,14 @@ export async function main() {
     )
 
   // log
-  console.log('Track name', name)
-  console.log('Token', token)
-  console.log('Weight accrual rate', war)
-  console.log('Passive rollover rate', prr)
-  console.log('Active rollover rate', arr)
-  console.log('----')
-  console.log('Tx hash', result.hash)
+  console.log('Track name:', name)
+  console.log('Token:', token)
+  console.log('Weight accrual rate:', war)
+  console.log('Passive rollover rate:', prr)
+  console.log('Active rollover rate:', arr)
+  console.log('---- Output ----')
+  console.log('Tx hash:', result.hash)
+  console.log('Track number:', trackNum)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
