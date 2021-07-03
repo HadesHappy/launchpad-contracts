@@ -75,7 +75,9 @@ export default describe('IF Allocation Sale', function () {
 
     // redistribute tokens
     mineNext()
-    StakeToken.connect(buyer).transfer(buyer2.address, '1000000000000000000')
+    StakeToken.connect(buyer).transfer(buyer2.address, '1000000000000000000000000')
+    PaymentToken.connect(buyer).transfer(buyer2.address, '1000000000000000000000000')
+
 
     // deploy allocation master
     const IFAllocationMasterFactory = await ethers.getContractFactory(
@@ -266,7 +268,7 @@ export default describe('IF Allocation Sale', function () {
     expect(await SaleToken.balanceOf(account.address)).to.equal('33333')
   })
 
-  it('can override payment token allocations', async function () {
+  it('can override payment token allocations (test preventing exceeding allocation)', async function () {
     mineNext()
 
     // amount to pay (should fail)
@@ -303,5 +305,54 @@ export default describe('IF Allocation Sale', function () {
 
     // expect balance to be 0
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('0')
+  })
+
+  it('can override payment token allocations (test multiple buyers)', async function () {
+    mineNext()
+
+    // amount to pay for each claimer
+    const paymentAmount = '50000'
+
+    // set payment token allocation override
+    await IFAllocationSale.setPaymentTokenAllocationOverride(50000)
+    mineNext()
+
+    // fast forward blocks to get to start block
+    while ((await ethers.provider.getBlockNumber()) < startBlock) {
+      mineNext()
+    }
+
+    // test purchase for buyers 1 and 2
+    mineNext()
+    await PaymentToken.connect(buyer).approve(
+      IFAllocationSale.address,
+      paymentAmount
+    )
+    await IFAllocationSale.connect(buyer).purchase(paymentAmount)
+
+    mineNext()
+    await PaymentToken.connect(buyer2).approve(
+      IFAllocationSale.address,
+      paymentAmount
+    )
+    await IFAllocationSale.connect(buyer2).purchase(paymentAmount)
+
+    mineNext()
+
+    // fast forward blocks to get to end block
+    while ((await ethers.provider.getBlockNumber()) <= endBlock) {
+      mineNext()
+    }
+
+    // test withdraw
+    mineNext()
+    await IFAllocationSale.connect(buyer).withdraw()
+    mineNext()
+    await IFAllocationSale.connect(buyer2).withdraw()
+    mineNext()
+
+    // expect balance to be 5000 for both buyers
+    expect(await SaleToken.balanceOf(buyer.address)).to.equal('5000')
+    expect(await SaleToken.balanceOf(buyer2.address)).to.equal('5000')
   })
 })
