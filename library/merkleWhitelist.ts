@@ -74,8 +74,8 @@ const computeLeaves = (addresses: string[]) => {
   // pairwise sort
   const pairwiseSorted = []
   while (hashed.length) {
-    const leaf1 = hashed.shift()
-    const leaf2 = hashed.length === 0 ? leaf1 : hashed.shift()
+    const leaf1 = hashed.shift() as string
+    const leaf2 = hashed.length === 0 ? leaf1 : (hashed.shift() as string)
     // sort leaf 1 and leaf 2
     const [left, right] = leaf1 <= leaf2 ? [leaf1, leaf2] : [leaf2, leaf1]
     pairwiseSorted.push(left)
@@ -107,9 +107,11 @@ const merkleReduce = (leaves: string[]) => {
   let output = []
 
   while (leaves.length) {
-    const leaf1 = leaves.shift().replace(/^0x/, '')
+    const leaf1 = (leaves.shift() as string).replace(/^0x/, '')
     const leaf2 =
-      leaves.length === 0 ? leaf1 : leaves.shift().replace(/^0x/, '')
+      leaves.length === 0
+        ? leaf1
+        : (leaves.shift() as string).replace(/^0x/, '')
 
     // sort leaf 1 and leaf 2
     const [left, right] = leaf1 <= leaf2 ? [leaf1, leaf2] : [leaf2, leaf1]
