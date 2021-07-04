@@ -55,5 +55,5 @@ ALLOCATION_MASTER=0xABCD TRACK_NAME='Track Name' TOKEN=0xABCD ACCRUAL_RATE=1000 
 ### Funding an allocation sale
 
 ```
-SALE=0xABCD AMOUNT=100000000000000000000 npx hardhat run ./scripts/fund-IFAllocationSale.ts --network bsc_test
+SALE=0xABCD AMOUNT=10000000000000000000000 npx hardhat run ./scripts/fund-IFAllocationSale.ts --network bsc_test
 ```

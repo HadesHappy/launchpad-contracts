@@ -3,9 +3,11 @@
 //
 // When running the script with `hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
-const hre = require('hardhat')
+const hre: HardhatRuntimeEnvironment = require('hardhat')
 
+import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import IFAllocationSale from '../artifacts/contracts/IFAllocationSale.sol/IFAllocationSale.json'
+import ERC20 from '../artifacts/contracts/TestToken.sol/TestToken.json'
 
 export async function main() {
   // params
@@ -13,22 +15,48 @@ export async function main() {
   let amount: string = process.env.AMOUNT || '' // amount to fund
 
   // get allocationSale contract
-  let contract = new hre.ethers.Contract(allocationSale, IFAllocationSale.abi)
+  let allocationSaleContract = new hre.ethers.Contract(
+    allocationSale,
+    IFAllocationSale.abi
+  )
 
   // get original saleAmount
-  const originalSaleAmount = await contract
+  const originalSaleAmount = (
+    await allocationSaleContract
+      .connect((await hre.ethers.getSigners())[0])
+      .saleAmount()
+  ).toString()
+
+  // get sale token
+  const saleToken = (
+    await allocationSaleContract
+      .connect((await hre.ethers.getSigners())[0])
+      .saleToken()
+  ).toString()
+  const saleTokenContract = new hre.ethers.Contract(saleToken, ERC20.abi)
+
+  // approve
+  const approve = await saleTokenContract
     .connect((await hre.ethers.getSigners())[0])
-    .saleAmount()
+    .approve(allocationSale, amount)
+
+  // wait for approve to be mined
+  await approve.wait()
 
   // fund
-  const result = await contract
+  const result = await allocationSaleContract
     .connect((await hre.ethers.getSigners())[0])
     .fund(amount)
 
+  // wait for fund to be mined
+  await result.wait()
+
   // get saleAmount
-  const newSaleAmount = await contract
-    .connect((await hre.ethers.getSigners())[0])
-    .saleAmount()
+  const newSaleAmount = (
+    await allocationSaleContract
+      .connect((await hre.ethers.getSigners())[0])
+      .saleAmount()
+  ).toString()
 
   // log
   console.log('Sale:', allocationSale)
