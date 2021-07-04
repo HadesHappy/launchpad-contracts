@@ -46,8 +46,14 @@ environment variable.
 TOKEN=0x... TO=0x... AMOUNT=10000000000000000000000 npx hardhat run ./scripts/send-TestToken.ts --network bsc_test
 ```
 
-### Adding a track
+### Adding an allocation master track
 
 ```
 ALLOCATION_MASTER=0xABCD TRACK_NAME='Track Name' TOKEN=0xABCD ACCRUAL_RATE=1000 PASSIVE_RO_RATE=100000000000000000 ACTIVE_RO_RATE=200000000000000000 npx hardhat run ./scripts/addTrack-IFAllocationMaster.ts --network bsc_test
+```
+
+### Funding an allocation sale
+
+```
+SALE=0xABCD AMOUNT=100000000000000000000 npx hardhat run ./scripts/fund-IFAllocationSale.ts --network bsc_test
 ```
