@@ -59,14 +59,14 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // max for payment token amount
     uint256 public maxTotalPayment;
     // optional flat allocation override
-    uint256 public paymentTokenAllocationOverride;
+    uint256 public saleTokenAllocationOverride;
 
     // EVENTS
 
     event Fund(address indexed sender, uint256 amount);
     event SetMinTotalPayment(uint256 indexed minTotalPayment);
-    event SetPaymentTokenAllocationOverride(
-        uint256 indexed paymentTokenAllocationOverride
+    event SetSaleTokenAllocationOverride(
+        uint256 indexed saleTokenAllocationOverride
     );
     event SetCasher(address indexed casher);
     event SetWhitelistSetter(address indexed whitelistSetter);
@@ -160,16 +160,16 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     }
 
     // Function for owner to set an optional, flat allocation override
-    function setPaymentTokenAllocationOverride(
-        uint256 _paymentTokenAllocationOverride
+    function setSaleTokenAllocationOverride(
+        uint256 _saleTokenAllocationOverride
     ) external onlyOwner {
         // sale must not have started
         require(block.number < startBlock, 'sale already started');
 
-        paymentTokenAllocationOverride = _paymentTokenAllocationOverride;
+        saleTokenAllocationOverride = _saleTokenAllocationOverride;
 
         // emit
-        emit SetPaymentTokenAllocationOverride(_paymentTokenAllocationOverride);
+        emit SetSaleTokenAllocationOverride(_saleTokenAllocationOverride);
     }
 
     // Function for owner to set an optional, separate casher
@@ -227,14 +227,15 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         require(paymentAmount > minTotalPayment, 'amount below min');
 
         // get user allocation as ratio (multiply by 10**18, aka E18, for precision)
-        uint256 userWeight =
-            allocationMaster.getUserStakeWeight(
-                trackId,
-                _msgSender(),
-                allocSnapshotBlock
-            );
-        uint256 totalWeight =
-            allocationMaster.getTotalStakeWeight(trackId, allocSnapshotBlock);
+        uint256 userWeight = allocationMaster.getUserStakeWeight(
+            trackId,
+            _msgSender(),
+            allocSnapshotBlock
+        );
+        uint256 totalWeight = allocationMaster.getTotalStakeWeight(
+            trackId,
+            allocSnapshotBlock
+        );
 
         // total weight must be greater than 0
         require(totalWeight > 0, 'total weight is 0');
@@ -243,7 +244,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         uint256 paymentTokenAllocation;
 
         // different calculation for whether override is set
-        if (paymentTokenAllocationOverride == 0) {
+        if (saleTokenAllocationOverride == 0) {
             // calculate allocation (times 10**18)
             uint256 allocationE18 = (userWeight * 10**18) / totalWeight;
 
@@ -257,7 +258,9 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
                 10**18;
         } else {
             // override payment token allocation
-            paymentTokenAllocation = paymentTokenAllocationOverride;
+            paymentTokenAllocation =
+                (salePrice * saleTokenAllocationOverride) /
+                SALE_PRICE_DECIMALS;
         }
 
         // console.log('sale token allocation', saleTokenAllocationE18 / 10**18);
@@ -317,11 +320,19 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         // prevent repeat withdraw
         require(hasWithdrawn[_msgSender()] == false, 'already withdrawn');
 
-        // get payment received
-        uint256 payment = paymentReceived[_msgSender()];
+        // if sale price was 0, then this sale is a zero cost "giveaway" sale
+        // here we distribute saleTokenAllocationOverride number of sale tokens evenly across participants
+        uint256 saleTokenOwed;
+        if (salePrice == 0) {
+            // each participant in the zero cost "giveaway" gets a flat amount of sale token, as set by the override
+            saleTokenOwed = saleTokenAllocationOverride;
+        } else {
+            // get payment received
+            uint256 payment = paymentReceived[_msgSender()];
 
-        // calculate amount of sale token owed to buyer
-        uint256 saleTokenOwed = (payment * SALE_PRICE_DECIMALS) / salePrice;
+            // calculate amount of sale token owed to buyer
+            saleTokenOwed = (payment * SALE_PRICE_DECIMALS) / salePrice;
+        }
 
         // set withdrawn to true
         hasWithdrawn[_msgSender()] = true;
