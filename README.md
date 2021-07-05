@@ -57,3 +57,11 @@ ALLOCATION_MASTER=0xABCD TRACK_NAME='Track Name' TOKEN=0xABCD ACCRUAL_RATE=1000 
 ```
 SALE=0xABCD AMOUNT=10000000000000000000000 npx hardhat run ./scripts/fund-IFAllocationSale.ts --network bsc_test
 ```
+
+### Setting whitelist on allocation sale
+
+```
+SALE=0xABCD WHITELIST=0xABCD,0xBCDE,0xCDEF, npx hardhat run ./scripts/setWhitelist-IFAllocationSale.ts --network bsc_test
+```
+
+Note: whitelist passed in as comma separated list (end comma optional). No space allowed after comma.
