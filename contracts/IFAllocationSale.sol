@@ -319,25 +319,49 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         require(endBlock < block.number, 'sale must be over');
         // prevent repeat withdraw
         require(hasWithdrawn[_msgSender()] == false, 'already withdrawn');
+        // must not be a zero price sale
+        require(salePrice != 0, 'use withdrawGiveaway');
 
-        // if sale price was 0, then this sale is a zero cost "giveaway" sale
-        // here we distribute saleTokenAllocationOverride number of sale tokens evenly across participants
-        uint256 saleTokenOwed;
-        if (salePrice == 0) {
-            // each participant in the zero cost "giveaway" gets a flat amount of sale token, as set by the override
-            saleTokenOwed = saleTokenAllocationOverride;
-        } else {
-            // get payment received
-            uint256 payment = paymentReceived[_msgSender()];
+        // get payment received
+        uint256 payment = paymentReceived[_msgSender()];
 
-            // calculate amount of sale token owed to buyer
-            saleTokenOwed = (payment * SALE_PRICE_DECIMALS) / salePrice;
-        }
+        // calculate amount of sale token owed to buyer
+        uint256 saleTokenOwed = (payment * SALE_PRICE_DECIMALS) / salePrice;
 
         // set withdrawn to true
         hasWithdrawn[_msgSender()] = true;
 
         // transfer owed sale token to buyer
+        saleToken.safeTransfer(_msgSender(), saleTokenOwed);
+
+        // emit
+        emit Withdraw(_msgSender());
+    }
+
+    // Function to withdraw (redeem) tokens from a zero cost "giveaway" sale
+    function withdrawGiveaway(bytes32[] calldata merkleProof)
+        external
+        nonReentrant
+    {
+        // sale must be over
+        require(endBlock < block.number, 'sale must be over');
+        // prevent repeat withdraw
+        require(hasWithdrawn[_msgSender()] == false, 'already withdrawn');
+        // must be a zero price sale
+        require(salePrice == 0, 'not a giveaway');
+        // if there is whitelist, require that user is whitelisted by checking proof
+        require(
+            whitelistRootHash == 0 || checkWhitelist(merkleProof),
+            'proof invalid'
+        );
+
+        // each participant in the zero cost "giveaway" gets a flat amount of sale token, as set by the override
+        uint256 saleTokenOwed = saleTokenAllocationOverride;
+
+        // set withdrawn to true
+        hasWithdrawn[_msgSender()] = true;
+
+        // transfer giveaway sale token to participant
         saleToken.safeTransfer(_msgSender(), saleTokenOwed);
 
         // emit

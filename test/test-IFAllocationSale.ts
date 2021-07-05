@@ -75,9 +75,14 @@ export default describe('IF Allocation Sale', function () {
 
     // redistribute tokens
     mineNext()
-    StakeToken.connect(buyer).transfer(buyer2.address, '1000000000000000000000000')
-    PaymentToken.connect(buyer).transfer(buyer2.address, '1000000000000000000000000')
-
+    StakeToken.connect(buyer).transfer(
+      buyer2.address,
+      '1000000000000000000000000'
+    )
+    PaymentToken.connect(buyer).transfer(
+      buyer2.address,
+      '1000000000000000000000000'
+    )
 
     // deploy allocation master
     const IFAllocationMasterFactory = await ethers.getContractFactory(
@@ -100,7 +105,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
     trackId = (await IFAllocationMaster.trackCount()) - 1
 
-    // deploy launchpad
+    // deploy sale
     const IFAllocationSaleFactory = await ethers.getContractFactory(
       'IFAllocationSale'
     )
@@ -175,7 +180,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in purchase
-    expect((await getGasUsed()).toString()).to.equal('190933')
+    expect((await getGasUsed()).toString()).to.equal('190955')
 
     // fast forward blocks to get to end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {
@@ -188,7 +193,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in withdraw
-    expect((await getGasUsed()).toString()).to.equal('94184')
+    expect((await getGasUsed()).toString()).to.equal('94244')
 
     // expect balance to increase by fund amount
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
@@ -268,14 +273,14 @@ export default describe('IF Allocation Sale', function () {
     expect(await SaleToken.balanceOf(account.address)).to.equal('33333')
   })
 
-  it('can override payment token allocations (test preventing exceeding allocation)', async function () {
+  it('can override sale token allocations (test preventing exceeding allocation)', async function () {
     mineNext()
 
-    // amount to pay (should fail)
+    // amount to pay (should fail, because this is 1 over allocation)
     const paymentAmount = '100001'
 
-    // set payment token allocation override
-    await IFAllocationSale.setPaymentTokenAllocationOverride(100000)
+    // set sale token allocation override
+    await IFAllocationSale.setSaleTokenAllocationOverride(10000)
     mineNext()
 
     // fast forward blocks to get to start block
@@ -307,14 +312,14 @@ export default describe('IF Allocation Sale', function () {
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('0')
   })
 
-  it('can override payment token allocations (test multiple buyers)', async function () {
+  it('can override sale token allocations (test multiple buyers)', async function () {
     mineNext()
 
-    // amount to pay for each claimer
+    // amount to pay for each claimer (should go through since this is exactly how much allocation they have)
     const paymentAmount = '50000'
 
-    // set payment token allocation override
-    await IFAllocationSale.setPaymentTokenAllocationOverride(50000)
+    // set sale token allocation override
+    await IFAllocationSale.setSaleTokenAllocationOverride(5000)
     mineNext()
 
     // fast forward blocks to get to start block
@@ -352,6 +357,165 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // expect balance to be 5000 for both buyers
+    expect(await SaleToken.balanceOf(buyer.address)).to.equal('5000')
+    expect(await SaleToken.balanceOf(buyer2.address)).to.equal('5000')
+  })
+
+  it('can perform a zero price giveaway sale (unwhitelisted / first come first serve)', async function () {
+    mineNext()
+
+    // here set up a new IFAllocationSale with salePrice of 0, because
+    // provided fixture sale does not have salePrice set to 0
+
+    // deploy 0 price allocation sale
+    const IFAllocationSaleFactory = await ethers.getContractFactory(
+      'IFAllocationSale'
+    )
+    IFAllocationSale = await IFAllocationSaleFactory.deploy(
+      0, // sale price
+      seller.address,
+      PaymentToken.address, // doesn't matter
+      SaleToken.address,
+      IFAllocationMaster.address, // doesn't matter
+      trackId, // doesn't matter
+      snapshotBlock, // doesn't matter
+      startBlock, // doesn't matter
+      endBlock, // doesn't matter
+      maxTotalDeposit // doesn't matter
+    )
+    mineNext()
+
+    // fund sale
+    mineNext()
+    await SaleToken.connect(seller).approve(
+      IFAllocationSale.address,
+      fundAmount
+    ) // approve
+    await IFAllocationSale.connect(seller).fund(fundAmount) // fund
+
+    // set sale token allocation override (flat amount every participant receives)
+    await IFAllocationSale.setSaleTokenAllocationOverride(5000)
+    mineNext()
+
+    // fast forward blocks to get to start block
+    while ((await ethers.provider.getBlockNumber()) < startBlock) {
+      mineNext()
+    }
+
+    // nothing to do here
+
+    // fast forward blocks to get to end block
+    while ((await ethers.provider.getBlockNumber()) <= endBlock) {
+      mineNext()
+    }
+
+    // test normal withdraw (should not go through, must go through withdrawGiveaway)
+    mineNext()
+    await IFAllocationSale.connect(buyer).withdraw()
+    mineNext()
+    await IFAllocationSale.connect(buyer2).withdraw()
+    mineNext()
+
+    // expect balance to be 0 for both participants
+    expect(await SaleToken.balanceOf(buyer.address)).to.equal('0')
+    expect(await SaleToken.balanceOf(buyer2.address)).to.equal('0')
+
+    // test withdrawGiveaway (should go through)
+    mineNext()
+    await IFAllocationSale.connect(buyer).withdrawGiveaway([])
+    mineNext()
+    await IFAllocationSale.connect(buyer2).withdrawGiveaway([])
+    mineNext()
+
+    // expect balance to be 5000 for both participants
+    expect(await SaleToken.balanceOf(buyer.address)).to.equal('5000')
+    expect(await SaleToken.balanceOf(buyer2.address)).to.equal('5000')
+  })
+
+  it('can perform a zero price giveaway sale (whitelisted)', async function () {
+    mineNext()
+
+    // here set up a new IFAllocationSale with salePrice of 0, because
+    // provided fixture sale does not have salePrice set to 0
+
+    // deploy 0 price allocation sale
+    const IFAllocationSaleFactory = await ethers.getContractFactory(
+      'IFAllocationSale'
+    )
+    IFAllocationSale = await IFAllocationSaleFactory.deploy(
+      0, // sale price
+      seller.address,
+      PaymentToken.address, // doesn't matter
+      SaleToken.address,
+      IFAllocationMaster.address, // doesn't matter
+      trackId, // doesn't matter
+      snapshotBlock, // doesn't matter
+      startBlock, // doesn't matter
+      endBlock, // doesn't matter
+      maxTotalDeposit // doesn't matter
+    )
+    mineNext()
+
+    // fund sale
+    mineNext()
+    await SaleToken.connect(seller).approve(
+      IFAllocationSale.address,
+      fundAmount
+    ) // approve
+    await IFAllocationSale.connect(seller).fund(fundAmount) // fund
+
+    // set sale token allocation override (flat amount every participant receives)
+    await IFAllocationSale.setSaleTokenAllocationOverride(5000)
+    mineNext()
+
+    // whitelisted addresses (sorted)
+    const addresses = (await ethers.getSigners())
+      .map((s) => s.address.toLowerCase())
+      .sort()
+
+    // get merkle root
+    const merkleRoot = computeMerkleRoot(addresses)
+
+    // add whitelist merkleroot to sale
+    await IFAllocationSale.setWhitelist(merkleRoot)
+    mineNext()
+
+    // fast forward blocks to get to start block
+    while ((await ethers.provider.getBlockNumber()) < startBlock) {
+      mineNext()
+    }
+
+    // nothing to do here
+
+    // fast forward blocks to get to end block
+    while ((await ethers.provider.getBlockNumber()) <= endBlock) {
+      mineNext()
+    }
+
+    // test withdrawGiveaway without proof (should not go through)
+    mineNext()
+    await IFAllocationSale.connect(buyer).withdrawGiveaway([])
+    mineNext()
+    await IFAllocationSale.connect(buyer2).withdrawGiveaway([])
+    mineNext()
+
+    // expect balance to be 0 for both participants
+    expect(await SaleToken.balanceOf(buyer.address)).to.equal('0')
+    expect(await SaleToken.balanceOf(buyer2.address)).to.equal('0')
+
+    // test withdrawGiveaway with proof (should go through)
+    mineNext()
+
+    await IFAllocationSale.connect(buyer).withdrawGiveaway(
+      computeMerkleProof(addresses, getAddressIndex(addresses, buyer.address))
+    )
+    mineNext()
+    await IFAllocationSale.connect(buyer2).withdrawGiveaway(
+      computeMerkleProof(addresses, getAddressIndex(addresses, buyer2.address))
+    )
+    mineNext()
+
+    // expect balance to be 5000 for both participants
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('5000')
     expect(await SaleToken.balanceOf(buyer2.address)).to.equal('5000')
   })
