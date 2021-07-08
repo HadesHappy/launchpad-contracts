@@ -54,6 +54,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     uint256 public startBlock;
     // end block when sale is active (inclusive)
     uint256 public endBlock;
+    // withdraw/cash delay in blocks (inclusive)
+    uint24 public withdrawDelay;
     // optional min for payment token amount
     uint256 public minTotalPayment;
     // max for payment token amount
@@ -70,6 +72,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     );
     event SetCasher(address indexed casher);
     event SetWhitelistSetter(address indexed whitelistSetter);
+    event SetWhitelist(bytes32 indexed whitelistRootHash);
+    event SetWithdrawDelay(uint24 indexed withdrawDelay);
     event Purchase(address indexed sender, uint256 paymentAmount);
     event Withdraw(address indexed sender);
     event Cash(
@@ -200,6 +204,17 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         onlyWhitelistSetterOrOwner
     {
         whitelistRootHash = _whitelistRootHash;
+
+        // emit
+        emit SetWhitelist(_whitelistRootHash);
+    }
+
+    // Function for owner to set a withdraw delay
+    function setWithdrawDelay(uint24 _withdrawDelay) external onlyOwner {
+        withdrawDelay = _withdrawDelay;
+
+        // emit
+        emit SetWithdrawDelay(_withdrawDelay);
     }
 
     // Returns true if user is on whitelist, otherwise false
@@ -315,8 +330,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
 
     // Function for withdrawing purchased sale token after sale end
     function withdraw() external nonReentrant {
-        // sale must be over
-        require(endBlock < block.number, 'sale must be over');
+        // must be past end block plus withdraw delay
+        require(endBlock + withdrawDelay < block.number, 'cannot withdraw yet');
         // prevent repeat withdraw
         require(hasWithdrawn[_msgSender()] == false, 'already withdrawn');
         // must not be a zero price sale
@@ -343,8 +358,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         external
         nonReentrant
     {
-        // sale must be over
-        require(endBlock < block.number, 'sale must be over');
+        // must be past end block plus withdraw delay
+        require(endBlock + withdrawDelay < block.number, 'cannot withdraw yet');
         // prevent repeat withdraw
         require(hasWithdrawn[_msgSender()] == false, 'already withdrawn');
         // must be a zero price sale
@@ -370,8 +385,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
 
     // Function for funder to cash in payment token and unsold sale token
     function cash() external onlyCasherOrOwner {
-        // sale must be over
-        require(endBlock < block.number, 'sale must be over');
+        // must be past end block plus withdraw delay
+        require(endBlock + withdrawDelay < block.number, 'cannot withdraw yet');
 
         // get amount of payment token received
         uint256 paymentTokenBal = paymentToken.balanceOf(address(this));

@@ -182,7 +182,7 @@ export default describe('IF Allocation Sale', function () {
     // gas used in purchase
     expect((await getGasUsed()).toString()).to.equal('190955')
 
-    // fast forward blocks to get to end block
+    // fast forward blocks to get after the end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {
       mineNext()
     }
@@ -193,7 +193,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in withdraw
-    expect((await getGasUsed()).toString()).to.equal('94244')
+    expect((await getGasUsed()).toString()).to.equal('96602')
 
     // expect balance to increase by fund amount
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
@@ -259,7 +259,7 @@ export default describe('IF Allocation Sale', function () {
 
     mineNext()
 
-    // fast forward blocks to get to end block
+    // fast forward blocks to get after the end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {
       mineNext()
     }
@@ -298,7 +298,7 @@ export default describe('IF Allocation Sale', function () {
 
     mineNext()
 
-    // fast forward blocks to get to end block
+    // fast forward blocks to get after the end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {
       mineNext()
     }
@@ -344,7 +344,7 @@ export default describe('IF Allocation Sale', function () {
 
     mineNext()
 
-    // fast forward blocks to get to end block
+    // fast forward blocks to get after the end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {
       mineNext()
     }
@@ -404,7 +404,7 @@ export default describe('IF Allocation Sale', function () {
 
     // nothing to do here
 
-    // fast forward blocks to get to end block
+    // fast forward blocks to get after the end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {
       mineNext()
     }
@@ -487,7 +487,7 @@ export default describe('IF Allocation Sale', function () {
 
     // nothing to do here
 
-    // fast forward blocks to get to end block
+    // fast forward blocks to get after the end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {
       mineNext()
     }
@@ -518,5 +518,61 @@ export default describe('IF Allocation Sale', function () {
     // expect balance to be 5000 for both participants
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('5000')
     expect(await SaleToken.balanceOf(buyer2.address)).to.equal('5000')
+  })
+
+  it('can set withdraw delay', async function () {
+    mineNext()
+
+    // delay of 10 blocks
+    const delay = 10
+
+    // add withdraw delay
+    await IFAllocationSale.setWithdrawDelay(delay)
+    mineNext()
+
+    // amount to pay
+    const paymentAmount = '333330'
+
+    // fast forward blocks to get to start block
+    while ((await ethers.provider.getBlockNumber()) < startBlock) {
+      mineNext()
+    }
+
+    // test purchase
+    mineNext()
+    await PaymentToken.connect(buyer).approve(
+      IFAllocationSale.address,
+      paymentAmount
+    )
+    await IFAllocationSale.connect(buyer).purchase(paymentAmount)
+
+    mineNext()
+
+    // fast forward blocks to get to one short of end block + delay
+    while ((await ethers.provider.getBlockNumber()) < endBlock + delay - 1) {
+      mineNext()
+    }
+
+    // test withdraw and cash (should fail because need 1 more block)
+    await IFAllocationSale.connect(buyer).withdraw()
+    await IFAllocationSale.connect(casher).cash()
+
+    mineNext()
+
+    // fails
+    expect(await SaleToken.balanceOf(buyer.address)).to.equal('0')
+    // fails
+    expect(await PaymentToken.balanceOf(casher.address)).to.equal('0')
+
+    // test withdraw and cash (should work here since 1 block has passed)
+    await IFAllocationSale.connect(buyer).withdraw()
+    await IFAllocationSale.connect(casher).cash()
+
+    mineNext()
+
+    // expect balance to increase by fund amount
+    expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
+    // expect balance to increase by cash amount
+    expect(await PaymentToken.balanceOf(casher.address)).to.equal(paymentAmount)
   })
 })
