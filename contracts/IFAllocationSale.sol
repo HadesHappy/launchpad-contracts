@@ -27,6 +27,12 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // tracks whether user has already successfully withdrawn
     mapping(address => bool) public hasWithdrawn;
 
+    // summary stats
+    // counter of unique purchasers
+    uint32 public purchaserCount;
+    // counter of unique withdrawers (doesn't count "cash"ing)
+    uint32 public withdrawerCount;
+
     // SALE CONSTRUCTOR PARAMS
 
     // Sale price in units of paymentToken/saleToken with SALE_PRICE_DECIMALS decimals
@@ -300,6 +306,9 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
             paymentAmount
         );
 
+        // if user is paying for the first time to this contract, increase counter
+        if (paymentReceived[_msgSender()] == 0) purchaserCount += 1;
+
         // increase payment received amount
         paymentReceived[_msgSender()] += paymentAmount;
 
@@ -346,6 +355,9 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         // set withdrawn to true
         hasWithdrawn[_msgSender()] = true;
 
+        // increment withdrawer count
+        withdrawerCount += 1;
+
         // transfer owed sale token to buyer
         saleToken.safeTransfer(_msgSender(), saleTokenOwed);
 
@@ -375,6 +387,9 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
 
         // set withdrawn to true
         hasWithdrawn[_msgSender()] = true;
+
+        // increment withdrawer count
+        withdrawerCount += 1;
 
         // transfer giveaway sale token to participant
         saleToken.safeTransfer(_msgSender(), saleTokenOwed);

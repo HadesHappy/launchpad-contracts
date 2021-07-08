@@ -180,7 +180,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in purchase
-    expect((await getGasUsed()).toString()).to.equal('190955')
+    expect((await getGasUsed()).toString()).to.equal('213722')
 
     // fast forward blocks to get after the end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {
@@ -193,7 +193,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in withdraw
-    expect((await getGasUsed()).toString()).to.equal('96602')
+    expect((await getGasUsed()).toString()).to.equal('102119')
 
     // expect balance to increase by fund amount
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
@@ -212,6 +212,12 @@ export default describe('IF Allocation Sale', function () {
 
     // expect balance to increase by cash amount
     expect(await PaymentToken.balanceOf(casher.address)).to.equal(paymentAmount)
+
+    // test purchaser counter
+    expect(await IFAllocationSale.purchaserCount()).to.equal(1)
+
+    // test withdrawer counter
+    expect(await IFAllocationSale.withdrawerCount()).to.equal(1)
   })
 
   it('can whitelist purchase', async function () {
@@ -271,6 +277,12 @@ export default describe('IF Allocation Sale', function () {
 
     // expect balance to increase by fund amount
     expect(await SaleToken.balanceOf(account.address)).to.equal('33333')
+
+    // test purchaser counter
+    expect(await IFAllocationSale.purchaserCount()).to.equal(1)
+
+    // test withdrawer counter
+    expect(await IFAllocationSale.withdrawerCount()).to.equal(1)
   })
 
   it('can override sale token allocations (test preventing exceeding allocation)', async function () {
@@ -359,6 +371,12 @@ export default describe('IF Allocation Sale', function () {
     // expect balance to be 5000 for both buyers
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('5000')
     expect(await SaleToken.balanceOf(buyer2.address)).to.equal('5000')
+
+    // test purchaser counter
+    expect(await IFAllocationSale.purchaserCount()).to.equal(2)
+
+    // test withdrawer counter
+    expect(await IFAllocationSale.withdrawerCount()).to.equal(2)
   })
 
   it('can perform a zero price giveaway sale (unwhitelisted / first come first serve)', async function () {
@@ -430,6 +448,13 @@ export default describe('IF Allocation Sale', function () {
     // expect balance to be 5000 for both participants
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('5000')
     expect(await SaleToken.balanceOf(buyer2.address)).to.equal('5000')
+
+    // test purchaser counter (should be 0! nothing purchased in 0 price sales)
+    // note: this is the only scenario where this is different from withdrawer counter
+    expect(await IFAllocationSale.purchaserCount()).to.equal(0)
+
+    // test withdrawer counter
+    expect(await IFAllocationSale.withdrawerCount()).to.equal(2)
   })
 
   it('can perform a zero price giveaway sale (whitelisted)', async function () {
@@ -574,5 +599,11 @@ export default describe('IF Allocation Sale', function () {
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
     // expect balance to increase by cash amount
     expect(await PaymentToken.balanceOf(casher.address)).to.equal(paymentAmount)
+
+    // test purchaser counter
+    expect(await IFAllocationSale.purchaserCount()).to.equal(1)
+
+    // test withdrawer counter
+    expect(await IFAllocationSale.withdrawerCount()).to.equal(1)
   })
 })
