@@ -81,8 +81,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     event SetWhitelistSetter(address indexed whitelistSetter);
     event SetWhitelist(bytes32 indexed whitelistRootHash);
     event SetWithdrawDelay(uint24 indexed withdrawDelay);
-    event Purchase(address indexed sender, uint256 paymentAmount);
-    event Withdraw(address indexed sender);
+    event Purchase(address indexed sender, uint256 indexed paymentAmount);
+    event Withdraw(address indexed sender, uint256 indexed amount);
     event Cash(
         address indexed sender,
         uint256 paymentTokenBalance,
@@ -363,7 +363,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         saleToken.safeTransfer(_msgSender(), saleTokenOwed);
 
         // emit
-        emit Withdraw(_msgSender());
+        emit Withdraw(_msgSender(), saleTokenOwed);
     }
 
     // Function to withdraw (redeem) tokens from a zero cost "giveaway" sale
@@ -396,7 +396,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         saleToken.safeTransfer(_msgSender(), saleTokenOwed);
 
         // emit
-        emit Withdraw(_msgSender());
+        emit Withdraw(_msgSender(), saleTokenOwed);
     }
 
     // Function for funder to cash in payment token and unsold sale token
