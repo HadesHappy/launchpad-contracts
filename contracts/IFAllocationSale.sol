@@ -32,6 +32,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     uint32 public purchaserCount;
     // counter of unique withdrawers (doesn't count "cash"ing)
     uint32 public withdrawerCount;
+    // total payment received for sale
+    uint256 public totalPaymentReceived;
 
     // SALE CONSTRUCTOR PARAMS
 
@@ -315,6 +317,9 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
 
         // increase payment received amount
         paymentReceived[_msgSender()] += paymentAmount;
+
+        // increase total payment received amount
+        totalPaymentReceived += paymentAmount;
 
         // emit
         emit Purchase(_msgSender(), paymentAmount);
