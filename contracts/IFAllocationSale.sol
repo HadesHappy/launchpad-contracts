@@ -38,7 +38,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // Sale price in units of paymentToken/saleToken with SALE_PRICE_DECIMALS decimals
     // For example, if selling ABC token for 10 IFUSD each, then
     // sale price will be 10 * SALE_PRICE_DECIMALS = 10_000_000_000_000_000_000
-    // NOTE: sale price must accomodate any differences in decimals between sale and payment tokens
+    // NOTE: sale price must accomodate any differences in decimals between sale and payment tokens. If payment token has A decimals and sale token has B decimals, then the price must be adjusted by multiplying by 10**(A-B).
+    // If A was 18 but B was only 12, then the salePrice should be adjusted by multiplying by 1,000,000. If A was 12 and B was 18, then salePrice should be adjusted by dividing by 1,000,000.
     uint256 public salePrice;
     // funder
     address public funder;
