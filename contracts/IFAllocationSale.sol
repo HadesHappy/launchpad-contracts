@@ -244,6 +244,9 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         require(startBlock <= block.number, 'sale has not begun');
         require(block.number <= endBlock, 'sale over');
 
+        // sale price must not be 0, which is a giveaway sale
+        require(salePrice != 0, 'cannot purchase - giveaway sale');
+
         // amount must be greater than minTotalPayment
         // by default, minTotalPayment is 0 unless otherwise set
         require(paymentAmount > minTotalPayment, 'amount below min');
