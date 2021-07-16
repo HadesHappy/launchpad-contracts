@@ -6,3 +6,4 @@ artifacts
 
 #Other
 .DS_Store
+.env

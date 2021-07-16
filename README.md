@@ -34,9 +34,13 @@ SELLER=0xABCD PAY_TOKEN=0xABCD SALE_TOKEN=0xABCD ALLOCATION_MASTER=0xABCD TRACK_
 
 ### Production
 
-For production, the deploy command is similar to the one for testnet but you must supply an account / mnemonic, as well as change the network to `bsc_main`.
-For obvious security reasons, this is not included in the hardhat config - this should be specified via
-environment variable.
+For production, the deploy command is similar to the one for testnet but you must change the network to `bsc_main`.
+
+You also must add a account / mnemonic in a file named `.env` in the root of the repo with the contents:
+
+```
+MAINNET_MNEMONIC='example example example example...'
+```
 
 ## Other utilities
 
