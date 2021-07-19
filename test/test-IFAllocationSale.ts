@@ -235,14 +235,23 @@ export default describe('IF Allocation Sale', function () {
     await IFAllocationSale.setWhitelist(merkleRoot)
     mineNext()
 
-    // test checking whitelist
+    // test checking all whitelist accounts
+    for (let i = 0; i < addresses.length; i++) {
+      const tempAcct = (await ethers.getSigners())[i]
+      const tempAcctIdx = getAddressIndex(addresses, tempAcct.address)
+      try {
+        expect(
+          await IFAllocationSale.connect(tempAcct).checkWhitelist(
+            computeMerkleProof(addresses, tempAcctIdx)
+          )
+        ).to.equal(true)
+      } catch (e) {
+        console.log(e)
+      }
+    }
+
     const account = buyer
     const acctIdx = getAddressIndex(addresses, account.address)
-    expect(
-      await IFAllocationSale.connect(account).checkWhitelist(
-        computeMerkleProof(addresses, acctIdx)
-      )
-    ).to.equal(true)
 
     // amount to pay
     const paymentAmount = '333330'

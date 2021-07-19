@@ -32,8 +32,12 @@ export const computeMerkleProof = (addresses: string[], index: number) => {
   let proof = []
   let tempLeaves = [...leaves]
   while (tempLeaves.length > 1) {
-    if (path % 2 == 1) proof.push(tempLeaves[path - 1])
-    else proof.push(tempLeaves[path + 1])
+    if (path % 2 === 1) {
+      proof.push(tempLeaves[path - 1])
+    } else {
+      if (path + 1 < tempLeaves.length) proof.push(tempLeaves[path + 1])
+      else proof.push(tempLeaves[path])
+    }
 
     // reduce merkle tree one level
     tempLeaves = merkleReduce(tempLeaves)
