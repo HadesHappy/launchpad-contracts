@@ -8,6 +8,7 @@ const hre: HardhatRuntimeEnvironment = require('hardhat')
 import { ethers } from 'ethers'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import IFAllocationSale from '../../artifacts/contracts/IFAllocationSale.sol/IFAllocationSale.json'
+import IFAllocationMaster from '../../artifacts/contracts/IFAllocationMaster.sol/IFAllocationMaster.json'
 import ERC20 from '../../artifacts/contracts/TestToken.sol/TestToken.json'
 import {
   computeMerkleProof,
@@ -25,40 +26,83 @@ export async function main() {
     IFAllocationSale.abi
   )
 
-  //// get info
-
-  const saleAmount = (
+  const allocationMaster = (
     await allocationSaleContract
       .connect((await hre.ethers.getSigners())[0])
-      .saleAmount()
+      .allocationMaster()
+  ).toString()
+  console.log('Allocation master:', allocationMaster)
+
+  // get allocationMaster contract
+  let allocationMasterContract = new hre.ethers.Contract(
+    allocationMaster,
+    IFAllocationMaster.abi
+  )
+
+  //// get info
+
+  const salePrice = (
+    await allocationSaleContract
+      .connect((await hre.ethers.getSigners())[0])
+      .salePrice()
+  ).toString()
+  console.log('Sale price:', salePrice)
+
+  const minTotalPayment = (
+    await allocationSaleContract
+      .connect((await hre.ethers.getSigners())[0])
+      .minTotalPayment()
+  ).toString()
+  console.log('Min total payment:', minTotalPayment)
+
+  const maxTotalPayment = (
+    await allocationSaleContract
+      .connect((await hre.ethers.getSigners())[0])
+      .maxTotalPayment()
+  ).toString()
+  console.log('Max total payment:', maxTotalPayment)
+
+  const startBlock = (
+    await allocationSaleContract
+      .connect((await hre.ethers.getSigners())[0])
+      .startBlock()
   ).toString()
 
-  console.log('Sale amount:', saleAmount)
+  console.log('Start block:', startBlock)
 
-  // const whitelistRootHash = (
-  //   await allocationSaleContract
-  //     .connect((await hre.ethers.getSigners())[0])
-  //     .whitelistRootHash()
-  // ).toString()
+  const endBlock = (
+    await allocationSaleContract
+      .connect((await hre.ethers.getSigners())[0])
+      .endBlock()
+  ).toString()
 
-  // console.log('Whitelist root hash:', whitelistRootHash)
+  console.log('End block:', endBlock)
 
+  const trackId = (
+    await allocationSaleContract
+      .connect((await hre.ethers.getSigners())[0])
+      .trackId()
+  ).toString()
+
+  console.log('Track ID:', trackId)
+
+  const allocSnapshotBlock = (
+    await allocationSaleContract
+      .connect((await hre.ethers.getSigners())[0])
+      .allocSnapshotBlock()
+  ).toString()
+
+  console.log('Alloc snapshot block:', allocSnapshotBlock)
+
+  const totalWeight = (
+    await allocationMasterContract
+      .connect((await hre.ethers.getSigners())[0])
+      .getTotalStakeWeight(trackId, allocSnapshotBlock)
+  ).toString()
+  console.log('totalweight', totalWeight)
+
+  console.log(ethers.utils.id('whitelistedPurchase(uint256,bytes32[])'))
   console.log(ethers.utils.id('setWhitelist(bytes32)'))
-
-  let whitelist = ['0x...', '0x...', '0x...', '0x...', '0x...']
-  whitelist = whitelist.map((s) => s.toLowerCase()).sort()
-
-  // get and display root
-  const root = computeMerkleRoot(whitelist)
-  console.log('root:', root)
-
-  // get index
-  const acctIdx = getAddressIndex(whitelist, '0x...')
-  console.log('addr index', acctIdx)
-
-  // get proof
-  const proof = computeMerkleProof(whitelist, acctIdx)
-  console.log('proof', proof)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
