@@ -106,16 +106,25 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         uint256 _endBlock,
         uint256 _maxTotalPayment
     ) {
-        salePrice = _salePrice;
+        // funder cannot be 0
+        require(_funder != address(0), '0x0 funder');
+        // sale token cannot be 0
+        require(address(_saleToken) != address(0), '0x0 saleToken');
+        // start block must be in future
+        require(block.number < _startBlock, 'start block too early');
+        // end block must be after start block
+        require(_startBlock < _endBlock, 'end block before start');
+
+        salePrice = _salePrice; // can be 0 (for giveaway)
         funder = _funder;
-        paymentToken = _paymentToken;
+        paymentToken = _paymentToken; // can be 0 (for giveaway)
         saleToken = _saleToken;
-        allocationMaster = _allocationMaster;
-        trackId = _trackId;
-        allocSnapshotBlock = _allocSnapshotBlock;
+        allocationMaster = _allocationMaster; // can be 0 (with allocation override)
+        trackId = _trackId; // can be 0 (with allocation override)
+        allocSnapshotBlock = _allocSnapshotBlock; // can be 0 (with allocation override)
         startBlock = _startBlock;
         endBlock = _endBlock;
-        maxTotalPayment = _maxTotalPayment;
+        maxTotalPayment = _maxTotalPayment; // can be 0 (for giveaway)
     }
 
     // MODIFIERS
