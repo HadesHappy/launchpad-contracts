@@ -673,7 +673,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
         // get latest track checkpoint
         TrackCheckpoint storage checkpoint =
-            trackCheckpoints[trackId][trackCheckpointCounts[trackId]];
+            trackCheckpoints[trackId][trackCheckpointCounts[trackId] - 1];
 
         // cannot stake into disabled track
         require(!checkpoint.disabled, 'track is disabled');
