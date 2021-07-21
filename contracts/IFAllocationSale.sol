@@ -239,7 +239,9 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         return MerkleProof.verify(merkleProof, whitelistRootHash, leaf);
     }
 
-    // Function to get TOTAL allocation of a user in allocation sale
+    // Function to get the total allocation of a user in allocation sale
+    // Allocation is calculated via the override if set, and otherwise
+    // allocation is calculated by the allocation master data.
     function getTotalPaymentAllocation(address user)
         public
         view
