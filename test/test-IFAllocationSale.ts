@@ -193,7 +193,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in withdraw
-    expect((await getGasUsed()).toString()).to.equal('102475')
+    expect((await getGasUsed()).toString()).to.equal('102497')
 
     // expect balance to increase by fund amount
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
@@ -242,6 +242,7 @@ export default describe('IF Allocation Sale', function () {
       try {
         expect(
           await IFAllocationSale.connect(tempAcct).checkWhitelist(
+            tempAcct.address,
             computeMerkleProof(addresses, tempAcctIdx)
           )
         ).to.equal(true)

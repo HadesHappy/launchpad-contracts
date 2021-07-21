@@ -227,13 +227,13 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     }
 
     // Returns true if user is on whitelist, otherwise false
-    function checkWhitelist(bytes32[] calldata merkleProof)
+    function checkWhitelist(address user, bytes32[] calldata merkleProof)
         public
         view
         returns (bool)
     {
         // compute merkle leaf from input
-        bytes32 leaf = keccak256(abi.encodePacked(_msgSender()));
+        bytes32 leaf = keccak256(abi.encodePacked(user));
 
         // verify merkle proof
         return MerkleProof.verify(merkleProof, whitelistRootHash, leaf);
@@ -355,16 +355,18 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         uint256 paymentAmount,
         bytes32[] calldata merkleProof
     ) external {
-        // console.log('whitelisted purchase', checkWhitelist(merkleProof));
-
         // require that user is whitelisted by checking proof
-        require(checkWhitelist(merkleProof), 'proof invalid');
+        require(checkWhitelist(_msgSender(), merkleProof), 'proof invalid');
 
         _purchase(paymentAmount);
     }
 
     // Function for withdrawing purchased sale token after sale end
     function withdraw() external nonReentrant {
+        // if there is a whitelist, an un-whitelisted user will
+        // not have any sale tokens to withdraw
+        // so we do not check whitelist here
+
         // must be past end block plus withdraw delay
         require(endBlock + withdrawDelay < block.number, 'cannot withdraw yet');
         // prevent repeat withdraw
@@ -404,7 +406,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         require(salePrice == 0, 'not a giveaway');
         // if there is whitelist, require that user is whitelisted by checking proof
         require(
-            whitelistRootHash == 0 || checkWhitelist(merkleProof),
+            whitelistRootHash == 0 || checkWhitelist(_msgSender(), merkleProof),
             'proof invalid'
         );
 
