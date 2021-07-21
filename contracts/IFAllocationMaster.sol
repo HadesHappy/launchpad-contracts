@@ -710,14 +710,14 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         // ensure amount <= user's current stake
         require(amount <= checkpoint.staked, 'amount > staked');
 
-        // transfer the specified amount of stake token from this contract to user
-        track.stakeToken.safeTransfer(_msgSender(), amount);
-
         // add user checkpoint
         addUserCheckpoint(trackId, amount, false);
 
         // add track checkpoint
         addTrackCheckpoint(trackId, amount, false, false, false);
+
+        // transfer the specified amount of stake token from this contract to user
+        track.stakeToken.safeTransfer(_msgSender(), amount);
 
         // emit
         emit Unstake(trackId, _msgSender(), amount);
