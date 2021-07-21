@@ -453,16 +453,12 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         require(token != address(paymentToken));
         require(token != address(saleToken));
 
+        uint256 tokenBalance = ERC20(token).balanceOf(address(this));
+
         // transfer all
-        ERC20(token).safeTransfer(
-            _msgSender(),
-            ERC20(token).balanceOf(address(this))
-        );
+        ERC20(token).safeTransfer(_msgSender(), tokenBalance);
 
         // emit
-        emit EmergencyTokenRetrieve(
-            _msgSender(),
-            ERC20(token).balanceOf(address(this))
-        );
+        emit EmergencyTokenRetrieve(_msgSender(), tokenBalance);
     }
 }
