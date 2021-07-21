@@ -1,12 +1,12 @@
 import '@nomiclabs/hardhat-ethers'
 import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import { mineNext } from './helpers'
 import {
   computeMerkleProof,
   computeMerkleRoot,
   getAddressIndex,
 } from '../library/merkleWhitelist'
+import { expect } from 'chai'
 
 export default describe('MerkleVerifier', function () {
   it('verifies', async function () {
@@ -24,9 +24,6 @@ export default describe('MerkleVerifier', function () {
 
     const address = whitelist[0]
 
-    // get owner
-    const [owner] = await ethers.getSigners()
-
     // deploy
     const MerkleVerifierFactory = await ethers.getContractFactory(
       'MerkleVerifier'
@@ -38,14 +35,14 @@ export default describe('MerkleVerifier', function () {
 
     // get and display root
     const root = computeMerkleRoot(whitelist)
-    console.log('root:', root)
+    // console.log('root:', root)
 
     // get index
     const acctIdx = getAddressIndex(whitelist, address)
 
     // get proof
     const proof = computeMerkleProof(whitelist, acctIdx)
-    console.log('proof', proof)
+    // console.log('proof', proof)
 
     const result = MerkleVerifier.verify(
       proof,
@@ -53,6 +50,6 @@ export default describe('MerkleVerifier', function () {
       ethers.utils.keccak256(address)
     )
 
-    console.log(await result)
+    expect(await result).to.eq(true)
   })
 })
