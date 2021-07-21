@@ -239,24 +239,16 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         return MerkleProof.verify(merkleProof, whitelistRootHash, leaf);
     }
 
-    // Internal function for making purchase in allocation sale
-    // Used by external functions `purchase` and `whitelistedPurchase`
-    function _purchase(uint256 paymentAmount) internal nonReentrant {
-        // sale must be active
-        require(startBlock <= block.number, 'sale has not begun');
-        require(block.number <= endBlock, 'sale over');
-
-        // sale price must not be 0, which is a giveaway sale
-        require(salePrice != 0, 'cannot purchase - giveaway sale');
-
-        // amount must be greater than minTotalPayment
-        // by default, minTotalPayment is 0 unless otherwise set
-        require(paymentAmount > minTotalPayment, 'amount below min');
-
+    // Function to get TOTAL allocation of a user in allocation sale
+    function getTotalPaymentAllocation(address user)
+        public
+        view
+        returns (uint256)
+    {
         // get user allocation as ratio (multiply by 10**18, aka E18, for precision)
         uint256 userWeight = allocationMaster.getUserStakeWeight(
             trackId,
-            _msgSender(),
+            user,
             allocSnapshotBlock
         );
         uint256 totalWeight = allocationMaster.getTotalStakeWeight(
@@ -267,7 +259,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         // total weight must be greater than 0
         require(totalWeight > 0, 'total weight is 0');
 
-        // determine allocation
+        // determine TOTAL allocation (in payment token)
         uint256 paymentTokenAllocation;
 
         // different calculation for whether override is set
@@ -290,20 +282,45 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
                 SALE_PRICE_DECIMALS;
         }
 
-        // console.log('sale token allocation', saleTokenAllocationE18 / 10**18);
-        // console.log('payment token allocation', paymentTokenAllocation);
+        return paymentTokenAllocation;
+    }
 
-        // total payment received must not exceed max payment amount
-        require(
-            paymentReceived[_msgSender()] + paymentAmount <= maxTotalPayment,
-            'exceeds max payment'
-        );
-        // total payment received must not exceed paymentTokenAllocation
-        require(
-            paymentReceived[_msgSender()] + paymentAmount <=
-                paymentTokenAllocation,
-            'exceeds allocation'
-        );
+    // Function to get the MAX REMAINING amount of allocation for a user (in terms of payment token)
+    // it is whichever is smaller:
+    //      1. user's payment allocation, which is determined by
+    //          a. the allocation master
+    //          b. the allocation override
+    //      2. maxTotalPayment
+    function getMaxPayment(address user) public view returns (uint256) {
+        // get the maximum total payment for a user
+        uint256 max = getTotalPaymentAllocation(user);
+        if (maxTotalPayment < max) {
+            max = maxTotalPayment;
+        }
+
+        // calculate and return remaining
+        return max - paymentReceived[user];
+    }
+
+    // Internal function for making purchase in allocation sale
+    // Used by external functions `purchase` and `whitelistedPurchase`
+    function _purchase(uint256 paymentAmount) internal nonReentrant {
+        // sale must be active
+        require(startBlock <= block.number, 'sale has not begun');
+        require(block.number <= endBlock, 'sale over');
+
+        // sale price must not be 0, which is a giveaway sale
+        require(salePrice != 0, 'cannot purchase - giveaway sale');
+
+        // amount must be greater than minTotalPayment
+        // by default, minTotalPayment is 0 unless otherwise set
+        require(paymentAmount > minTotalPayment, 'amount below min');
+
+        // get max payment of user
+        uint256 remaining = getMaxPayment(_msgSender());
+
+        // payment must not exceed remaining
+        require(paymentAmount <= remaining, 'exceeds max payment');
 
         // transfer specified amount from user to this contract
         paymentToken.safeTransferFrom(
