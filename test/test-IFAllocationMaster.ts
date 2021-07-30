@@ -51,7 +51,8 @@ export default describe('IFAllocationMaster', function () {
       TestToken.address, // stake token
       1000, // weight accrual rate
       '100000000000000000', // passive rollover rate (10%)
-      '200000000000000000' // active rollover rate (20%)
+      '200000000000000000', // active rollover rate (20%)
+      '1000000000000000000000000000000' // max total stake (1 trillion)
     )
 
     // num tracks should be 1
@@ -67,7 +68,8 @@ export default describe('IFAllocationMaster', function () {
       TestToken.address, // stake token
       1000, // weight accrual rate
       '100000000000000000', // passive rollover rate (10%)
-      '200000000000000000' // active rollover rate (20%)
+      '200000000000000000', // active rollover rate (20%)
+      '1000000000000000000000000000000' // max total stake (1 trillion)
     )
     const trackNum = 0
 
@@ -123,7 +125,8 @@ export default describe('IFAllocationMaster', function () {
       TestToken.address, // stake token
       1000, // weight accrual rate
       '100000000000000000', // passive rollover rate (10%)
-      '200000000000000000' // active rollover rate (20%)
+      '200000000000000000', // active rollover rate (20%)
+      '1000000000000000000000000000000' // max total stake (1 trillion)
     )
     const trackNum = 0
 
@@ -161,9 +164,10 @@ export default describe('IFAllocationMaster', function () {
     await IFAllocationMaster.addTrack(
       'TEST Track', // name
       TestToken.address, // stake token
-      '1000000000', // weight accrual rate
+      '10000000', // weight accrual rate
       '100000000000000000', // passive rollover rate (10%)
-      '200000000000000000' // active rollover rate (20%)
+      '200000000000000000', // active rollover rate (20%)
+      '10000000000000000000000' // max total stake (10k)
     )
 
     const trackNum = await IFAllocationMaster.trackCount()
@@ -242,6 +246,26 @@ export default describe('IFAllocationMaster', function () {
       { bumpSaleCounter: true },
       {},
       {},
+      {},
+      {
+        stakeAmounts: [
+          { user: simUser1, amount: '1000000000000000000000' }, // 1k
+        ],
+      },
+      {},
+      {
+        stakeAmounts: [
+          { user: simUser1, amount: '8999999999486500000000' }, // brings user1 to 10k exact
+        ],
+      },
+      {
+        stakeAmounts: [
+          { user: simUser1, amount: '-1' }, // brings user1 to 10k-1
+        ],
+      },
+      {
+        stakeAmounts: [{ user: simUser1, amount: '2' }], // should not go through
+      },
       {},
       {},
     ]

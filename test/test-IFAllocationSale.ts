@@ -98,7 +98,8 @@ export default describe('IF Allocation Sale', function () {
       StakeToken.address, // stake token
       10000, // weight accrual rate
       '100000000000000000', // passive rollover rate (10%)
-      '200000000000000000' // active rollover rate (20%)
+      '200000000000000000', // active rollover rate (20%)
+      '1000000000000000000000000000000' // max total stake (1 trillion)
     )
 
     // get new track id
@@ -180,7 +181,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in purchase
-    expect((await getGasUsed()).toString()).to.equal('235793')
+    expect((await getGasUsed()).toString()).to.equal('235971')
 
     // fast forward blocks to get after the end block
     while ((await ethers.provider.getBlockNumber()) <= endBlock) {

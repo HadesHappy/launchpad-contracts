@@ -61,6 +61,8 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         uint64 passiveRolloverRate;
         // amount rolled over when finished sale counter increases, and user actively elected to roll over
         uint64 activeRolloverRate;
+        // maximum total stake for a user in this track
+        uint104 maxTotalStake;
     }
 
     // INFO FOR FACTORING IN ROLLOVERS
@@ -127,7 +129,8 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         ERC20 stakeToken,
         uint80 _weightAccrualRate,
         uint64 _passiveRolloverRate,
-        uint64 _activeRolloverRate
+        uint64 _activeRolloverRate,
+        uint104 _maxTotalStake
     ) external onlyOwner {
         // add track
         tracks.push(
@@ -136,7 +139,8 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                 stakeToken: stakeToken, // token to stake (e.g., IDIA)
                 weightAccrualRate: _weightAccrualRate, // rate of stake weight accrual
                 passiveRolloverRate: _passiveRolloverRate, // passive rollover
-                activeRolloverRate: _activeRolloverRate // active rollover
+                activeRolloverRate: _activeRolloverRate, // active rollover
+                maxTotalStake: _maxTotalStake // max total stake
             })
         );
 
@@ -467,6 +471,9 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         uint104 amount,
         bool addElseSub
     ) internal {
+        // get track info
+        TrackInfo storage track = tracks[trackId];
+
         // get user checkpoint count
         uint32 nCheckpointsUser = userCheckpointCounts[trackId][_msgSender()];
 
@@ -479,6 +486,9 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
         // if this is first checkpoint
         if (nCheckpointsUser == 0) {
+            // check if amount exceeds maximum
+            require(amount <= track.maxTotalStake, 'exceeds staking cap');
+
             // add a first checkpoint for this user on this track
             userCheckpoints[trackId][_msgSender()][0] = UserCheckpoint({
                 blockNumber: uint80(block.number),
@@ -493,6 +503,13 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
             // get previous checkpoint
             UserCheckpoint storage prev =
                 userCheckpoints[trackId][_msgSender()][nCheckpointsUser - 1];
+
+            // check if amount exceeds maximum
+            require(
+                (addElseSub ? prev.staked + amount : prev.staked - amount) <=
+                    track.maxTotalStake,
+                'exceeds staking cap'
+            );
 
             // ensure block number downcast to uint80 is monotonically increasing (prevent overflow)
             // this should never happen within the lifetime of the universe, but if it does, this prevents a catastrophe

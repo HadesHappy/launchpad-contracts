@@ -18,6 +18,7 @@ module.exports = {
         auto: false,
         interval: 0,
       },
+      allowUnlimitedContractSize: false,
     },
     // rinkeby: {
     //   url:
