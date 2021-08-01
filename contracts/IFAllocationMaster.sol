@@ -54,7 +54,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         // token to stake (e.g., IDIA)
         ERC20 stakeToken;
         // weight accrual rate for this track (stake weight increase per block per stake token)
-        uint80 weightAccrualRate;
+        uint24 weightAccrualRate;
         // amount rolled over when finished sale counter increases (with decimals == ROLLOVER_FACTOR_DECIMALS)
         // e.g., if rolling over 20% when sale finishes, then this is 0.2 * ROLLOVER_FACTOR_DECIMALS, or
         // 200_000_000_000_000_000
@@ -127,7 +127,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
     function addTrack(
         string calldata name,
         ERC20 stakeToken,
-        uint80 _weightAccrualRate,
+        uint24 _weightAccrualRate,
         uint64 _passiveRolloverRate,
         uint64 _activeRolloverRate,
         uint104 _maxTotalStake
