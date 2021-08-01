@@ -132,6 +132,8 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         uint64 _activeRolloverRate,
         uint104 _maxTotalStake
     ) external onlyOwner {
+        require(_weightAccrualRate != 0, 'accrual rate is 0');
+
         // add track
         tracks.push(
             TrackInfo({
