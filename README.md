@@ -69,3 +69,15 @@ SALE=0xABCD WHITELIST=0xABCD,0xBCDE,0xCDEF, npx hardhat run ./scripts/setWhiteli
 ```
 
 Note: whitelist passed in as comma separated list (end comma optional). No space allowed after comma.
+
+### Overriding Sale Token Allocation
+
+```
+SALE=0xABCD ALLOCATION=1000000000000000000000 npx hardhat run ./scripts/setSaleTokenAllocationOverride-IFAllocationSale.ts --network bsc_test
+```
+
+### Setting a delay for claim
+
+```
+SALE=0xABCD DELAY=100 npx hardhat run ./scripts/setWithdrawDelay-IFAllocationSale.ts --network bsc_test
+```
