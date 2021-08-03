@@ -40,7 +40,7 @@ module.exports = {
       chainId: 56,
       gasPrice: 5000000000,
       accounts: {
-        mnemonic: process.env.MAINNET_MNEMONIC,
+        mnemonic: process.env.MAINNET_MNEMONIC || '',
       },
     },
   },
