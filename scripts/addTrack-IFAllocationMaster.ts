@@ -21,6 +21,7 @@ export async function main() {
   let war: string = process.env.ACCRUAL_RATE || '' // weight accrual rate
   let prr: string = process.env.PASSIVE_RO_RATE || '' // passive rollover rate
   let arr: string = process.env.ACTIVE_RO_RATE || '' // active rollover rate
+  let maxTotalStake: String = process.env.MAX_TOTAL_STAKE || ''
 
   // get allocationMaster contract
   let allocationMasterContract = new hre.ethers.Contract(
@@ -41,7 +42,8 @@ export async function main() {
       token, // stake token
       war, // weight accrual rate
       prr, // passive rollover rate
-      arr // active rollover rate
+      arr, // active rollover rate,
+      maxTotalStake // maximum user can stake
     )
 
   // log
@@ -50,6 +52,7 @@ export async function main() {
   console.log('Weight accrual rate:', war)
   console.log('Passive rollover rate:', prr)
   console.log('Active rollover rate:', arr)
+  console.log('Maximum total stake', maxTotalStake)
   console.log('---- Output ----')
   console.log('Tx hash:', result.hash)
   console.log('Track number:', trackNum)
