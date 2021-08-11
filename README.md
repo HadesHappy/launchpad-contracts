@@ -73,7 +73,6 @@ SALE=0xABCD WHITELIST=0xABCD,0xBCDE,0xCDEF, npx hardhat run ./scripts/setWhiteli
 SALE=0xABCD WHITELIST_JSON_FILE=/path/to/addresses.json npx hardhat run ./scripts/setWhitelist-IFAllocationSale.ts --network bsc_test
 ```
 
-
 ### Overriding Sale Token Allocation
 
 ```
