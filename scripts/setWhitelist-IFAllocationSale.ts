@@ -5,15 +5,38 @@
 // Runtime Environment's members available in the global scope.
 const hre: HardhatRuntimeEnvironment = require('hardhat')
 
+import fs from 'fs'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import IFAllocationSale from '../artifacts/contracts/IFAllocationSale.sol/IFAllocationSale.json'
 import { computeMerkleRoot } from '../library/merkleWhitelist'
 
 export async function main() {
-  // params
+  // allocation sale params
   let allocationSale: string = process.env.SALE || '' // address
-  let whitelist =
-    process.env.WHITELIST?.split(',').filter((a) => a !== '') || [] // whitelisted addresses array
+  let whitelist: string[] = [] // whitelisted addresses array
+
+  // get whitelist
+  if (process.env.WHITELIST && process.env.WHITELIST_JSON_FILE) {
+    console.log('Can only set either whitelist or whitelistJson')
+  } else if (process.env.WHITELIST) {
+    // set whitelist
+    whitelist = process.env.WHITELIST?.split(',').filter((a) => a !== '') || []
+  } else if (process.env.WHITELIST_JSON_FILE) {
+    // read file
+    const contents = fs.readFileSync(process.env.WHITELIST_JSON_FILE, 'utf8')
+    // parse contents
+    let parsed
+    try {
+      parsed = JSON.parse(contents)
+    } catch (e) {
+      console.log('Could not parse whitelist JSON file')
+      return
+    }
+    // set whitelist
+    whitelist = parsed
+  } else {
+    console.log('No whitelist specified')
+  }
 
   // get allocationSale contract
   let allocationSaleContract = new hre.ethers.Contract(

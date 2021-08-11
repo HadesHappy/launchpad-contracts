@@ -65,7 +65,11 @@ SALE=0xABCD AMOUNT=10000000000000000000000 npx hardhat run ./scripts/fund-IFAllo
 ### Setting whitelist on allocation sale
 
 ```
+# via command line, for a short list
 SALE=0xABCD WHITELIST=0xABCD,0xBCDE,0xCDEF, npx hardhat run ./scripts/setWhitelist-IFAllocationSale.ts --network bsc_test
+
+# via file containing JSON list of address strings, for a long list
+SALE=0xABCD WHITELIST_JSON_FILE=/path/to/addresses.json npx hardhat run ./scripts/setWhitelist-IFAllocationSale.ts --network bsc_test
 ```
 
 Note: whitelist passed in as comma separated list (end comma optional). No space allowed after comma.
