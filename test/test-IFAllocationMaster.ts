@@ -34,7 +34,7 @@ export default describe('IFAllocationMaster', function () {
     TestToken = await TestTokenFactory.deploy(
       'test token',
       'TEST',
-      '21000000000000000000000000' // 21 million * 10**18
+      '21000000000000000000000000000' // 21 billion * 10**18
     )
 
     // deploy allocation master
@@ -163,8 +163,8 @@ export default describe('IFAllocationMaster', function () {
   it('simulates', async () => {
     // allocate stake token to simulation user1 and user2
     mineNext()
-    await TestToken.transfer(simUser1.address, '10000000000000000000000000') // 10M tokens
-    await TestToken.transfer(simUser2.address, '10000000000000000000000000') // 10M tokens
+    await TestToken.transfer(simUser1.address, '10000000000000000000000000000') // 10B tokens
+    await TestToken.transfer(simUser2.address, '10000000000000000000000000000') // 10B tokens
 
     // add a track
     mineNext()
@@ -174,7 +174,7 @@ export default describe('IFAllocationMaster', function () {
       '10000000', // weight accrual rate
       '100000000000000000', // passive rollover rate (10%)
       '200000000000000000', // active rollover rate (20%)
-      '10000000000000000000000' // max total stake (10k)
+      '10000000000000000000000000000' // max total stake (10B)
     )
 
     const trackNum = await IFAllocationMaster.trackCount()
