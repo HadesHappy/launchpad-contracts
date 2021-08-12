@@ -3,7 +3,14 @@ import { ethers, network } from 'hardhat'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from '@ethersproject/contracts'
-import { mineNext } from './helpers'
+import { mineNext, parseCsv, readFile, unparseCsv } from './helpers'
+
+import sim1Input from './simulationData/sim1Input.json'
+
+// array of simulations input/output maps
+const simulations = [
+  { in: sim1Input, out: './test/simulationData/sim1Output.csv' },
+]
 
 export default describe('IFAllocationMaster', function () {
   // vars for all tests
@@ -173,105 +180,12 @@ export default describe('IFAllocationMaster', function () {
     const trackNum = await IFAllocationMaster.trackCount()
 
     // how much to stake on a block-by-block basis
-    const simulationInput = [
-      {
-        stakeAmounts: [
-          { user: simUser1, amount: '1000000000' }, // 1 gwei
-          { user: simUser2, amount: '1000000000' }, // 1 gwei
-        ],
-      },
-      {},
-      {},
-      {},
-      {},
-      {
-        stakeAmounts: [
-          { user: simUser1, amount: '50000000000' }, // 50 gwei
-          { user: simUser2, amount: '50000000000' }, // 50 gwei
-        ],
-      },
-      {},
-      { bumpSaleCounter: true },
-      {},
-      {},
-      {
-        stakeAmounts: [
-          { user: simUser1, amount: '-50000000000' }, // -50 gwei
-          { user: simUser2, amount: '-50000000000' }, // -50 gwei
-        ],
-      },
-      {},
-      {},
-      {},
-      {
-        stakeAmounts: [
-          { user: simUser1, amount: '2500000000' }, // 2.5 gwei
-          { user: simUser2, amount: '2500000000' }, // 2.5 gwei
-        ],
-        bumpSaleCounter: true,
-      },
-      { bumpSaleCounter: true },
-      { bumpSaleCounter: true },
-      {},
-      {},
-      {},
-      {},
-      {},
-      { bumpSaleCounter: true },
-      {},
-      {},
-      {
-        stakeAmounts: [
-          { user: simUser1, amount: '500000000000' }, // 500 gwei
-          { user: simUser2, amount: '500000000000' }, // 500 gwei
-        ],
-      },
-      {},
-      {},
-      {},
-      { bumpSaleCounter: true },
-      {},
-      {},
-      {},
-      { activeRollOvers: [simUser1, simUser2] },
-      {
-        stakeAmounts: [
-          { user: simUser1, amount: '10000000000' },
-          { user: simUser2, amount: '10000000000' }, // 10 gwei
-        ],
-      },
-      {},
-      {},
-      {},
-      { bumpSaleCounter: true },
-      {},
-      {},
-      {},
-      {
-        stakeAmounts: [
-          { user: simUser1, amount: '1000000000000000000000' }, // 1k
-        ],
-      },
-      {},
-      {
-        stakeAmounts: [
-          { user: simUser1, amount: '8999999999486500000000' }, // brings user1 to 10k exact
-        ],
-      },
-      {
-        stakeAmounts: [
-          { user: simUser1, amount: '-1' }, // brings user1 to 10k-1
-        ],
-      },
-      {
-        stakeAmounts: [{ user: simUser1, amount: '2' }], // should not go through
-      },
-      {},
-      {},
-    ]
+    const simulationInput = simulations[0].in
 
     //// block-by-block simulation
 
+    // simulation users
+    const simUsers = [simUser1, simUser2]
     // simulation data
     const simOutput = []
     // simulation starting block
@@ -286,13 +200,16 @@ export default describe('IFAllocationMaster', function () {
 
       // perform active rollover if specified
       if (simulationInput[i].activeRollOvers) {
-        for (let user of simulationInput[i].activeRollOvers || [])
-          await IFAllocationMaster.connect(user).activeRollOver(trackNum)
+        for (let j = 0; j < simulationInput[i].activeRollOvers!.length; j++)
+          await IFAllocationMaster.connect(simUsers[j]).activeRollOver(trackNum)
       }
 
       // user stakes/unstakes according to stakesOverTime
       if (simulationInput[i].stakeAmounts) {
-        for (let { user, amount } of simulationInput[i].stakeAmounts || []) {
+        for (let j = 0; j < simulationInput[i].stakeAmounts!.length; j++) {
+          const amount = simulationInput[i].stakeAmounts![j]
+          const user = simUsers[j]
+
           if (amount !== '0' && amount[0] !== '-') {
             // approve
             await TestToken.connect(user).approve(
@@ -345,13 +262,13 @@ export default describe('IFAllocationMaster', function () {
       // save data row
       simOutput.push({
         block: currBlockNum,
-        userStake: user1Cp.staked,
-        userWeight: await IFAllocationMaster.getUserStakeWeight(
+        user1Stake: user1Cp.staked,
+        user1Weight: await IFAllocationMaster.getUserStakeWeight(
           trackNum,
           simUser1.address,
           currBlockNum
         ),
-        userSaleCount: user1Cp.numFinishedSales,
+        user1SaleCount: user1Cp.numFinishedSales,
         totalWeight: await IFAllocationMaster.getTotalStakeWeight(
           trackNum,
           currBlockNum
@@ -361,26 +278,8 @@ export default describe('IFAllocationMaster', function () {
       })
     }
 
-    // print simulation data
-    console.log(`Simulation data (sim start block - ${simStartBlock})`)
-    simOutput.map(async (row) => {
-      console.log(
-        'Block',
-        (row.block - simStartBlock).toString(),
-        '| User1 stake',
-        row.userStake.toString(),
-        '| User1 weight',
-        row.userWeight.toString(),
-        '| User1 cp # sales',
-        row.userSaleCount.toString(),
-        '| Total weight',
-        row.totalWeight.toString(),
-        '| Track # sales',
-        row.trackSaleCount.toString(),
-        '| Gas used',
-        row.gasUsed.toString()
-      )
-    })
+    // check simulation output against output csv
+    expect(unparseCsv(simOutput)).to.equal(await readFile(simulations[0].out))
 
     // print track checkpoints
     console.log('\nTrack checkpoints')
