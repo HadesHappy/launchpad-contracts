@@ -494,5 +494,26 @@
     "label": "1 each to bump checkpoints",
     "stakeAmounts": ["0", "1"]
   },
+  {
+    "label": "unstake 1 billion from everyone",
+    "stakeAmounts": [
+      "-1000000000000000000000000000",
+      "-1000000000000000000000000000"
+    ]
+  },
+  { "bumpSaleCounter": true },
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {
+    "label": "1 each to bump checkpoints",
+    "stakeAmounts": ["1", "1"]
+  },
   {}
 ]
