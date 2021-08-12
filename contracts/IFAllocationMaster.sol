@@ -27,7 +27,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         // amount staked at checkpoint
         uint104 staked;
         // amount of stake weight at checkpoint
-        uint128 stakeWeight;
+        uint192 stakeWeight;
         // number of finished sales at time of checkpoint
         uint24 numFinishedSales;
     }
@@ -39,7 +39,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         // amount staked at checkpoint
         uint104 totalStaked;
         // amount of stake weight at checkpoint
-        uint128 totalStakeWeight;
+        uint192 totalStakeWeight;
         // number of finished sales at time of checkpoint
         uint24 numFinishedSales;
         // whether track is disabled (once disabled, cannot undo)
@@ -71,12 +71,12 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
     // stake weight each user actively rolls over for a given track and a finished sale count
     // (track, user, finished sale count) => amount of stake weight
-    mapping(uint24 => mapping(address => mapping(uint24 => uint128)))
+    mapping(uint24 => mapping(address => mapping(uint24 => uint192)))
         public trackActiveRollOvers;
 
     // total stake weight actively rolled over for a given track and a finished sale count
     // (track, finished sale count) => total amount of stake weight
-    mapping(uint24 => mapping(uint24 => uint128))
+    mapping(uint24 => mapping(uint24 => uint192))
         public trackTotalActiveRollOvers;
 
     // TRACK INFO
@@ -272,7 +272,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         uint24 trackId,
         address user,
         uint80 blockNumber
-    ) public view returns (uint128) {
+    ) public view returns (uint192) {
         require(blockNumber <= block.number, 'block # too high');
 
         // check number of user checkpoints
@@ -303,7 +303,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         TrackInfo memory track = tracks[trackId];
 
         // calculate stake weight given above delta
-        uint128 stakeWeight;
+        uint192 stakeWeight;
         if (numFinishedSalesDelta == 0) {
             // calculate normally without rollover decay
 
@@ -312,7 +312,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
             stakeWeight =
                 closestUserCheckpoint.stakeWeight +
-                (uint128(elapsedBlocks) *
+                (uint192(elapsedBlocks) *
                     track.weightAccrualRate *
                     closestUserCheckpoint.staked) /
                 10**18;
@@ -338,13 +338,13 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                 // update stake weight
                 stakeWeight =
                     stakeWeight +
-                    (uint128(elapsedBlocks) *
+                    (uint192(elapsedBlocks) *
                         track.weightAccrualRate *
                         closestUserCheckpoint.staked) /
                     10**18;
 
                 // get amount of stake weight actively rolled over for this sale number
-                uint128 activeRolloverWeight =
+                uint192 activeRolloverWeight =
                     trackActiveRollOvers[trackId][user][
                         closestUserCheckpoint.numFinishedSales + i
                     ];
@@ -372,7 +372,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                         closestTrackCheckpoint.numFinishedSales - 1
                     ];
             stakeWeight +=
-                (uint128(remainingElapsed) *
+                (uint192(remainingElapsed) *
                     track.weightAccrualRate *
                     closestUserCheckpoint.staked) /
                 10**18;
@@ -439,7 +439,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
     function getTotalStakeWeight(uint24 trackId, uint80 blockNumber)
         external
         view
-        returns (uint128)
+        returns (uint192)
     {
         require(blockNumber <= block.number, 'block # too high');
 
@@ -459,8 +459,8 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         TrackInfo storage trackInfo = tracks[trackId];
 
         // calculate marginal accrued stake weight
-        uint128 marginalAccruedStakeWeight =
-            (uint128(additionalBlocks) *
+        uint192 marginalAccruedStakeWeight =
+            (uint192(additionalBlocks) *
                 trackInfo.weightAccrualRate *
                 closestCheckpoint.totalStaked) / 10**18;
 
@@ -603,19 +603,19 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
             uint80 additionalBlocks = (uint80(block.number) - prev.blockNumber);
 
             // calculate marginal accrued stake weight
-            uint128 marginalAccruedStakeWeight =
-                (uint128(additionalBlocks) *
+            uint192 marginalAccruedStakeWeight =
+                (uint192(additionalBlocks) *
                     track.weightAccrualRate *
                     prev.totalStaked) / 10**18;
 
             // calculate new stake weight
-            uint128 newStakeWeight =
+            uint192 newStakeWeight =
                 prev.totalStakeWeight + marginalAccruedStakeWeight;
 
             // factor in passive and active rollover decay
             if (_bumpSaleCounter) {
                 // get total active rollover amount
-                uint128 activeRolloverWeight =
+                uint192 activeRolloverWeight =
                     trackTotalActiveRollOvers[trackId][prev.numFinishedSales];
 
                 newStakeWeight =
