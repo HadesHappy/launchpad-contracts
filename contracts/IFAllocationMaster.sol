@@ -741,15 +741,4 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         // emit
         emit Unstake(trackId, _msgSender(), amount);
     }
-
-    // retrieve tokens erroneously sent in to this address
-    function emergencyTokenRetrieve(address token) external onlyOwner {
-        uint256 tokenBalance = ERC20(token).balanceOf(address(this));
-
-        // transfer all
-        ERC20(token).safeTransfer(_msgSender(), tokenBalance);
-
-        // emit
-        emit EmergencyTokenRetrieve(_msgSender(), tokenBalance);
-    }
 }
