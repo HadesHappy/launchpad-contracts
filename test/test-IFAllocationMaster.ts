@@ -281,24 +281,24 @@ export default describe('IFAllocationMaster', function () {
     // check simulation output against output csv
     expect(unparseCsv(simOutput)).to.equal(await readFile(simulations[0].out))
 
-    // print track checkpoints
-    console.log('\nTrack checkpoints')
-    const nTrackCheckpoints = await IFAllocationMaster.trackCheckpointCounts(
-      trackNum
-    )
-    for (let i = 0; i < nTrackCheckpoints; i++) {
-      const checkpoint = await IFAllocationMaster.trackCheckpoints(trackNum, i)
-      console.log(
-        'Block',
-        (checkpoint.blockNumber - simStartBlock).toString(),
-        '| Total staked',
-        checkpoint.totalStaked.toString(),
-        '| Total stake weight',
-        checkpoint.totalStakeWeight.toString(),
-        '| Finished # sales',
-        checkpoint.numFinishedSales.toString()
-      )
-    }
+    // // print track checkpoints
+    // console.log('\nTrack checkpoints')
+    // const nTrackCheckpoints = await IFAllocationMaster.trackCheckpointCounts(
+    //   trackNum
+    // )
+    // for (let i = 0; i < nTrackCheckpoints; i++) {
+    //   const checkpoint = await IFAllocationMaster.trackCheckpoints(trackNum, i)
+    //   console.log(
+    //     'Block',
+    //     (checkpoint.blockNumber - simStartBlock).toString(),
+    //     '| Total staked',
+    //     checkpoint.totalStaked.toString(),
+    //     '| Total stake weight',
+    //     checkpoint.totalStakeWeight.toString(),
+    //     '| Finished # sales',
+    //     checkpoint.numFinishedSales.toString()
+    //   )
+    // }
 
     // get a historical checkpoint
     console.log(
