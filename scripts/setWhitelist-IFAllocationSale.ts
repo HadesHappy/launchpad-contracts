@@ -9,6 +9,7 @@ import fs from 'fs'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import IFAllocationSale from '../artifacts/contracts/IFAllocationSale.sol/IFAllocationSale.json'
 import { computeMerkleRoot } from '../library/merkleWhitelist'
+import _ from 'lodash'
 
 export async function main() {
   // allocation sale params
@@ -20,12 +21,15 @@ export async function main() {
     console.log('Can only set either whitelist or whitelistJson')
   } else if (process.env.WHITELIST) {
     // set whitelist
-    whitelist = process.env.WHITELIST?.split(',').filter((a) => a !== '') || []
+    whitelist =
+      process.env.WHITELIST?.split(',')
+        .filter((a) => a !== '')
+        .map((s) => s.toLowerCase()) || []
   } else if (process.env.WHITELIST_JSON_FILE) {
     // read file
     const contents = fs.readFileSync(process.env.WHITELIST_JSON_FILE, 'utf8')
     // parse contents
-    let parsed
+    let parsed: string[]
     try {
       parsed = JSON.parse(contents)
     } catch (e) {
@@ -33,9 +37,35 @@ export async function main() {
       return
     }
     // set whitelist
-    whitelist = parsed
+    whitelist = parsed.map((s) => s.toLowerCase())
   } else {
     console.log('No whitelist specified')
+  }
+
+  // check for second whitelist for intersection
+  if (process.env.WHITELIST_JSON_FILE_2) {
+    // read file
+    const contents = fs.readFileSync(process.env.WHITELIST_JSON_FILE_2, 'utf8')
+    // parse contents
+    let whitelist2: string[]
+    try {
+      const parsed: string[] = JSON.parse(contents)
+      // to lowercase
+      whitelist2 = parsed.map((s) => s.toLowerCase())
+    } catch (e) {
+      console.log('Could not parse whitelist JSON file #2')
+      return
+    }
+
+    // log
+    console.log('Len whitelist1', whitelist.length)
+    console.log('Len whitelist2', whitelist2.length)
+
+    //  intersect
+    whitelist = _.intersection(whitelist, whitelist2)
+
+    // log
+    console.log('Len intersection', whitelist.length)
   }
 
   // get allocationSale contract
@@ -45,7 +75,7 @@ export async function main() {
   )
 
   // sort whitelisted addresses
-  whitelist = whitelist.map((s) => s.toLowerCase()).sort()
+  whitelist = whitelist.sort()
 
   // get merkle root
   const merkleRoot = computeMerkleRoot(whitelist)
@@ -60,7 +90,7 @@ export async function main() {
 
   // log
   console.log('Sale:', allocationSale)
-  console.log('Whitelist:', whitelist)
+  // console.log('Whitelist:', whitelist)
   console.log('New merkle root:', merkleRoot)
   console.log('---- Output ----')
   console.log('Tx hash:', result.hash)
