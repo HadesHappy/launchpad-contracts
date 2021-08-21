@@ -281,8 +281,15 @@ export default describe('IFAllocationMaster', function () {
       })
     }
 
-    // check simulation output against output csv
-    expect(unparseCsv(simOutput)).to.equal(await readFile(simulations[0].out))
+    //// check simulation output against output csv
+    // get lines of expected output and simulation
+    const expectedLines = (await readFile(simulations[0].out)).split(/\r?\n/)
+    const simOutLines = unparseCsv(simOutput).split(/\r?\n/)
+    
+    // compare each line
+    expectedLines.map((expectedLine, i) => {
+      expect(expectedLine).to.equal(simOutLines[i])
+    })
 
     // // print track checkpoints
     // console.log('\nTrack checkpoints')
