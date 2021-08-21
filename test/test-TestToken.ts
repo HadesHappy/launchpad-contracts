@@ -4,6 +4,9 @@ import { expect } from 'chai'
 import { mineNext } from './helpers'
 
 export default describe('TestToken', function () {
+  // unset timeout from the test
+  this.timeout(0)
+
   it('sets starting supply', async function () {
     // get owner
     const [owner] = await ethers.getSigners()

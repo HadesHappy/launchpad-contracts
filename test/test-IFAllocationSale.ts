@@ -11,6 +11,9 @@ import {
 } from '../library/merkleWhitelist'
 
 export default describe('IF Allocation Sale', function () {
+  // unset timeout from the test
+  this.timeout(0)
+
   // deployer address
   let owner: SignerWithAddress
   let buyer: SignerWithAddress

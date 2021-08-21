@@ -9,6 +9,9 @@ import {
 import { expect } from 'chai'
 
 export default describe('MerkleVerifier', function () {
+  // unset timeout from the test
+  this.timeout(0)
+
   it('verifies', async function () {
     // constants
 

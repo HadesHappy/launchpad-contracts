@@ -13,6 +13,9 @@ const simulations = [
 ]
 
 export default describe('IFAllocationMaster', function () {
+  // unset timeout from the test
+  this.timeout(0)
+
   // vars for all tests
   let owner: SignerWithAddress
   let nonOwner: SignerWithAddress
