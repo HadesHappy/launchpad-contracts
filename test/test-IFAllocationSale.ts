@@ -620,4 +620,50 @@ export default describe('IF Allocation Sale', function () {
     // test withdrawer counter
     expect(await IFAllocationSale.withdrawerCount()).to.equal(1)
   })
+
+  it('does not over cash', async function () {
+    mineNext()
+
+    // amount to pay
+    const paymentAmount = '333330'
+
+    // fast forward blocks to get to start block
+    while ((await ethers.provider.getBlockNumber()) < startBlock) {
+      mineNext()
+    }
+
+    // test purchase
+    mineNext()
+    await PaymentToken.connect(buyer).approve(
+      IFAllocationSale.address,
+      paymentAmount
+    )
+    await IFAllocationSale.connect(buyer).purchase(paymentAmount)
+
+    mineNext()
+
+    // fast forward blocks to get past end block
+    while ((await ethers.provider.getBlockNumber()) < endBlock) {
+      mineNext()
+    }
+
+    // cash first (testing that we do not over-remove sale token)
+    await IFAllocationSale.connect(casher).cash()
+    mineNext()
+
+    // cash again (expect to revert)
+    const response = await IFAllocationSale.connect(casher).cash()
+    mineNext()
+    await expect(response.wait()).to.be.reverted
+    mineNext()
+
+    // withdraw
+    await IFAllocationSale.connect(buyer).withdraw()
+    mineNext()
+
+    // expect balance to increase by purchased amount
+    expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
+    // expect balance to increase by cash amount
+    expect(await PaymentToken.balanceOf(casher.address)).to.equal(paymentAmount)
+  })
 })

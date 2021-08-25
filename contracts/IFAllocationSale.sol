@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+// import "hardhat/console.sol";
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
@@ -441,6 +442,11 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     function cash() external onlyCasherOrOwner {
         // must be past end block plus withdraw delay
         require(endBlock + withdrawDelay < block.number, 'cannot withdraw yet');
+        // prevent repeat cash (withdraw by casher)
+        require(hasWithdrawn[_msgSender()] == false, 'already cashed');
+
+        // set withdrawn to true (preventing repeat cash)
+        hasWithdrawn[_msgSender()] = true;
 
         // get amount of payment token received
         uint256 paymentTokenBal = paymentToken.balanceOf(address(this));
@@ -448,14 +454,18 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         // transfer all
         paymentToken.safeTransfer(address(_msgSender()), paymentTokenBal);
 
-        // get amount of unsold sale token
-        uint256 saleTokenBal = saleToken.balanceOf(address(this));
+        // get amount of sold token
+        uint256 totalTokensSold = (totalPaymentReceived * SALE_PRICE_DECIMALS) /
+            salePrice;
 
-        // transfer all
-        saleToken.safeTransfer(address(_msgSender()), saleTokenBal);
+        // calculate amount of unsold sale token
+        uint256 amountUnsold = saleAmount - totalTokensSold;
+
+        // transfer unsold
+        saleToken.safeTransfer(address(_msgSender()), amountUnsold);
 
         // emit
-        emit Cash(_msgSender(), paymentTokenBal, saleTokenBal);
+        emit Cash(_msgSender(), paymentTokenBal, amountUnsold);
     }
 
     // retrieve tokens erroneously sent in to this address
