@@ -27,6 +27,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     mapping(address => uint256) public paymentReceived;
     // tracks whether user has already successfully withdrawn
     mapping(address => bool) public hasWithdrawn;
+    // tracks whether sale has been cashed
+    bool public hasCashed;
 
     // summary stats
     // counter of unique purchasers
@@ -442,11 +444,11 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     function cash() external onlyCasherOrOwner {
         // must be past end block plus withdraw delay
         require(endBlock + withdrawDelay < block.number, 'cannot withdraw yet');
-        // prevent repeat cash (withdraw by casher)
-        require(hasWithdrawn[_msgSender()] == false, 'already cashed');
+        // prevent repeat cash
+        require(!hasCashed, 'already cashed');
 
-        // set withdrawn to true (preventing repeat cash)
-        hasWithdrawn[_msgSender()] = true;
+        // set hasCashed to true
+        hasCashed = true;
 
         // get amount of payment token received
         uint256 paymentTokenBal = paymentToken.balanceOf(address(this));
