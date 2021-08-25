@@ -87,3 +87,9 @@ SALE=0xABCD ALLOCATION=1000000000000000000000 npx hardhat run ./scripts/setSaleT
 ```
 SALE=0xABCD DELAY=100 npx hardhat run ./scripts/setWithdrawDelay-IFAllocationSale.ts --network bsc_test
 ```
+
+### Setting a casher
+
+```
+SALE=0xABCD CASHER=0xABCD npx hardhat run ./scripts/setCasher-IFAllocationSale.ts --network bsc_test
+```
