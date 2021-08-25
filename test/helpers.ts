@@ -2,6 +2,7 @@ import { ethers, network } from 'hardhat'
 import fs from 'fs/promises'
 import CsvParse from 'csv-parse/lib/sync'
 import Papa from 'papaparse'
+import asyncFs from 'fs/promises'
 
 export const mineNext = async () => {
   await network.provider.send('evm_mine') // mine next (+1 blockheight)
@@ -38,4 +39,17 @@ export const unparseCsv = (json: any) => {
     header: true,
     newline: '\n',
   })
+}
+
+// write file
+export const asyncWriteFile = async (
+  filePath: string,
+  fileName: string,
+  content: string
+) => {
+  // create directory if doesn't exist
+  await asyncFs.mkdir(filePath, { recursive: true })
+
+  // write file
+  return asyncFs.writeFile(`${filePath}/${fileName}`, content)
 }

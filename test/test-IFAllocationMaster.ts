@@ -1,9 +1,9 @@
 import '@nomiclabs/hardhat-ethers'
-import { ethers, network } from 'hardhat'
+import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from '@ethersproject/contracts'
-import { mineNext, parseCsv, readFile, unparseCsv } from './helpers'
+import { mineNext, readFile, unparseCsv, asyncWriteFile } from './helpers'
 
 import sim1Input from './simulationData/sim1Input.json'
 
@@ -281,11 +281,18 @@ export default describe('IFAllocationMaster', function () {
       })
     }
 
+    // // write output to CSV
+    // await asyncWriteFile(
+    //   './test/simulationData',
+    //   'out.csv',
+    //   unparseCsv(simOutput)
+    // )
+
     //// check simulation output against output csv
     // get lines of expected output and simulation
     const expectedLines = (await readFile(simulations[0].out)).split(/\r?\n/)
     const simOutLines = unparseCsv(simOutput).split(/\r?\n/)
-    
+
     // compare each line
     expectedLines.map((expectedLine, i) => {
       expect(expectedLine).to.equal(simOutLines[i])

@@ -626,6 +626,9 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                     ((newStakeWeight - activeRolloverWeight) *
                         track.passiveRolloverRate) /
                     ROLLOVER_FACTOR_DECIMALS;
+
+                // emit
+                emit BumpSaleCounter(trackId, prev.numFinishedSales + 1);
             }
 
             // add a new checkpoint for this track
@@ -669,10 +672,6 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
             }
 
             // emit
-            if (_bumpSaleCounter) {
-                emit BumpSaleCounter(trackId, prev.numFinishedSales + 1);
-            }
-
             if (!prev.disabled && disabled) {
                 emit DisableTrack(trackId);
             }
