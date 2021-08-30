@@ -93,3 +93,9 @@ SALE=0xABCD DELAY=100 npx hardhat run ./scripts/setWithdrawDelay-IFAllocationSal
 ```
 SALE=0xABCD CASHER=0xABCD npx hardhat run ./scripts/setCasher-IFAllocationSale.ts --network bsc_test
 ```
+
+### Transfering ownership
+
+```
+SALE=0xABCD NEW_OWNER=0xABCD npx hardhat run ./scripts/transferOwnership-IFAllocationSale.ts --network bsc_test
+```
