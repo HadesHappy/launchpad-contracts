@@ -1,9 +1,9 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional 
+// We require the Hardhat Runtime Environment explicitly here. This is optional
 // but useful for running the script in a standalone fashion through `node <script>`.
 //
 // When running the script with `hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
-const hre = require("hardhat");
+import hre from 'hardhat'
 
 export async function main() {
   // We get the contract to deploy
@@ -27,16 +27,16 @@ export async function main() {
   )
 
   // log deployed addresses
-  console.log("StakeToken deployed to ", StakeToken.address);
-  console.log("PaymentToken deployed to ", PaymentToken.address);
-  console.log("SaleToken deployed to ", SaleToken.address);
+  console.log('StakeToken deployed to ', StakeToken.address)
+  console.log('PaymentToken deployed to ', PaymentToken.address)
+  console.log('SaleToken deployed to ', SaleToken.address)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main()
   .then(() => process.exit(0))
-  .catch(error => {
-    console.error(error);
-    process.exit(1);
-  });
+  .catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })
