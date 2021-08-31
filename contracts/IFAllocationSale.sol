@@ -456,12 +456,15 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         // transfer all
         paymentToken.safeTransfer(address(_msgSender()), paymentTokenBal);
 
+        // get amount of sale token on contract
+        uint256 saleTokenBal = saleToken.balanceOf(address(this));
+
         // get amount of sold token
         uint256 totalTokensSold = (totalPaymentReceived * SALE_PRICE_DECIMALS) /
             salePrice;
 
         // calculate amount of unsold sale token
-        uint256 amountUnsold = saleAmount - totalTokensSold;
+        uint256 amountUnsold = saleTokenBal - totalTokensSold;
 
         // transfer unsold
         saleToken.safeTransfer(address(_msgSender()), amountUnsold);
