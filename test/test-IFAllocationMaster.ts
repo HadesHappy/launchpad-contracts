@@ -202,15 +202,17 @@ export default describe('IFAllocationMaster', function () {
       }
 
       // perform active rollover if specified
-      if (simulationInput[i].activeRollOvers) {
-        for (let j = 0; j < simulationInput[i].activeRollOvers!.length; j++)
+      const activeRollovers = simulationInput[i].activeRollOvers
+      if (activeRollovers) {
+        for (let j = 0; j < activeRollovers.length; j++)
           await IFAllocationMaster.connect(simUsers[j]).activeRollOver(trackNum)
       }
 
       // user stakes/unstakes according to stakesOverTime
-      if (simulationInput[i].stakeAmounts) {
-        for (let j = 0; j < simulationInput[i].stakeAmounts!.length; j++) {
-          const amount = simulationInput[i].stakeAmounts![j]
+      const stakeAmounts = simulationInput[i].stakeAmounts
+      if (stakeAmounts) {
+        for (let j = 0; j < stakeAmounts.length; j++) {
+          const amount = stakeAmounts[j]
           const user = simUsers[j]
 
           if (amount !== '0' && amount[0] !== '-') {
