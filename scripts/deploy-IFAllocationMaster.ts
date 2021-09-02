@@ -3,14 +3,14 @@
 //
 // When running the script with `hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
-const hre = require("hardhat");
+import hre from 'hardhat'
 
-export async function main() {
+export async function main(): Promise<void> {
   // We get the contract to deploy
-  const IFAllocationMasterFactory = await hre.ethers.getContractFactory("IFAllocationMaster");
-  const IFAllocationMaster = await IFAllocationMasterFactory.deploy();
+  const IFAllocationMasterFactory = await hre.ethers.getContractFactory('IFAllocationMaster')
+  const IFAllocationMaster = await IFAllocationMasterFactory.deploy()
 
-  console.log("IFAllocationMaster deployed to ", IFAllocationMaster.address);
+  console.log('IFAllocationMaster deployed to ', IFAllocationMaster.address)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
@@ -18,6 +18,6 @@ export async function main() {
 main()
   .then(() => process.exit(0))
   .catch(error => {
-    console.error(error);
-    process.exit(1);
-  });
+    console.error(error)
+    process.exit(1)
+  })

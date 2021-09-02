@@ -13,18 +13,18 @@ import hre from 'hardhat'
 // uint80 _weightAccrualRate,
 // uint64 _passiveRolloverRate,
 // uint64 _activeRolloverRate
-export async function main() {
+export async function main(): Promise<void> {
   // params
-  let allocationMaster = process.env.ALLOCATION_MASTER || '' // allocation master
-  let name = process.env.TRACK_NAME || '' // name of track
-  let token: string = process.env.TOKEN || '' // address of stake token
-  let war: string = process.env.ACCRUAL_RATE || '' // weight accrual rate
-  let prr: string = process.env.PASSIVE_RO_RATE || '' // passive rollover rate
-  let arr: string = process.env.ACTIVE_RO_RATE || '' // active rollover rate
-  let maxTotalStake: String = process.env.MAX_TOTAL_STAKE || ''
+  const allocationMaster = process.env.ALLOCATION_MASTER || '' // allocation master
+  const name = process.env.TRACK_NAME || '' // name of track
+  const token: string = process.env.TOKEN || '' // address of stake token
+  const war: string = process.env.ACCRUAL_RATE || '' // weight accrual rate
+  const prr: string = process.env.PASSIVE_RO_RATE || '' // passive rollover rate
+  const arr: string = process.env.ACTIVE_RO_RATE || '' // active rollover rate
+  const maxTotalStake: string = process.env.MAX_TOTAL_STAKE || ''
 
   // get allocationMaster contract
-  let allocationMasterContract = new hre.ethers.Contract(
+  const allocationMasterContract = new hre.ethers.Contract(
     allocationMaster,
     IFAllocationMaster.abi
   )

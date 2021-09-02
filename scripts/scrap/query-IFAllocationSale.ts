@@ -3,25 +3,24 @@
 //
 // When running the script with `hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
-const hre: HardhatRuntimeEnvironment = require('hardhat')
+import hre from 'hardhat'
 
 import { ethers } from 'ethers'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import IFAllocationSale from '../../artifacts/contracts/IFAllocationSale.sol/IFAllocationSale.json'
 import IFAllocationMaster from '../../artifacts/contracts/IFAllocationMaster.sol/IFAllocationMaster.json'
-import ERC20 from '../../artifacts/contracts/TestToken.sol/TestToken.json'
-import {
-  computeMerkleProof,
-  computeMerkleRoot,
-  getAddressIndex,
-} from '../../library/merkleWhitelist'
+// import ERC20 from '../../artifacts/contracts/TestToken.sol/TestToken.json'
+// import {
+//   computeMerkleProof,
+//   computeMerkleRoot,
+//   getAddressIndex,
+// } from '../../library/merkleWhitelist'
 
-export async function main() {
+export async function main(): Promise<void> {
   // params
-  let allocationSale: string = process.env.SALE || '' // address
+  const allocationSale: string = process.env.SALE || '' // address
 
   // get allocationSale contract
-  let allocationSaleContract = new hre.ethers.Contract(
+  const allocationSaleContract = new hre.ethers.Contract(
     allocationSale,
     IFAllocationSale.abi
   )
@@ -34,7 +33,7 @@ export async function main() {
   console.log('Allocation master:', allocationMaster)
 
   // get allocationMaster contract
-  let allocationMasterContract = new hre.ethers.Contract(
+  const allocationMasterContract = new hre.ethers.Contract(
     allocationMaster,
     IFAllocationMaster.abi
   )

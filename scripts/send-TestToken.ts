@@ -8,14 +8,14 @@ import TestToken from '../artifacts/contracts/TestToken.sol/TestToken.json'
 // Runtime Environment's members available in the global scope.
 import hre from 'hardhat'
 
-export async function main() {
+export async function main(): Promise<void> {
   // params
-  let token = process.env.TOKEN || '' // address
-  let to: string = process.env.TO || '' // address
-  let amount: string = process.env.AMOUNT || '' // amount
+  const token = process.env.TOKEN || '' // address
+  const to: string = process.env.TO || '' // address
+  const amount: string = process.env.AMOUNT || '' // amount
 
   // get contract from token
-  let tokenContract = new hre.ethers.Contract(token, TestToken.abi)
+  const tokenContract = new hre.ethers.Contract(token, TestToken.abi)
 
   // transfer
   const result = await tokenContract

@@ -5,7 +5,7 @@
 // Runtime Environment's members available in the global scope.
 import hre from 'hardhat'
 
-export async function main() {
+export async function main(): Promise<void> {
   // We get the contract to deploy
   const TestTokenFactory = await hre.ethers.getContractFactory('TestToken')
 

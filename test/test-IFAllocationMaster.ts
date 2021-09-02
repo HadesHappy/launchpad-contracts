@@ -3,7 +3,7 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from '@ethersproject/contracts'
-import { mineNext, readFile, unparseCsv, asyncWriteFile } from './helpers'
+import { mineNext, readFile, unparseCsv } from './helpers'
 
 import sim1Input from './simulationData/sim1Input.json'
 

@@ -3,18 +3,17 @@
 //
 // When running the script with `hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
-const hre: HardhatRuntimeEnvironment = require('hardhat')
+import hre from 'hardhat'
 
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import IFAllocationSale from '../artifacts/contracts/IFAllocationSale.sol/IFAllocationSale.json'
 
-export async function main() {
+export async function main(): Promise<void> {
   // params
-  let allocationSale: string = process.env.SALE || '' // address
-  let newOwner = process.env.NEW_OWNER || '' // address
+  const allocationSale: string = process.env.SALE || '' // address
+  const newOwner = process.env.NEW_OWNER || '' // address
 
   // get allocationSale contract
-  let allocationSaleContract = new hre.ethers.Contract(
+  const allocationSaleContract = new hre.ethers.Contract(
     allocationSale,
     IFAllocationSale.abi
   )
