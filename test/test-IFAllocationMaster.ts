@@ -3,13 +3,13 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from '@ethersproject/contracts'
-import { mineNext, readFile, unparseCsv } from './helpers'
+import { asyncWriteFile, mineNext, readFile, unparseCsv } from './helpers'
 
 import sim1Input from './simulationData/sim1Input.json'
 
 // array of simulations input/output maps
 const simulations = [
-  { in: sim1Input, out: './test/simulationData/sim1Output.csv' },
+  { in: sim1Input, out: './test/simulationData/sim1ExpectedOutput.csv' },
 ]
 
 export default describe('IFAllocationMaster', function () {

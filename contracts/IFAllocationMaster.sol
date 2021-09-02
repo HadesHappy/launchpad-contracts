@@ -84,6 +84,10 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
     // array of track information
     TrackInfo[] public tracks;
 
+    // array of unique stakers on track
+    // users are only added on first checkpoint to maintain unique
+    mapping(uint24 => address[]) public trackStakers;
+
     // the number of checkpoints of a track -- (track) => checkpoint count
     mapping(uint24 => uint32) public trackCheckpointCounts;
 
@@ -490,6 +494,9 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         if (nCheckpointsUser == 0) {
             // check if amount exceeds maximum
             require(amount <= track.maxTotalStake, 'exceeds staking cap');
+
+            // add user to stakers list of track
+            trackStakers[trackId].push(_msgSender());
 
             // add a first checkpoint for this user on this track
             userCheckpoints[trackId][_msgSender()][0] = UserCheckpoint({
