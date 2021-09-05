@@ -300,11 +300,13 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
         // get closest preceding track checkpoint
 
-            TrackCheckpoint memory closestTrackCheckpoint
-         = getClosestTrackCheckpoint(trackId, blockNumber);
+        TrackCheckpoint memory closestTrackCp = getClosestTrackCheckpoint(
+            trackId,
+            blockNumber
+        );
 
         // get number of finished sales between user's last checkpoint blockNumber and provided blockNumber
-        uint24 numFinishedSalesDelta = closestTrackCheckpoint.numFinishedSales -
+        uint24 numFinishedSalesDelta = closestTrackCp.numFinishedSales -
             closestUserCheckpoint.numFinishedSales;
 
         // get track info
@@ -374,7 +376,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
             // add any remaining accrued stake weight at current finished sale count
             uint80 remainingElapsed = blockNumber -
                 trackFinishedSaleBlocks[trackId][
-                    closestTrackCheckpoint.numFinishedSales - 1
+                    closestTrackCp.numFinishedSales - 1
                 ];
             stakeWeight +=
                 (uint192(remainingElapsed) *
