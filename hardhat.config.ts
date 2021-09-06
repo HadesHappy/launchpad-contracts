@@ -25,11 +25,6 @@ module.exports = {
       },
       allowUnlimitedContractSize: false,
     },
-    // rinkeby: {
-    //   url:
-    //     'https://eth-mainnet.alchemyapi.io/v2/123abc123abc123abc123abc123abcde',
-    //   accounts: [privateKey1, privateKey2, ...]
-    // },
     bsc_test: {
       url: 'https://data-seed-prebsc-1-s1.binance.org:8545',
       chainId: 97,
