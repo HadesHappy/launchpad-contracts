@@ -197,6 +197,8 @@ export default describe('IFAllocationMaster', function () {
       simulations[0].in
     )
 
+      console.log(simOutput)
+
     // // write output to CSV
     // await asyncWriteFile(
     //   './test/simulationData',
