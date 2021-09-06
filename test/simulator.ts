@@ -2,6 +2,7 @@ import { mineNext } from './helpers'
 import { ethers } from 'hardhat'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from '@ethersproject/contracts'
+import { BigNumber } from '@ethersproject/bignumber'
 
 interface SimInputRow {
   stakeAmounts?: string[]
@@ -11,13 +12,13 @@ interface SimInputRow {
 }
 
 interface SimOutputRow {
-  block: any
-  user1Stake: any
-  user1Weight: any
-  user1SaleCount: any
-  totalWeight: any
-  trackSaleCount: any
-  gasUsed: any
+  block: number
+  user1Stake: BigNumber
+  user1Weight: BigNumber
+  user1SaleCount: number
+  totalWeight: BigNumber
+  trackSaleCount: number
+  gasUsed: BigNumber
 }
 
 export const simAllocationMaster = async (
