@@ -4,13 +4,15 @@ import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from '@ethersproject/contracts'
 import { asyncWriteFile, mineNext, readFile, unparseCsv } from './helpers'
+import { simAllocationMaster } from './simulator'
 
 import sim1Input from './simulationData/sim1Input.json'
-import { simAllocationMaster } from './simulator'
+import sim2Input from './simulationData/sim2Input.json'
 
 // array of simulations input/output maps
 const simulations = [
   { in: sim1Input, out: './test/simulationData/sim1ExpectedOutput.csv' },
+  { in: sim2Input, out: './test/simulationData/sim2ExpectedOutput.csv' },
 ]
 
 export default describe('IFAllocationMaster', function () {
@@ -164,7 +166,7 @@ export default describe('IFAllocationMaster', function () {
     expect(await TestToken.balanceOf(IFAllocationMaster.address)).to.equal(100)
   })
 
-  it('simulates', async () => {
+  it('simulation 1: general staking and unstaking', async () => {
     // allocate stake token to simulation user1 and user2
     mineNext()
     await TestToken.transfer(simUser1.address, '10000000000000000000000000000') // 10B tokens
@@ -181,20 +183,19 @@ export default describe('IFAllocationMaster', function () {
       '10000000000000000000000000000' // max total stake (10B)
     )
 
-    const trackNum = await IFAllocationMaster.trackCount()
-
     //// block-by-block simulation
 
-    // simulation starting block
-    // const simStartBlock = await ethers.provider.getBlockNumber()
+    // simulation reference inputs and outputs
+    const simIn = simulations[0].in
+    const simExpectedOut = simulations[0].out
 
     // simulation data
     const simOutput = await simAllocationMaster(
       IFAllocationMaster, // staking contract
       TestToken, // stake token
-      trackNum, // track number
+      await IFAllocationMaster.trackCount(), // track number
       [simUser1, simUser2], // simulation users
-      simulations[0].in
+      simIn
     )
 
     // // write output to CSV
@@ -206,31 +207,62 @@ export default describe('IFAllocationMaster', function () {
 
     //// check simulation output against output csv
     // get lines of expected output and simulation
-    const expectedLines = (await readFile(simulations[0].out)).split(/\r?\n/)
+    const expectedLines = (await readFile(simExpectedOut)).split(/\r?\n/)
     const simOutLines = unparseCsv(simOutput).split(/\r?\n/)
 
     // compare each line
     expectedLines.map((expectedLine, i) => {
       expect(expectedLine).to.equal(simOutLines[i])
     })
+  })
 
-    // // print track checkpoints
-    // console.log('\nTrack checkpoints')
-    // const nTrackCheckpoints = await IFAllocationMaster.trackCheckpointCounts(
-    //   trackNum
+  it('simulation 2: rollovers', async () => {
+    // allocate stake token to simulation user1 and user2
+    mineNext()
+    await TestToken.transfer(simUser1.address, '10000000000000000000000000000') // 10B tokens
+    await TestToken.transfer(simUser2.address, '10000000000000000000000000000') // 10B tokens
+
+    // add a track
+    mineNext()
+    await IFAllocationMaster.addTrack(
+      'TEST Track', // name
+      TestToken.address, // stake token
+      '10000000', // weight accrual rate
+      '100000000000000000', // passive rollover rate (10%)
+      '200000000000000000', // active rollover rate (20%)
+      '10000000000000000000000000000' // max total stake (10B)
+    )
+
+    //// block-by-block simulation
+
+    // simulation reference inputs and outputs
+    const simIn = simulations[1].in
+    const simExpectedOut = simulations[1].out
+
+    // simulation data
+    const simOutput = await simAllocationMaster(
+      IFAllocationMaster, // staking contract
+      TestToken, // stake token
+      await IFAllocationMaster.trackCount(), // track number
+      [simUser1, simUser2], // simulation users
+      simIn
+    )
+
+    // // write output to CSV
+    // await asyncWriteFile(
+    //   './test/simulationData',
+    //   'out.csv',
+    //   unparseCsv(simOutput)
     // )
-    // for (let i = 0; i < nTrackCheckpoints; i++) {
-    //   const checkpoint = await IFAllocationMaster.trackCheckpoints(trackNum, i)
-    //   console.log(
-    //     'Block',
-    //     (checkpoint.blockNumber - simStartBlock).toString(),
-    //     '| Total staked',
-    //     checkpoint.totalStaked.toString(),
-    //     '| Total stake weight',
-    //     checkpoint.totalStakeWeight.toString(),
-    //     '| Finished # sales',
-    //     checkpoint.numFinishedSales.toString()
-    //   )
-    // }
+
+    //// check simulation output against output csv
+    // get lines of expected output and simulation
+    const expectedLines = (await readFile(simExpectedOut)).split(/\r?\n/)
+    const simOutLines = unparseCsv(simOutput).split(/\r?\n/)
+
+    // compare each line
+    expectedLines.map((expectedLine, i) => {
+      expect(expectedLine).to.equal(simOutLines[i])
+    })
   })
 })
