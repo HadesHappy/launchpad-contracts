@@ -57,5 +57,11 @@ module.exports = {
         mnemonic: process.env.MAINNET_MNEMONIC || '',
       },
     },
+    polygon_main: {
+      url: 'https://polygon-rpc.com',
+      accounts: {
+        mnemonic: process.env.MAINNET_MNEMONIC || '',
+      },
+    },
   },
 }
