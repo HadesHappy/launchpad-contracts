@@ -3,12 +3,13 @@ import fs from 'fs/promises'
 import CsvParse from 'csv-parse/lib/sync'
 import Papa from 'papaparse'
 import asyncFs from 'fs/promises'
+import { BigNumber } from '@ethersproject/bignumber'
 
-export const mineNext = async () => {
+export const mineNext = async (): Promise<void> => {
   await network.provider.send('evm_mine') // mine next (+1 blockheight)
 }
 
-export const getGasUsed = async () => {
+export const getGasUsed = async (): Promise<BigNumber> => {
   // current block number
   const currBlockNum = await ethers.provider.getBlockNumber()
 
@@ -21,11 +22,12 @@ export const getGasUsed = async () => {
   return gasUsed
 }
 
-export const readFile = async (file: string) => {
+export const readFile = async (file: string): Promise<string> => {
   return await fs.readFile(file, 'utf8')
 }
 
-export const parseCsv = async (file: string) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const parseCsv = async (file: string): Promise<any> => {
   // get file content
   const content = await readFile(file)
   // parse csv, return
@@ -33,7 +35,7 @@ export const parseCsv = async (file: string) => {
   return csv
 }
 
-export const unparseCsv = (json: any) => {
+export const unparseCsv = (json: any): string => {
   return Papa.unparse(json, {
     delimiter: ',',
     header: true,
@@ -46,7 +48,7 @@ export const asyncWriteFile = async (
   filePath: string,
   fileName: string,
   content: string
-) => {
+): Promise<void> => {
   // create directory if doesn't exist
   await asyncFs.mkdir(filePath, { recursive: true })
 

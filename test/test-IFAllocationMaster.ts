@@ -6,6 +6,7 @@ import { Contract } from '@ethersproject/contracts'
 import { asyncWriteFile, mineNext, readFile, unparseCsv } from './helpers'
 
 import sim1Input from './simulationData/sim1Input.json'
+import { simAllocationMaster } from './simulator'
 
 // array of simulations input/output maps
 const simulations = [
@@ -182,106 +183,19 @@ export default describe('IFAllocationMaster', function () {
 
     const trackNum = await IFAllocationMaster.trackCount()
 
-    // how much to stake on a block-by-block basis
-    const simulationInput = simulations[0].in
-
     //// block-by-block simulation
 
-    // simulation users
-    const simUsers = [simUser1, simUser2]
-    // simulation data
-    const simOutput = []
     // simulation starting block
-    const simStartBlock = await ethers.provider.getBlockNumber()
+    // const simStartBlock = await ethers.provider.getBlockNumber()
 
-    // simulation
-    for (let i = 0; i < simulationInput.length; i++) {
-      // bump sale counter if specified
-      if (simulationInput[i].bumpSaleCounter) {
-        await IFAllocationMaster.bumpSaleCounter(trackNum)
-      }
-
-      // perform active rollover if specified
-      const activeRollovers = simulationInput[i].activeRollOvers
-      if (activeRollovers) {
-        for (let j = 0; j < activeRollovers.length; j++)
-          await IFAllocationMaster.connect(simUsers[j]).activeRollOver(trackNum)
-      }
-
-      // user stakes/unstakes according to stakesOverTime
-      const stakeAmounts = simulationInput[i].stakeAmounts
-      if (stakeAmounts) {
-        for (let j = 0; j < stakeAmounts.length; j++) {
-          const amount = stakeAmounts[j]
-          const user = simUsers[j]
-
-          if (amount !== '0' && amount[0] !== '-') {
-            // approve
-            await TestToken.connect(user).approve(
-              IFAllocationMaster.address,
-              amount
-            )
-            // stake
-            await IFAllocationMaster.connect(user).stake(trackNum, amount)
-          } else if (amount !== '0' && amount[0] === '-') {
-            // unstake
-            await IFAllocationMaster.connect(user).unstake(
-              trackNum,
-              amount.substring(1)
-            )
-          }
-        }
-      }
-
-      mineNext()
-
-      // current block number
-      const currBlockNum = await ethers.provider.getBlockNumber()
-
-      // current block
-      const currBlock = await ethers.provider.getBlock(currBlockNum)
-
-      // gas used
-      const gasUsed = currBlock.gasUsed
-
-      // get track checkpoint
-      const nTrackCheckpoints = await IFAllocationMaster.trackCheckpointCounts(
-        trackNum
-      )
-      const trackCp = await IFAllocationMaster.trackCheckpoints(
-        trackNum,
-        nTrackCheckpoints - 1
-      )
-
-      // get checkpoints of users
-      const nUserCheckpoints = await IFAllocationMaster.userCheckpointCounts(
-        trackNum,
-        simUser1.address
-      )
-      const user1Cp = await IFAllocationMaster.userCheckpoints(
-        trackNum,
-        simUser1.address,
-        nUserCheckpoints - 1
-      )
-
-      // save data row
-      simOutput.push({
-        block: currBlockNum,
-        user1Stake: user1Cp.staked,
-        user1Weight: await IFAllocationMaster.getUserStakeWeight(
-          trackNum,
-          simUser1.address,
-          currBlockNum
-        ),
-        user1SaleCount: user1Cp.numFinishedSales,
-        totalWeight: await IFAllocationMaster.getTotalStakeWeight(
-          trackNum,
-          currBlockNum
-        ),
-        trackSaleCount: trackCp.numFinishedSales,
-        gasUsed: gasUsed,
-      })
-    }
+    // simulation data
+    const simOutput = await simAllocationMaster(
+      IFAllocationMaster, // staking contract
+      TestToken, // stake token
+      trackNum, // track number
+      [simUser1, simUser2], // simulation users
+      simulations[0].in
+    )
 
     // // write output to CSV
     // await asyncWriteFile(
@@ -318,16 +232,5 @@ export default describe('IFAllocationMaster', function () {
     //     checkpoint.numFinishedSales.toString()
     //   )
     // }
-
-    // get a historical checkpoint
-    console.log(
-      'Historical checkpoint',
-      (
-        await IFAllocationMaster.getTotalStakeWeight(
-          trackNum,
-          simStartBlock + 35
-        )
-      ).toString()
-    )
   })
 })
