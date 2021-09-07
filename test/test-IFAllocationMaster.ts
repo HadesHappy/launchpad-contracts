@@ -201,7 +201,7 @@ export default describe('IFAllocationMaster', function () {
     // // write output to CSV
     // await asyncWriteFile(
     //   './test/simulationData',
-    //   'out.csv',
+    //   'out1.csv',
     //   unparseCsv(simOutput)
     // )
 
@@ -251,7 +251,7 @@ export default describe('IFAllocationMaster', function () {
     // // write output to CSV
     // await asyncWriteFile(
     //   './test/simulationData',
-    //   'out.csv',
+    //   'out2.csv',
     //   unparseCsv(simOutput)
     // )
 

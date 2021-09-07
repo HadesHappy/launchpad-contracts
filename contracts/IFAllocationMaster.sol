@@ -42,8 +42,6 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         uint192 totalStakeWeight;
         // number of finished sales at time of checkpoint
         uint24 numFinishedSales;
-        // whether track is disabled (once disabled, cannot undo)
-        bool disabled;
     }
 
     // Info of each track. These parameters cannot be changed.
@@ -83,6 +81,9 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
     // array of track information
     TrackInfo[] public tracks;
+
+    // whether track is disabled -- (track) => disabled status
+    mapping(uint24 => bool) public trackDisabled;
 
     // number of unique stakers on track -- (track) => staker count
     mapping(uint24 => uint256) public numTrackStakers;
@@ -158,7 +159,6 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
             uint24(tracks.length - 1), // latest track
             0, // initialize with 0 stake
             false, // add or sub does not matter
-            false, // initialize as not disabled
             false // do not bump finished sale counter
         );
 
@@ -178,17 +178,18 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         trackFinishedSaleBlocks[trackId][nFinishedSales] = uint80(block.number);
 
         // add a new checkpoint with counter incremented by 1
-        addTrackCheckpoint(trackId, 0, false, false, true);
+        addTrackCheckpoint(trackId, 0, false, true);
 
         // `BumpSaleCounter` event emitted in function call above
     }
 
     // disables a track
     function disableTrack(uint24 trackId) external onlyOwner {
-        // add a new checkpoint with `disabled` set to true
-        addTrackCheckpoint(trackId, 0, false, true, false);
+        // set disabled
+        trackDisabled[trackId] = true;
 
-        // `DisableTrack` event emitted in function call above
+        // emit
+        emit DisableTrack(trackId);
     }
 
     // perform active rollover
@@ -419,7 +420,6 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                     blockNumber: 0,
                     totalStaked: 0,
                     totalStakeWeight: 0,
-                    disabled: false,
                     numFinishedSales: 0
                 });
         } else {
@@ -578,7 +578,6 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         uint24 trackId, // track number
         uint104 amount, // delta on staked amount
         bool addElseSub, // true = adding; false = subtracting
-        bool disabled, // whether track is disabled; cannot undo a disable
         bool _bumpSaleCounter // whether to increase sale counter by 1
     ) internal {
         // get track info
@@ -594,7 +593,6 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                 blockNumber: uint80(block.number),
                 totalStaked: amount,
                 totalStakeWeight: 0,
-                disabled: disabled,
                 numFinishedSales: _bumpSaleCounter ? 1 : 0
             });
 
@@ -606,9 +604,10 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                 nCheckpoints - 1
             ];
 
-            if (prev.disabled) {
-                // if previous checkpoint was disabled, then disabled cannot be false going forward
-                require(disabled, 'disabled: cannot undo disable');
+            // get whether track is disabled
+            bool isDisabled = trackDisabled[trackId];
+
+            if (isDisabled) {
                 // if previous checkpoint was disabled, then cannot increase stake going forward
                 require(!addElseSub, 'disabled: cannot add stake');
             }
@@ -658,14 +657,13 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                 prev.totalStaked = addElseSub
                     ? prev.totalStaked + amount
                     : prev.totalStaked - amount;
-                prev.totalStakeWeight = prev.disabled
+                prev.totalStakeWeight = isDisabled
                     ? (
                         prev.totalStakeWeight < newStakeWeight
                             ? prev.totalStakeWeight
                             : newStakeWeight
                     )
                     : newStakeWeight;
-                prev.disabled = disabled;
                 prev.numFinishedSales = _bumpSaleCounter
                     ? prev.numFinishedSales + 1
                     : prev.numFinishedSales;
@@ -675,14 +673,13 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                     totalStaked: addElseSub
                         ? prev.totalStaked + amount
                         : prev.totalStaked - amount,
-                    totalStakeWeight: prev.disabled
+                    totalStakeWeight: isDisabled
                         ? (
                             prev.totalStakeWeight < newStakeWeight
                                 ? prev.totalStakeWeight
                                 : newStakeWeight
                         )
                         : newStakeWeight,
-                    disabled: disabled,
                     numFinishedSales: _bumpSaleCounter
                         ? prev.numFinishedSales + 1
                         : prev.numFinishedSales
@@ -690,11 +687,6 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
                 // increase new track's checkpoint count by 1
                 trackCheckpointCounts[trackId]++;
-            }
-
-            // emit
-            if (!prev.disabled && disabled) {
-                emit DisableTrack(trackId);
             }
         }
 
@@ -710,13 +702,11 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         // get track info
         TrackInfo storage track = tracks[trackId];
 
-        // get latest track checkpoint
-        TrackCheckpoint storage checkpoint = trackCheckpoints[trackId][
-            trackCheckpointCounts[trackId] - 1
-        ];
+        // get whether track is disabled
+        bool isDisabled = trackDisabled[trackId];
 
         // cannot stake into disabled track
-        require(!checkpoint.disabled, 'track is disabled');
+        require(!isDisabled, 'track is disabled');
 
         // transfer the specified amount of stake token from user to this contract
         track.stakeToken.safeTransferFrom(_msgSender(), address(this), amount);
@@ -725,7 +715,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         addUserCheckpoint(trackId, amount, true);
 
         // add track checkpoint
-        addTrackCheckpoint(trackId, amount, true, false, false);
+        addTrackCheckpoint(trackId, amount, true, false);
 
         // emit
         emit Stake(trackId, _msgSender(), amount);
@@ -756,7 +746,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         addUserCheckpoint(trackId, amount, false);
 
         // add track checkpoint
-        addTrackCheckpoint(trackId, amount, false, false, false);
+        addTrackCheckpoint(trackId, amount, false, false);
 
         // transfer the specified amount of stake token from this contract to user
         track.stakeToken.safeTransfer(_msgSender(), amount);
