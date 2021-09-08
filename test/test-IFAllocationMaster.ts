@@ -132,42 +132,6 @@ export default describe('IFAllocationMaster', function () {
     expect(userCp.numFinishedSales).to.equal(1)
   })
 
-  it('can disable track', async () => {
-    // add a track
-    mineNext()
-    await IFAllocationMaster.addTrack(
-      'TEST Track', // name
-      TestToken.address, // stake token
-      1000, // weight accrual rate
-      '100000000000000000', // passive rollover rate (10%)
-      '200000000000000000', // active rollover rate (20%)
-      '1000000000000000000000000000000' // max total stake (1 trillion)
-    )
-    const trackNum = 0
-
-    // disable track as non-owner (should fail)
-    mineNext()
-    await IFAllocationMaster.connect(nonOwner).disableTrack(trackNum)
-    mineNext()
-
-    // try to stake (should work)
-    await TestToken.approve(IFAllocationMaster.address, 100) // approve
-    await IFAllocationMaster.stake(trackNum, 100) // stake
-    mineNext()
-    expect(await TestToken.balanceOf(IFAllocationMaster.address)).to.equal(100)
-
-    // disable track as owner (should work)
-    mineNext()
-    await IFAllocationMaster.disableTrack(trackNum)
-    mineNext()
-
-    // try to stake (should not work)
-    await TestToken.approve(IFAllocationMaster.address, 5) // approve
-    await IFAllocationMaster.stake(trackNum, 5) // stake
-    mineNext()
-    expect(await TestToken.balanceOf(IFAllocationMaster.address)).to.equal(100)
-  })
-
   it('simulation 1: general staking and unstaking', async () => {
     // allocate stake token to simulation user1 and user2
     mineNext()
