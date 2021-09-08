@@ -7,6 +7,7 @@ import { BigNumber } from '@ethersproject/bignumber'
 interface SimInputRow {
   stakeAmounts?: string[]
   bumpSaleCounter?: boolean
+  disableTrack?: boolean
   activeRollOvers?: boolean[]
   label?: string
 }
@@ -32,6 +33,11 @@ export const simAllocationMaster = async (
 
   // simulation
   for (let i = 0; i < simInput.length; i++) {
+    // disable track if specified
+    if (simInput[i].disableTrack) {
+      await allocationMaster.disableTrack(trackNum)
+    }
+
     // bump sale counter if specified
     if (simInput[i].bumpSaleCounter) {
       await allocationMaster.bumpSaleCounter(trackNum)
