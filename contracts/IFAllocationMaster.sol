@@ -85,6 +85,9 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
     // whether track is disabled -- (track) => disabled status
     mapping(uint24 => bool) public trackDisabled;
 
+    // whether user has emergency withdrawn from track -- (track, user) => status
+    mapping(uint24 => mapping(address => bool)) public hasEmergencyWithdrawn;
+
     // number of unique stakers on track -- (track) => staker count
     mapping(uint24 => uint256) public numTrackStakers;
 
@@ -118,7 +121,11 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
     event AddTrackCheckpoint(uint24 indexed trackId, uint80 blockNumber);
     event Stake(uint24 indexed trackId, address indexed user, uint104 amount);
     event Unstake(uint24 indexed trackId, address indexed user, uint104 amount);
-    event EmergencyTokenRetrieve(address indexed sender, uint256 amount);
+    event EmergencyWithdraw(
+        uint24 indexed trackId,
+        address indexed sender,
+        uint256 amount
+    );
 
     // CONSTRUCTOR
 
@@ -753,5 +760,41 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
         // emit
         emit Unstake(trackId, _msgSender(), amount);
+    }
+
+    // emergency withdraw
+    function emergencyWithdraw(uint24 trackId) external nonReentrant {
+        // require track is disabled
+        require(trackDisabled[trackId], 'track !disabled');
+
+        // require can only emergency withdraw once
+        require(
+            !hasEmergencyWithdrawn[trackId][_msgSender()],
+            'already called'
+        );
+
+        // set emergency withdrawn status to true
+        hasEmergencyWithdrawn[trackId][_msgSender()] = true;
+
+        // get track info
+        TrackInfo storage track = tracks[trackId];
+
+        //// get user latest checkpoint
+
+        // get number of user's checkpoints within this track
+        uint32 userCheckpointCount = userCheckpointCounts[trackId][
+            _msgSender()
+        ];
+
+        // get user's latest checkpoint
+        UserCheckpoint storage checkpoint = userCheckpoints[trackId][
+            _msgSender()
+        ][userCheckpointCount - 1];
+
+        // transfer the specified amount of stake token from this contract to user
+        track.stakeToken.safeTransfer(_msgSender(), checkpoint.staked);
+
+        // emit
+        emit EmergencyWithdraw(trackId, _msgSender(), checkpoint.staked);
     }
 }
