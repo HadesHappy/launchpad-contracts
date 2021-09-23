@@ -165,11 +165,11 @@ export default describe('IFAllocationMaster', function () {
     )
 
     // // write output to CSV
-    // await asyncWriteFile(
-    //   './test/simulationData',
-    //   'out1.csv',
-    //   unparseCsv(simOutput)
-    // )
+    await asyncWriteFile(
+      './test/simulationData',
+      '.tmp.out1.csv',
+      unparseCsv(simOutput)
+    )
 
     //// check simulation output against output csv
     // get lines of expected output and simulation
@@ -215,11 +215,11 @@ export default describe('IFAllocationMaster', function () {
     )
 
     // // write output to CSV
-    // await asyncWriteFile(
-    //   './test/simulationData',
-    //   'out2.csv',
-    //   unparseCsv(simOutput)
-    // )
+    await asyncWriteFile(
+      './test/simulationData',
+      '.tmp.out2.csv',
+      unparseCsv(simOutput)
+    )
 
     //// check simulation output against output csv
     // get lines of expected output and simulation
@@ -265,11 +265,11 @@ export default describe('IFAllocationMaster', function () {
     )
 
     // // write output to CSV
-    // await asyncWriteFile(
-    //   './test/simulationData',
-    //   'out3.csv',
-    //   unparseCsv(simOutput)
-    // )
+    await asyncWriteFile(
+      './test/simulationData',
+      '.tmp.out3.csv',
+      unparseCsv(simOutput)
+    )
 
     //// check simulation output against output csv
     // get lines of expected output and simulation
