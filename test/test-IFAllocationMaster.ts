@@ -9,12 +9,14 @@ import { simAllocationMaster } from './simulator'
 import sim1Input from './simulationData/sim1Input.json'
 import sim2Input from './simulationData/sim2Input.json'
 import sim3Input from './simulationData/sim3Input.json'
+import sim4Input from './simulationData/sim4Input.json'
 
 // array of simulations input/output maps
 const simulations = [
   { in: sim1Input, out: './test/simulationData/sim1ExpectedOutput.csv' },
   { in: sim2Input, out: './test/simulationData/sim2ExpectedOutput.csv' },
   { in: sim3Input, out: './test/simulationData/sim3ExpectedOutput.csv' },
+  { in: sim4Input, out: './test/simulationData/sim4ExpectedOutput.csv' },
 ]
 
 export default describe('IFAllocationMaster', function () {
@@ -268,6 +270,56 @@ export default describe('IFAllocationMaster', function () {
     await asyncWriteFile(
       './test/simulationData',
       '.tmp.out3.csv',
+      unparseCsv(simOutput)
+    )
+
+    //// check simulation output against output csv
+    // get lines of expected output and simulation
+    const expectedLines = (await readFile(simExpectedOut)).split(/\r?\n/)
+    const simOutLines = unparseCsv(simOutput).split(/\r?\n/)
+
+    // compare each line
+    expectedLines.map((expectedLine, i) => {
+      expect(expectedLine).to.equal(simOutLines[i])
+    })
+  })
+
+  it('simulation 4: emergency withdraws', async () => {
+    // allocate stake token to simulation user1 and user2
+    mineNext()
+    await TestToken.transfer(simUser1.address, '10000000000000000000000000000') // 10B tokens
+    await TestToken.transfer(simUser2.address, '10000000000000000000000000000') // 10B tokens
+
+    // add a track
+    mineNext()
+    await IFAllocationMaster.addTrack(
+      'TEST Track', // name
+      TestToken.address, // stake token
+      '10000000', // weight accrual rate
+      '100000000000000000', // passive rollover rate (10%)
+      '200000000000000000', // active rollover rate (20%)
+      '10000000000000000000000000000' // max total stake (10B)
+    )
+
+    //// block-by-block simulation
+
+    // simulation reference inputs and outputs
+    const simIn = simulations[3].in
+    const simExpectedOut = simulations[3].out
+
+    // run
+    const simOutput = await simAllocationMaster(
+      IFAllocationMaster, // staking contract
+      TestToken, // stake token
+      await IFAllocationMaster.trackCount(), // track number
+      [simUser1, simUser2], // simulation users
+      simIn
+    )
+
+    // // write output to CSV
+    await asyncWriteFile(
+      './test/simulationData',
+      '.tmp.out4.csv',
       unparseCsv(simOutput)
     )
 

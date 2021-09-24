@@ -8,6 +8,7 @@ interface SimInputRow {
   stakeAmounts?: string[]
   bumpSaleCounter?: boolean
   disableTrack?: boolean
+  emergencyWithdraws?: boolean[]
   activeRollOvers?: boolean[]
   label?: string
 }
@@ -48,6 +49,14 @@ export const simAllocationMaster = async (
     if (activeRollovers) {
       for (let j = 0; j < activeRollovers.length; j++)
         await allocationMaster.connect(simUsers[j]).activeRollOver(trackNum)
+    }
+
+    // emergency withdraw if specified
+    const emergencyWithdraws = simInput[i].emergencyWithdraws
+    if (emergencyWithdraws) {
+      for (let j = 0; j < emergencyWithdraws.length; j++)
+        emergencyWithdraws[j] &&
+          (await allocationMaster.emergencyWithdraw(trackNum))
     }
 
     // user stakes/unstakes according to stakesOverTime
@@ -103,6 +112,11 @@ export const simAllocationMaster = async (
       simUsers[0].address,
       nUserCheckpoints - 1
     )
+    const user2Cp = await allocationMaster.userCheckpoints(
+      trackNum,
+      simUsers[1].address,
+      nUserCheckpoints - 1
+    )
 
     // save data row
     simOutput.push({
@@ -114,6 +128,13 @@ export const simAllocationMaster = async (
         currBlockNum
       ),
       user1SaleCount: user1Cp.numFinishedSales,
+      user2Stake: user2Cp.staked,
+      user2Weight: await allocationMaster.getUserStakeWeight(
+        trackNum,
+        simUsers[1].address,
+        currBlockNum
+      ),
+      user2SaleCount: user2Cp.numFinishedSales,
       totalWeight: await allocationMaster.getTotalStakeWeight(
         trackNum,
         currBlockNum
