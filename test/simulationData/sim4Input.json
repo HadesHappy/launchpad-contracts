@@ -1,13 +1,23 @@
 [
   {
-    "stakeAmounts": ["1000000000", "1000000000"]
+    "stakeAmounts": ["1", "1"]
   },
   {
     "stakeAmounts": ["1000000000", "1000000000"]
   },
   {
-    "emergencyWithdraw": [true]
+    "stakeAmounts": ["1000000000", "1000000000"]
   },
-  {},
-  {}
+  {
+    "disableTrack": true
+  },
+  {
+    "emergencyWithdraws": [true, false]
+  },
+  {
+    "emergencyWithdraws": [true, false]
+  },
+  {
+    "emergencyWithdraws": [false, true]
+  }
 ]

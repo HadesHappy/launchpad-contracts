@@ -48,7 +48,8 @@ export const simAllocationMaster = async (
     const activeRollovers = simInput[i].activeRollOvers
     if (activeRollovers) {
       for (let j = 0; j < activeRollovers.length; j++)
-        await allocationMaster.connect(simUsers[j]).activeRollOver(trackNum)
+        activeRollovers[j] &&
+          (await allocationMaster.connect(simUsers[j]).activeRollOver(trackNum))
     }
 
     // emergency withdraw if specified
@@ -56,7 +57,9 @@ export const simAllocationMaster = async (
     if (emergencyWithdraws) {
       for (let j = 0; j < emergencyWithdraws.length; j++)
         emergencyWithdraws[j] &&
-          (await allocationMaster.emergencyWithdraw(trackNum))
+          (await allocationMaster
+            .connect(simUsers[j])
+            .emergencyWithdraw(trackNum))
     }
 
     // user stakes/unstakes according to stakesOverTime
@@ -128,6 +131,7 @@ export const simAllocationMaster = async (
         currBlockNum
       ),
       user1SaleCount: user1Cp.numFinishedSales,
+      user1Balance: await stakeToken.balanceOf(simUsers[0].address),
       user2Stake: user2Cp.staked,
       user2Weight: await allocationMaster.getUserStakeWeight(
         trackNum,
@@ -135,6 +139,7 @@ export const simAllocationMaster = async (
         currBlockNum
       ),
       user2SaleCount: user2Cp.numFinishedSales,
+      user2Balance: await stakeToken.balanceOf(simUsers[1].address),
       totalWeight: await allocationMaster.getTotalStakeWeight(
         trackNum,
         currBlockNum
