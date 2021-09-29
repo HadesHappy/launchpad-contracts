@@ -292,6 +292,9 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
     ) public view returns (uint192) {
         require(blockNumber <= block.number, 'block # too high');
 
+        // if track is disabled, stake weight is 0
+        if (trackDisabled[trackId]) return 0;
+
         // check number of user checkpoints
         uint32 nUserCheckpoints = userCheckpointCounts[trackId][user];
         if (nUserCheckpoints == 0) {
@@ -461,6 +464,9 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         returns (uint192)
     {
         require(blockNumber <= block.number, 'block # too high');
+
+        // if track is disabled, stake weight is 0
+        if (trackDisabled[trackId]) return 0;
 
         // get closest track checkpoint
         TrackCheckpoint memory closestCheckpoint = getClosestTrackCheckpoint(
