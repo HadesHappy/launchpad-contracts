@@ -96,6 +96,9 @@ export const simAllocationMaster = async (
     // gas used
     const gasUsed = currBlock.gasUsed
 
+    // max stakes
+    const trackMaxStakes = await allocationMaster.trackMaxStakes(trackNum)
+
     // get track checkpoint
     const nTrackCheckpoints = await allocationMaster.trackCheckpointCounts(
       trackNum
@@ -145,6 +148,7 @@ export const simAllocationMaster = async (
         currBlockNum
       ),
       trackSaleCount: trackCp.numFinishedSales,
+      trackMaxStakes,
       gasUsed: gasUsed,
     })
   }
