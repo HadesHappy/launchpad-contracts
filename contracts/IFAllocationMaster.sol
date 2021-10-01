@@ -103,6 +103,9 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
     mapping(uint24 => mapping(uint32 => TrackCheckpoint))
         public trackCheckpoints;
 
+    // max stakes seen for each track -- (track) => max stake seen on track
+    mapping(uint24 => uint104) public trackMaxStakes;
+
     // USER INFO
 
     // the number of checkpoints of a user for a track -- (track, user address) => checkpoint count
@@ -730,6 +733,16 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
         // add track checkpoint
         addTrackCheckpoint(trackId, amount, true, false);
+
+        // get latest track cp
+        TrackCheckpoint memory trackCp = trackCheckpoints[trackId][
+            trackCheckpointCounts[trackId] - 1
+        ];
+
+        // update track max staked
+        if (trackMaxStakes[trackId] < trackCp.totalStaked) {
+            trackMaxStakes[trackId] = trackCp.totalStaked;
+        }
 
         // emit
         emit Stake(trackId, _msgSender(), amount);
