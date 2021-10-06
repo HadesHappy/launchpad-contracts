@@ -480,8 +480,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
 
     // retrieve tokens erroneously sent in to this address
     function emergencyTokenRetrieve(address token) external onlyOwner {
-        // cannot be payment or sale tokens
-        require(token != address(paymentToken));
+        // cannot be sale tokens
         require(token != address(saleToken));
 
         uint256 tokenBalance = ERC20(token).balanceOf(address(this));
