@@ -463,8 +463,13 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         uint256 totalTokensSold = (totalPaymentReceived * SALE_PRICE_DECIMALS) /
             salePrice;
 
+        // get principal (whichever is bigger between sale amount or amount on contract)
+        uint256 principal = saleAmount < saleTokenBal
+            ? saleTokenBal
+            : saleAmount;
+
         // calculate amount of unsold sale token
-        uint256 amountUnsold = saleTokenBal - totalTokensSold;
+        uint256 amountUnsold = principal - totalTokensSold;
 
         // transfer unsold
         saleToken.safeTransfer(address(_msgSender()), amountUnsold);
