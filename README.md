@@ -105,3 +105,9 @@ SALE=0xABCD CASHER=0xABCD npx hardhat run ./scripts/setCasher-IFAllocationSale.t
 ```
 SALE=0xABCD NEW_OWNER=0xABCD npx hardhat run ./scripts/transferOwnership-IFAllocationSale.ts --network bsc_test
 ```
+
+### Cashing
+
+```
+SALE=0xABCD npx hardhat run ./scripts/cash-IFAllocationSale.ts --network bsc_test
+```
