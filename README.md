@@ -44,7 +44,7 @@ MAINNET_MNEMONIC='example example example example...'
 ### Sending tokens
 
 ```
-TOKEN=0x... TO=0x... AMOUNT=10000000000000000000000 npx hardhat run ./scripts/TestToken-send.ts --network bsc_test
+TOKEN=0x... TO=0x... AMOUNT=10000000000000000000000 npx hardhat run ./scripts/GenericToken-send.ts --network bsc_test
 ```
 
 ### Deploying a standard mintable pausable token
