@@ -22,9 +22,6 @@ npx hardhat test
 ### Deploy commands
 
 ```
-# test tokens
-npx hardhat run ./scripts/deploy-TestToken.ts --network bsc_test
-
 # allocation master
 npx hardhat run ./scripts/deploy-IFAllocationMaster.ts --network bsc_test
 
@@ -48,6 +45,12 @@ MAINNET_MNEMONIC='example example example example...'
 
 ```
 TOKEN=0x... TO=0x... AMOUNT=10000000000000000000000 npx hardhat run ./scripts/send-TestToken.ts --network bsc_test
+```
+
+### Deploying a standard mintable pausable token
+
+```
+NAME='Token Name' SYMBOL='TKN1' INIT_SUPPLY=... npx hardhat run ./scripts/deploy-GenericToken.ts --network bsc_test
 ```
 
 ### Adding an allocation master track
