@@ -3,7 +3,7 @@
 //
 // When running the script with `hardhat run <script>` you'll find the Hardhat
 
-import TestToken from '../artifacts/contracts/TestToken.sol/TestToken.json'
+import GenericToken from '../artifacts/contracts/GenericToken.sol/GenericToken.json'
 
 // Runtime Environment's members available in the global scope.
 import hre from 'hardhat'
@@ -15,7 +15,7 @@ export async function main(): Promise<void> {
   const amount: string = process.env.AMOUNT || '' // amount
 
   // get contract from token
-  const tokenContract = new hre.ethers.Contract(token, TestToken.abi)
+  const tokenContract = new hre.ethers.Contract(token, GenericToken.abi)
 
   // transfer
   const result = await tokenContract

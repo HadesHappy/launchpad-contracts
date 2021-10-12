@@ -12,10 +12,10 @@ export async function main(): Promise<void> {
   const initSupply: string = process.env.INIT_SUPPLY || '' // 18 decimals assumed
 
   // We get the contract to deploy
-  const TestTokenFactory = await hre.ethers.getContractFactory('GenericToken')
+  const GenericTokenFactory = await hre.ethers.getContractFactory('GenericToken')
 
   // deploy token
-  const Token = await TestTokenFactory.deploy(name, symbol, initSupply)
+  const Token = await GenericTokenFactory.deploy(name, symbol, initSupply)
 
   // log deployed addresses
   console.log('Token deployed to ', Token.address)
