@@ -40,7 +40,7 @@ export default describe('IFAllocationMaster', function () {
     simUser2 = (await ethers.getSigners())[3]
 
     // deploy test token
-    const TestTokenFactory = await ethers.getContractFactory('TestToken')
+    const TestTokenFactory = await ethers.getContractFactory('GenericToken')
     TestToken = await TestTokenFactory.deploy(
       'test token',
       'TEST',

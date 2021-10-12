@@ -6,7 +6,7 @@
 import hre from 'hardhat'
 
 import IFAllocationSale from '../artifacts/contracts/IFAllocationSale.sol/IFAllocationSale.json'
-import ERC20 from '../artifacts/contracts/TestToken.sol/TestToken.json'
+import ERC20 from '../artifacts/contracts/GenericToken.sol/GenericToken.json'
 
 export async function main(): Promise<void> {
   // params

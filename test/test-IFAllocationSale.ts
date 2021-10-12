@@ -59,7 +59,7 @@ export default describe('IF Allocation Sale', function () {
     buyer2 = (await ethers.getSigners())[4]
 
     // deploy test tokens
-    const TestTokenFactory = await ethers.getContractFactory('TestToken')
+    const TestTokenFactory = await ethers.getContractFactory('GenericToken')
     StakeToken = await TestTokenFactory.connect(buyer).deploy(
       'Test Stake Token',
       'STAKE',

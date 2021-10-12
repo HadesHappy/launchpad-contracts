@@ -3,7 +3,7 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { mineNext } from './helpers'
 
-export default describe('TestToken', function () {
+export default describe('GenericToken', function () {
   // unset timeout from the test
   this.timeout(0)
 
@@ -15,7 +15,7 @@ export default describe('TestToken', function () {
     const startingSupply = 21_000_000_000
 
     // deploy
-    const TestTokenFactory = await ethers.getContractFactory('TestToken')
+    const TestTokenFactory = await ethers.getContractFactory('GenericToken')
     const TestToken = await TestTokenFactory.deploy(
       'test token',
       'TEST',
