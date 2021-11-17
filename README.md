@@ -63,6 +63,12 @@ TOKEN=0x... npx hardhat run ./scripts/GenericToken-unpause.ts --network bsc_test
 NAME='Token Name' SYMBOL='TKN1' INIT_SUPPLY=... npx hardhat run ./scripts/GenericToken-deploy.ts --network bsc_test
 ```
 
+### Minting token
+
+```
+TOKEN=0x... TO=0x... AMOUNT=... npx hardhat run ./scripts/GenericToken-mint.ts --network bsc_test
+```
+
 ### Adding an allocation master track
 
 ```
