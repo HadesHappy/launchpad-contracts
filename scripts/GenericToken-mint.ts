@@ -17,7 +17,7 @@ export async function main(): Promise<void> {
   // get contract from token
   const tokenContract = new hre.ethers.Contract(token, GenericToken.abi)
 
-  // transfer
+  // mint
   const result = await tokenContract
     .connect((await hre.ethers.getSigners())[0])
     .mint(to, amount)
