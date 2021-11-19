@@ -45,6 +45,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // sale price will be 10 * SALE_PRICE_DECIMALS = 10_000_000_000_000_000_000
     // NOTE: sale price must accomodate any differences in decimals between sale and payment tokens. If payment token has A decimals and sale token has B decimals, then the price must be adjusted by multiplying by 10**(A-B).
     // If A was 18 but B was only 12, then the salePrice should be adjusted by multiplying by 1,000,000. If A was 12 and B was 18, then salePrice should be adjusted by dividing by 1,000,000.
+
+    //TODO: binary search or some function on allocMaster to give accurate timestamp from allocSnapshotBlock
     uint256 public salePrice;
     // funder
     address public funder;
@@ -62,11 +64,11 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     uint24 public trackId;
     // allocation snapshot block
     uint80 public allocSnapshotBlock;
-    // start block when sale is active (inclusive)
-    uint256 public startBlock;
-    // end block when sale is active (inclusive)
-    uint256 public endBlock;
-    // withdraw/cash delay in blocks (inclusive)
+    // start timestamp when sale is active (inclusive)
+    uint256 public startTime;
+    // end timestamp when sale is active (inclusive)
+    uint256 public endTime;
+    // withdraw/cash delay timestamp (inclusive)
     uint24 public withdrawDelay;
     // optional min for payment token amount
     uint256 public minTotalPayment;
@@ -105,18 +107,18 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         IFAllocationMaster _allocationMaster,
         uint24 _trackId,
         uint80 _allocSnapshotBlock,
-        uint256 _startBlock,
-        uint256 _endBlock,
+        uint256 _startTime,
+        uint256 _endTime,
         uint256 _maxTotalPayment
     ) {
         // funder cannot be 0
         require(_funder != address(0), '0x0 funder');
         // sale token cannot be 0
         require(address(_saleToken) != address(0), '0x0 saleToken');
-        // start block must be in future
-        require(block.number < _startBlock, 'start block too early');
-        // end block must be after start block
-        require(_startBlock < _endBlock, 'end block before start');
+        // start timestamp must be in future
+        require(block.timestamp < _startTime, 'start timestamp too early');
+        // end timestamp must be after start timestamp
+        require(_startTime < _endTime, 'end timestamp before start');
 
         salePrice = _salePrice; // can be 0 (for giveaway)
         funder = _funder;
@@ -125,8 +127,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         allocationMaster = _allocationMaster; // can be 0 (with allocation override)
         trackId = _trackId; // can be 0 (with allocation override)
         allocSnapshotBlock = _allocSnapshotBlock; // can be 0 (with allocation override)
-        startBlock = _startBlock;
-        endBlock = _endBlock;
+        startTime = _startTime;
+        endTime = _endTime;
         maxTotalPayment = _maxTotalPayment; // can be 0 (for giveaway)
     }
 
@@ -161,7 +163,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // Function for funding sale with sale token (called by project team)
     function fund(uint256 amount) external onlyFunder {
         // sale must not have started
-        require(block.number < startBlock, 'sale already started');
+        require(block.timestamp < startTime, 'sale already started');
 
         // transfer specified amount from funder to this contract
         saleToken.safeTransferFrom(_msgSender(), address(this), amount);
@@ -176,7 +178,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // Function for owner to set an optional, minTotalPayment
     function setMinTotalPayment(uint256 _minTotalPayment) external onlyOwner {
         // sale must not have started
-        require(block.number < startBlock, 'sale already started');
+        require(block.timestamp < startTime, 'sale already started');
 
         minTotalPayment = _minTotalPayment;
 
@@ -189,7 +191,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         uint256 _saleTokenAllocationOverride
     ) external onlyOwner {
         // sale must not have started
-        require(block.number < startBlock, 'sale already started');
+        require(block.timestamp < startTime, 'sale already started');
 
         saleTokenAllocationOverride = _saleTokenAllocationOverride;
 
@@ -200,7 +202,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // Function for owner to set an optional, separate casher
     function setCasher(address _casher) external onlyOwner {
         // sale must not have started
-        require(block.number < startBlock, 'sale already started');
+        require(block.timestamp < startTime, 'sale already started');
 
         casher = _casher;
 
@@ -211,7 +213,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // Function for owner to set an optional, separate whitelist setter
     function setWhitelistSetter(address _whitelistSetter) external onlyOwner {
         // sale must not have started
-        require(block.number < startBlock, 'sale already started');
+        require(block.timestamp < startTime, 'sale already started');
 
         whitelistSetter = _whitelistSetter;
 
@@ -320,8 +322,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // Used by external functions `purchase` and `whitelistedPurchase`
     function _purchase(uint256 paymentAmount) internal nonReentrant {
         // sale must be active
-        require(startBlock <= block.number, 'sale has not begun');
-        require(block.number <= endBlock, 'sale over');
+        require(startTime <= block.timestamp, 'sale has not begun');
+        require(block.timestamp <= endTime, 'sale over');
 
         // sale price must not be 0, which is a giveaway sale
         require(salePrice != 0, 'cannot purchase - giveaway sale');
@@ -381,8 +383,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         // not have any sale tokens to withdraw
         // so we do not check whitelist here
 
-        // must be past end block plus withdraw delay
-        require(endBlock + withdrawDelay < block.number, 'cannot withdraw yet');
+        // must be past end timestamp plus withdraw delay
+        require(endTime + withdrawDelay < block.timestamp, 'cannot withdraw yet');
         // prevent repeat withdraw
         require(hasWithdrawn[_msgSender()] == false, 'already withdrawn');
         // must not be a zero price sale
@@ -412,8 +414,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         external
         nonReentrant
     {
-        // must be past end block plus withdraw delay
-        require(endBlock + withdrawDelay < block.number, 'cannot withdraw yet');
+        // must be past end timestamp plus withdraw delay
+        require(endTime + withdrawDelay < block.timestamp, 'cannot withdraw yet');
         // prevent repeat withdraw
         require(hasWithdrawn[_msgSender()] == false, 'already withdrawn');
         // must be a zero price sale
@@ -442,8 +444,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
 
     // Function for funder to cash in payment token and unsold sale token
     function cash() external onlyCasherOrOwner {
-        // must be past end block plus withdraw delay
-        require(endBlock + withdrawDelay < block.number, 'cannot withdraw yet');
+        // must be past end timestamp plus withdraw delay
+        require(endTime + withdrawDelay < block.timestamp, 'cannot withdraw yet');
         // prevent repeat cash
         require(!hasCashed, 'already cashed');
 
