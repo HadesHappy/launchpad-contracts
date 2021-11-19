@@ -41,8 +41,6 @@ export default describe('IF Allocation Sale', function () {
   // const fundAmount = '33333'
   const fundAmount = '1000000000'
 
-
-  
   // setup for each test
   beforeEach(async () => {
     // set launchpad blocks in future
@@ -172,7 +170,7 @@ export default describe('IF Allocation Sale', function () {
     const paymentAmount = '333330'
 
     // fast forward from current time to start time
-    mineTimeDelta(startTime - await getBlockTime())
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test purchase
     mineNext()
@@ -187,10 +185,8 @@ export default describe('IF Allocation Sale', function () {
     // gas used in purchase
     expect((await getGasUsed()).toString()).to.equal('227838')
 
-
-    
     // fast forward from current time to after end time
-    mineTimeDelta(endTime - await getBlockTime())
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test withdraw
     mineNext()
@@ -262,10 +258,8 @@ export default describe('IF Allocation Sale', function () {
     // amount to pay
     const paymentAmount = '333330'
 
-
-
     // fast forward from current time to start time
-    mineTimeDelta(startTime - await getBlockTime())
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test whitelist purchase
     mineNext()
@@ -280,9 +274,8 @@ export default describe('IF Allocation Sale', function () {
 
     mineNext()
 
-
     // fast forward from current time to after end time
-    mineTimeDelta(endTime - await getBlockTime())
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test withdraw
     mineNext()
@@ -309,9 +302,8 @@ export default describe('IF Allocation Sale', function () {
     await IFAllocationSale.setSaleTokenAllocationOverride(10000)
     mineNext()
 
-       // fast forward from current time to start time
-       mineTimeDelta(startTime - await getBlockTime())
-
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test purchase
     mineNext()
@@ -324,7 +316,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // fast forward from current time to after end time
-    mineTimeDelta(endTime - await getBlockTime())
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test withdraw
     mineNext()
@@ -345,11 +337,8 @@ export default describe('IF Allocation Sale', function () {
     await IFAllocationSale.setSaleTokenAllocationOverride(5000)
     mineNext()
 
-
-
     // fast forward from current time to start time
-    mineTimeDelta(startTime - await getBlockTime())
-
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test purchase for buyers 1 and 2
     mineNext()
@@ -368,9 +357,8 @@ export default describe('IF Allocation Sale', function () {
 
     mineNext()
 
-
     // fast forward from current time to after end time
-    mineTimeDelta(endTime - await getBlockTime())
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test withdraw
     mineNext()
@@ -426,16 +414,13 @@ export default describe('IF Allocation Sale', function () {
     await IFAllocationSale.setSaleTokenAllocationOverride(5000)
     mineNext()
 
-
-
     // fast forward from current time to start time
-    mineTimeDelta(startTime - await getBlockTime())
-
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // nothing to do here
 
     // fast forward from current time to after end time
-    mineTimeDelta(endTime - await getBlockTime())
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test normal withdraw (should not go through, must go through withdrawGiveaway)
     mineNext()
@@ -515,17 +500,13 @@ export default describe('IF Allocation Sale', function () {
     await IFAllocationSale.setWhitelist(merkleRoot)
     mineNext()
 
-
-
-  // fast forward from current time to start time
-  mineTimeDelta(startTime - await getBlockTime())
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // nothing to do here
 
-
-
-  // fast forward from current time to after end time
-  mineTimeDelta(endTime - await getBlockTime())
+    // fast forward from current time to after end time
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test withdrawGiveaway without proof (should not go through)
     mineNext()
@@ -568,12 +549,8 @@ export default describe('IF Allocation Sale', function () {
     // amount to pay
     const paymentAmount = '333330'
 
-
-
-        // fast forward from current time to start time
-        mineTimeDelta(startTime - await getBlockTime())
-
-
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test purchase
     mineNext()
@@ -585,9 +562,8 @@ export default describe('IF Allocation Sale', function () {
 
     mineNext()
 
-
     // fast forward from current time to after end time
-    mineTimeDelta(endTime - await getBlockTime())
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test withdraw and cash (should fail because need 1 more block)
     await IFAllocationSale.connect(buyer).withdraw()
@@ -624,10 +600,8 @@ export default describe('IF Allocation Sale', function () {
     // amount to pay
     const paymentAmount = '333330'
 
-
-        // fast forward from current time to start time
-        mineTimeDelta(startTime - await getBlockTime())
-
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test purchase
     mineNext()
@@ -640,7 +614,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // fast forward from current time to after end time
-    mineTimeDelta(endTime - await getBlockTime())
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // cash first (testing that we do not over-remove sale token)
     await IFAllocationSale.connect(casher).cash()
@@ -675,11 +649,8 @@ export default describe('IF Allocation Sale', function () {
     // amount to pay
     const paymentAmount = '333330'
 
- 
-
-     // fast forward from current time to start time
-      mineTimeDelta(startTime - await getBlockTime())
-
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test purchase
     mineNext()
@@ -692,7 +663,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // fast forward from current time to after end time
-    mineTimeDelta(endTime - await getBlockTime())
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // cash
     await IFAllocationSale.connect(casher).cash()
