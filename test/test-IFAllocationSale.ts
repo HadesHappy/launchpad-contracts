@@ -161,8 +161,15 @@ export default describe('IF Allocation Sale', function () {
     expect(
       (await StakeToken.balanceOf(IFAllocationMaster.address)).toString()
     ).to.equal((stakeAmount * 2).toString())
+
+     //fastforward from current block to after snapshot block
+     const blocksToMine =  snapshotBlock - await ethers.provider.getBlockNumber()
+     for (let i = 0; i < blocksToMine; i++) {
+       await mineNext()
+     } 
   })
 
+  
   it('can purchase, withdraw, and cash', async function () {
     mineNext()
 
