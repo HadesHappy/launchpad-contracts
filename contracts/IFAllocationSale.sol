@@ -86,8 +86,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     event SetWhitelistSetter(address indexed whitelistSetter);
     event SetWhitelist(bytes32 indexed whitelistRootHash);
     event SetWithdrawDelay(uint24 indexed withdrawDelay);
-    event Purchase(address indexed sender, uint256 indexed paymentAmount);
-    event Withdraw(address indexed sender, uint256 indexed amount);
+    event Purchase(address indexed sender, uint256 paymentAmount);
+    event Withdraw(address indexed sender, uint256 amount);
     event Cash(
         address indexed sender,
         uint256 paymentTokenBalance,
