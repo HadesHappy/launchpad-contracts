@@ -63,5 +63,19 @@ module.exports = {
         mnemonic: process.env.MAINNET_MNEMONIC || '',
       },
     },
+    avax_main: {
+      url: 'https://api.avax.network/ext/bc/C/rpc',
+      chainId: 43114,
+      accounts: {
+        mnemonic: process.env.MAINNET_MNEMONIC || '',
+      },
+    },
+    moonriver_main: {
+      url: 'https://rpc.moonriver.moonbeam.network',
+      chainId: 1285,
+      accounts: {
+        mnemonic: process.env.MAINNET_MNEMONIC || '',
+      },
+    },
   },
 }

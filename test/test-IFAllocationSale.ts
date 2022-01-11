@@ -1,7 +1,7 @@
 import '@nomiclabs/hardhat-ethers'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import { getGasUsed, mineNext } from './helpers'
+import { getBlockTime, getGasUsed, mineNext, mineTimeDelta } from './helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from '@ethersproject/contracts'
 import {
@@ -33,8 +33,8 @@ export default describe('IF Allocation Sale', function () {
 
   // sale contract vars
   let snapshotBlock: number // block at which to take allocation snapshot
-  let startBlock: number // start block of sale (inclusive)
-  let endBlock: number // end block of sale (inclusive)
+  let startTime: number // start timestamp of sale (inclusive)
+  let endTime: number // end timestamp of sale (inclusive)
   const salePrice = '10000000000000000000' // 10 PAY per SALE
   const maxTotalDeposit = '25000000000000000000000000' // max deposit
   // other vars
@@ -46,10 +46,11 @@ export default describe('IF Allocation Sale', function () {
     // set launchpad blocks in future
     mineNext()
     const currBlock = await ethers.provider.getBlockNumber()
+    const currTime = await getBlockTime()
     mineNext()
     snapshotBlock = currBlock + 90
-    startBlock = currBlock + 100
-    endBlock = currBlock + 200
+    startTime = currTime + 10000
+    endTime = currTime + 20000
 
     // get test accounts
     owner = (await ethers.getSigners())[0]
@@ -121,8 +122,8 @@ export default describe('IF Allocation Sale', function () {
       IFAllocationMaster.address,
       trackId,
       snapshotBlock,
-      startBlock,
-      endBlock,
+      startTime,
+      endTime,
       maxTotalDeposit
     )
     mineNext()
@@ -160,18 +161,23 @@ export default describe('IF Allocation Sale', function () {
     expect(
       (await StakeToken.balanceOf(IFAllocationMaster.address)).toString()
     ).to.equal((stakeAmount * 2).toString())
+
+     //fastforward from current block to after snapshot block
+     const blocksToMine =  snapshotBlock - await ethers.provider.getBlockNumber()
+     for (let i = 0; i < blocksToMine; i++) {
+       await mineNext()
+     } 
   })
 
+  
   it('can purchase, withdraw, and cash', async function () {
     mineNext()
 
     // amount to pay
     const paymentAmount = '333330'
 
-    // fast forward blocks to get to start block
-    while ((await ethers.provider.getBlockNumber()) < startBlock) {
-      mineNext()
-    }
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test purchase
     mineNext()
@@ -186,10 +192,8 @@ export default describe('IF Allocation Sale', function () {
     // gas used in purchase
     expect((await getGasUsed()).toString()).to.equal('227752')
 
-    // fast forward blocks to get after the end block
-    while ((await ethers.provider.getBlockNumber()) <= endBlock) {
-      mineNext()
-    }
+    // fast forward from current time to after end time
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test withdraw
     mineNext()
@@ -261,10 +265,8 @@ export default describe('IF Allocation Sale', function () {
     // amount to pay
     const paymentAmount = '333330'
 
-    // fast forward blocks to get to start block
-    while ((await ethers.provider.getBlockNumber()) < startBlock) {
-      mineNext()
-    }
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test whitelist purchase
     mineNext()
@@ -279,10 +281,8 @@ export default describe('IF Allocation Sale', function () {
 
     mineNext()
 
-    // fast forward blocks to get after the end block
-    while ((await ethers.provider.getBlockNumber()) <= endBlock) {
-      mineNext()
-    }
+    // fast forward from current time to after end time
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test withdraw
     mineNext()
@@ -309,10 +309,8 @@ export default describe('IF Allocation Sale', function () {
     await IFAllocationSale.setSaleTokenAllocationOverride(10000)
     mineNext()
 
-    // fast forward blocks to get to start block
-    while ((await ethers.provider.getBlockNumber()) < startBlock) {
-      mineNext()
-    }
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test purchase
     mineNext()
@@ -324,10 +322,8 @@ export default describe('IF Allocation Sale', function () {
 
     mineNext()
 
-    // fast forward blocks to get after the end block
-    while ((await ethers.provider.getBlockNumber()) <= endBlock) {
-      mineNext()
-    }
+    // fast forward from current time to after end time
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test withdraw
     mineNext()
@@ -348,10 +344,8 @@ export default describe('IF Allocation Sale', function () {
     await IFAllocationSale.setSaleTokenAllocationOverride(5000)
     mineNext()
 
-    // fast forward blocks to get to start block
-    while ((await ethers.provider.getBlockNumber()) < startBlock) {
-      mineNext()
-    }
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test purchase for buyers 1 and 2
     mineNext()
@@ -370,10 +364,8 @@ export default describe('IF Allocation Sale', function () {
 
     mineNext()
 
-    // fast forward blocks to get after the end block
-    while ((await ethers.provider.getBlockNumber()) <= endBlock) {
-      mineNext()
-    }
+    // fast forward from current time to after end time
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test withdraw
     mineNext()
@@ -411,8 +403,8 @@ export default describe('IF Allocation Sale', function () {
       IFAllocationMaster.address, // doesn't matter
       trackId, // doesn't matter
       snapshotBlock, // doesn't matter
-      startBlock, // doesn't matter
-      endBlock, // doesn't matter
+      startTime, // doesn't matter
+      endTime, // doesn't matter
       maxTotalDeposit // doesn't matter
     )
     mineNext()
@@ -429,17 +421,13 @@ export default describe('IF Allocation Sale', function () {
     await IFAllocationSale.setSaleTokenAllocationOverride(5000)
     mineNext()
 
-    // fast forward blocks to get to start block
-    while ((await ethers.provider.getBlockNumber()) < startBlock) {
-      mineNext()
-    }
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // nothing to do here
 
-    // fast forward blocks to get after the end block
-    while ((await ethers.provider.getBlockNumber()) <= endBlock) {
-      mineNext()
-    }
+    // fast forward from current time to after end time
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test normal withdraw (should not go through, must go through withdrawGiveaway)
     mineNext()
@@ -489,8 +477,8 @@ export default describe('IF Allocation Sale', function () {
       IFAllocationMaster.address, // doesn't matter
       trackId, // doesn't matter
       snapshotBlock, // doesn't matter
-      startBlock, // doesn't matter
-      endBlock, // doesn't matter
+      startTime, // doesn't matter
+      endTime, // doesn't matter
       maxTotalDeposit // doesn't matter
     )
     mineNext()
@@ -519,17 +507,13 @@ export default describe('IF Allocation Sale', function () {
     await IFAllocationSale.setWhitelist(merkleRoot)
     mineNext()
 
-    // fast forward blocks to get to start block
-    while ((await ethers.provider.getBlockNumber()) < startBlock) {
-      mineNext()
-    }
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // nothing to do here
 
-    // fast forward blocks to get after the end block
-    while ((await ethers.provider.getBlockNumber()) <= endBlock) {
-      mineNext()
-    }
+    // fast forward from current time to after end time
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test withdrawGiveaway without proof (should not go through)
     mineNext()
@@ -572,10 +556,8 @@ export default describe('IF Allocation Sale', function () {
     // amount to pay
     const paymentAmount = '333330'
 
-    // fast forward blocks to get to start block
-    while ((await ethers.provider.getBlockNumber()) < startBlock) {
-      mineNext()
-    }
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test purchase
     mineNext()
@@ -587,10 +569,8 @@ export default describe('IF Allocation Sale', function () {
 
     mineNext()
 
-    // fast forward blocks to get to one short of end block + delay
-    while ((await ethers.provider.getBlockNumber()) < endBlock + delay - 1) {
-      mineNext()
-    }
+    // fast forward from current time to after end time
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // test withdraw and cash (should fail because need 1 more block)
     await IFAllocationSale.connect(buyer).withdraw()
@@ -627,10 +607,8 @@ export default describe('IF Allocation Sale', function () {
     // amount to pay
     const paymentAmount = '333330'
 
-    // fast forward blocks to get to start block
-    while ((await ethers.provider.getBlockNumber()) < startBlock) {
-      mineNext()
-    }
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test purchase
     mineNext()
@@ -642,10 +620,8 @@ export default describe('IF Allocation Sale', function () {
 
     mineNext()
 
-    // fast forward blocks to get past end block
-    while ((await ethers.provider.getBlockNumber()) < endBlock) {
-      mineNext()
-    }
+    // fast forward from current time to after end time
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // cash first (testing that we do not over-remove sale token)
     await IFAllocationSale.connect(casher).cash()
@@ -680,10 +656,8 @@ export default describe('IF Allocation Sale', function () {
     // amount to pay
     const paymentAmount = '333330'
 
-    // fast forward blocks to get to start block
-    while ((await ethers.provider.getBlockNumber()) < startBlock) {
-      mineNext()
-    }
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
 
     // test purchase
     mineNext()
@@ -695,10 +669,8 @@ export default describe('IF Allocation Sale', function () {
 
     mineNext()
 
-    // fast forward blocks to get past end block
-    while ((await ethers.provider.getBlockNumber()) < endBlock) {
-      mineNext()
-    }
+    // fast forward from current time to after end time
+    mineTimeDelta(endTime - (await getBlockTime()))
 
     // cash
     await IFAllocationSale.connect(casher).cash()
