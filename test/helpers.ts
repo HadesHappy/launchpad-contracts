@@ -10,8 +10,8 @@ export const mineNext = async (): Promise<void> => {
 }
 
 export const mineTimeDelta = async (seconds: number): Promise<void> => {
-  await network.provider.send("evm_increaseTime", [seconds]) 
-  await network.provider.send("evm_mine") 
+  await network.provider.send('evm_increaseTime', [seconds])
+  await network.provider.send('evm_mine')
 }
 
 export const getGasUsed = async (): Promise<BigNumber> => {
@@ -32,11 +32,10 @@ export const getBlockTime = async (): Promise<number> => {
   const currBlockNum = await ethers.provider.getBlockNumber()
 
   // current timestamp at block
-  const currTime =  (await ethers.provider.getBlock(currBlockNum)).timestamp
+  const currTime = (await ethers.provider.getBlock(currBlockNum)).timestamp
 
   return currTime
 }
-
 
 export const readFile = async (file: string): Promise<string> => {
   return await fs.readFile(file, 'utf8')

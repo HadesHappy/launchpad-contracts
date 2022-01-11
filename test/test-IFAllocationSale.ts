@@ -190,7 +190,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in purchase
-    expect((await getGasUsed()).toString()).to.equal('227752')
+    expect((await getGasUsed()).toString()).to.equal('237952')
 
     // fast forward from current time to after end time
     mineTimeDelta(endTime - (await getBlockTime()))
