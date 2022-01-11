@@ -20,7 +20,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // SALE STATE
 
     // whitelist merkle root; if not set, then sale is open to everyone that has allocation
-    bytes32 whitelistRootHash;
+    bytes32 public whitelistRootHash;
     // amount of sale token to sell
     uint256 public saleAmount;
     // tracks amount purchased by each address
