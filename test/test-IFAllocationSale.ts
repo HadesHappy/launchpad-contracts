@@ -139,16 +139,16 @@ export default describe('IF Allocation Sale', function () {
       fundAmount
     ) // approve
     await IFAllocationSale.connect(seller).fund(fundAmount) // fund
-
+    //
     // stake and accrue stake weight
     mineNext()
     const stakeAmount = 100000000000000
     // buyer 1
     await StakeToken.connect(buyer).approve(
       IFAllocationMaster.address,
-      stakeAmount
+      3 * stakeAmount
     ) // approve
-    await IFAllocationMaster.connect(buyer).stake(trackId, stakeAmount) // stake
+    await IFAllocationMaster.connect(buyer).stake(trackId, 3 * stakeAmount) // stake
     // buyer 2
     await StakeToken.connect(buyer2).approve(
       IFAllocationMaster.address,
@@ -160,7 +160,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
     expect(
       (await StakeToken.balanceOf(IFAllocationMaster.address)).toString()
-    ).to.equal((stakeAmount * 2).toString())
+    ).to.equal((stakeAmount * 4).toString())
 
     //fastforward from current block to after snapshot block
     const blocksToMine =
@@ -190,7 +190,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in purchase
-    expect((await getGasUsed()).toString()).to.equal('237952')
+    expect((await getGasUsed()).toString()).to.equal('237976')
 
     // fast forward from current time to after end time
     mineTimeDelta(endTime - (await getBlockTime()))
@@ -541,6 +541,85 @@ export default describe('IF Allocation Sale', function () {
     // expect balance to be 5000 for both participants
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('5000')
     expect(await SaleToken.balanceOf(buyer2.address)).to.equal('5000')
+  })
+
+  it('can perform a zero price giveaway sale unwhitelisted with staked amount', async function () {
+    mineNext()
+
+    // here set up a new IFAllocationSale with salePrice of 0, because
+    // provided fixture sale does not have salePrice set to 0
+
+    // deploy 0 price allocation sale
+    const IFAllocationSaleFactory = await ethers.getContractFactory(
+      'IFAllocationSale'
+    )
+    IFAllocationSale = await IFAllocationSaleFactory.deploy(
+      0, // sale price
+      seller.address,
+      PaymentToken.address, // doesn't matter
+      SaleToken.address,
+      IFAllocationMaster.address, // doesn't matter
+      trackId, // doesn't matter
+      snapshotBlock, // doesn't matter
+      startTime, // doesn't matter
+      endTime, // doesn't matter
+      maxTotalDeposit // doesn't matter
+    )
+    mineNext()
+
+    // fund sale
+    mineNext()
+    await SaleToken.connect(seller).approve(
+      IFAllocationSale.address,
+      fundAmount
+    ) // approve
+    await IFAllocationSale.connect(seller).fund(fundAmount) // fund
+
+    // no need to set override, because skaked drop
+    mineNext()
+
+    // fast forward from current time to start time
+    mineTimeDelta(startTime - (await getBlockTime()))
+
+    // nothing to do here
+
+    // fast forward from current time to after end time
+    mineTimeDelta(endTime - (await getBlockTime()))
+
+    mineNext()
+
+    // test normal withdraw (should not go through, must go through withdrawGiveaway)
+    mineNext()
+    await IFAllocationSale.connect(buyer).withdraw()
+    mineNext()
+    await IFAllocationSale.connect(buyer2).withdraw()
+    mineNext()
+
+    // expect balance to be 0 for both participants
+    expect(await SaleToken.balanceOf(buyer.address)).to.equal('0')
+    expect(await SaleToken.balanceOf(buyer2.address)).to.equal('0')
+
+    // test withdrawGiveaway (should go through)
+    mineNext()
+    await IFAllocationSale.connect(buyer).withdrawGiveaway([])
+    mineNext()
+    await IFAllocationSale.connect(buyer2).withdrawGiveaway([])
+    mineNext()
+
+    // expect balance to be 1:3 ratio for both participants
+    expect(await SaleToken.balanceOf(buyer.address)).to.equal(
+      (Number(fundAmount) * 3) / 4
+    )
+    expect(await SaleToken.balanceOf(buyer2.address)).to.equal(
+      (Number(fundAmount) * 1) / 4
+    )
+
+    // test purchaser counter (should be 0! nothing purchased in 0 price sales)
+    // note: this is the only scenario where this is different from withdrawer counter
+    expect(await IFAllocationSale.purchaserCount()).to.equal(0)
+
+    // test withdrawer counter
+    expect(await IFAllocationSale.withdrawerCount()).to.equal(2)
   })
 
   it('can set withdraw delay', async function () {

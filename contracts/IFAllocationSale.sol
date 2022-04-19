@@ -384,7 +384,10 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         // so we do not check whitelist here
 
         // must be past end timestamp plus withdraw delay
-        require(endTime + withdrawDelay < block.timestamp, 'cannot withdraw yet');
+        require(
+            endTime + withdrawDelay < block.timestamp,
+            'cannot withdraw yet'
+        );
         // prevent repeat withdraw
         require(hasWithdrawn[_msgSender()] == false, 'already withdrawn');
         // must not be a zero price sale
@@ -409,13 +412,33 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         emit Withdraw(_msgSender(), saleTokenOwed);
     }
 
+    function getUserStakeValue(address user) public view returns (uint256) {
+        uint256 userWeight = allocationMaster.getUserStakeWeight(
+            trackId,
+            user,
+            allocSnapshotBlock
+        );
+        uint256 totalWeight = allocationMaster.getTotalStakeWeight(
+            trackId,
+            allocSnapshotBlock
+        );
+        // total weight must be greater than 0
+        require(totalWeight > 0, 'total weight is 0');
+
+        // calculate max amount of obtainable sale token by user
+        return (saleAmount * userWeight) / (totalWeight);
+    }
+
     // Function to withdraw (redeem) tokens from a zero cost "giveaway" sale
     function withdrawGiveaway(bytes32[] calldata merkleProof)
         external
         nonReentrant
     {
         // must be past end timestamp plus withdraw delay
-        require(endTime + withdrawDelay < block.timestamp, 'cannot withdraw yet');
+        require(
+            endTime + withdrawDelay < block.timestamp,
+            'cannot withdraw yet'
+        );
         // prevent repeat withdraw
         require(hasWithdrawn[_msgSender()] == false, 'already withdrawn');
         // must be a zero price sale
@@ -425,9 +448,17 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
             whitelistRootHash == 0 || checkWhitelist(_msgSender(), merkleProof),
             'proof invalid'
         );
-
-        // each participant in the zero cost "giveaway" gets a flat amount of sale token, as set by the override
-        uint256 saleTokenOwed = saleTokenAllocationOverride;
+        uint256 saleTokenOwed;
+        // each participant in the zero cost "giveaway" gets a flat amount of sale token
+        if (saleTokenAllocationOverride == 0) {
+            // if there is no override, fetch the total payment allocation
+            saleTokenOwed = getUserStakeValue(_msgSender());
+        } else {
+            // if override, set the override amount
+            saleTokenOwed = saleTokenAllocationOverride;
+        }
+        // sale token owed must be greater than 0
+        require(saleTokenOwed != 0, 'withdraw giveaway amount 0');
 
         // set withdrawn to true
         hasWithdrawn[_msgSender()] = true;
@@ -445,7 +476,10 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // Function for funder to cash in payment token and unsold sale token
     function cash() external onlyCasherOrOwner {
         // must be past end timestamp plus withdraw delay
-        require(endTime + withdrawDelay < block.timestamp, 'cannot withdraw yet');
+        require(
+            endTime + withdrawDelay < block.timestamp,
+            'cannot withdraw yet'
+        );
         // prevent repeat cash
         require(!hasCashed, 'already cashed');
 
