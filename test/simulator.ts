@@ -131,7 +131,7 @@ export const simAllocationMaster = async (
       user1Weight: await allocationMaster.getUserStakeWeight(
         trackNum,
         simUsers[0].address,
-        currBlockNum
+        currBlock.timestamp
       ),
       user1SaleCount: user1Cp.numFinishedSales,
       user1Balance: await stakeToken.balanceOf(simUsers[0].address),
@@ -139,13 +139,13 @@ export const simAllocationMaster = async (
       user2Weight: await allocationMaster.getUserStakeWeight(
         trackNum,
         simUsers[1].address,
-        currBlockNum
+        currBlock.timestamp
       ),
       user2SaleCount: user2Cp.numFinishedSales,
       user2Balance: await stakeToken.balanceOf(simUsers[1].address),
       totalWeight: await allocationMaster.getTotalStakeWeight(
         trackNum,
-        currBlockNum
+        currBlock.timestamp
       ),
       trackSaleCount: trackCp.numFinishedSales,
       trackMaxStakes,

@@ -23,8 +23,8 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
     // A checkpoint for marking stake info at a given block
     struct UserCheckpoint {
-        // block number of checkpoint
-        uint80 blockNumber;
+        // timestamp number of checkpoint
+        uint80 timestamp;
         // amount staked at checkpoint
         uint104 staked;
         // amount of stake weight at checkpoint
@@ -35,8 +35,8 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
     // A checkpoint for marking stake info at a given block
     struct TrackCheckpoint {
-        // block number of checkpoint
-        uint80 blockNumber;
+        // timestamp number of checkpoint
+        uint80 timestamp;
         // amount staked at checkpoint
         uint104 totalStaked;
         // amount of stake weight at checkpoint
@@ -51,7 +51,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         string name;
         // token to stake (e.g., IDIA)
         ERC20 stakeToken;
-        // weight accrual rate for this track (stake weight increase per block per stake token)
+        // weight accrual rate for this track (stake weight increase per timestamp per stake token)
         uint24 weightAccrualRate;
         // amount rolled over when finished sale counter increases (with decimals == ROLLOVER_FACTOR_DECIMALS)
         // e.g., if rolling over 20% when sale finishes, then this is 0.2 * ROLLOVER_FACTOR_DECIMALS, or
@@ -65,8 +65,9 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
     // INFO FOR FACTORING IN ROLLOVERS
 
-    // the number of checkpoints of a track -- (track, finished sale count) => block number
-    mapping(uint24 => mapping(uint24 => uint80)) public trackFinishedSaleBlocks;
+    // the number of checkpoints of a track -- (track, finished sale count) => timestamp number
+    mapping(uint24 => mapping(uint24 => uint80))
+        public trackFinishedSaleTimestamps;
 
     // stake weight each user actively rolls over for a given track and a finished sale count
     // (track, user, finished sale count) => amount of stake weight
@@ -121,8 +122,8 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
     event DisableTrack(uint24 indexed trackId);
     event ActiveRollOver(uint24 indexed trackId, address indexed user);
     event BumpSaleCounter(uint24 indexed trackId, uint32 newCount);
-    event AddUserCheckpoint(uint24 indexed trackId, uint80 blockNumber);
-    event AddTrackCheckpoint(uint24 indexed trackId, uint80 blockNumber);
+    event AddUserCheckpoint(uint24 indexed trackId, uint80 timestamp);
+    event AddTrackCheckpoint(uint24 indexed trackId, uint80 timestamp);
     event Stake(uint24 indexed trackId, address indexed user, uint104 amount);
     event Unstake(uint24 indexed trackId, address indexed user, uint104 amount);
     event EmergencyWithdraw(
@@ -185,8 +186,10 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         ]
         .numFinishedSales;
 
-        // update map that tracks block numbers of finished sales
-        trackFinishedSaleBlocks[trackId][nFinishedSales] = uint80(block.number);
+        // update map that tracks timestamp numbers of finished sales
+        trackFinishedSaleTimestamps[trackId][nFinishedSales] = uint80(
+            block.timestamp
+        );
 
         // add a new checkpoint with counter incremented by 1
         addTrackCheckpoint(trackId, 0, false, true);
@@ -236,29 +239,27 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
     function getClosestUserCheckpoint(
         uint24 trackId,
         address user,
-        uint80 blockNumber
+        uint80 timestamp
     ) private view returns (UserCheckpoint memory cp) {
         // get total checkpoint count for user
         uint32 nCheckpoints = userCheckpointCounts[trackId][user];
 
         if (
-            userCheckpoints[trackId][user][nCheckpoints - 1].blockNumber <=
-            blockNumber
+            userCheckpoints[trackId][user][nCheckpoints - 1].timestamp <=
+            timestamp
         ) {
             // First check most recent checkpoint
 
             // return closest checkpoint
             return userCheckpoints[trackId][user][nCheckpoints - 1];
-        } else if (
-            userCheckpoints[trackId][user][0].blockNumber > blockNumber
-        ) {
+        } else if (userCheckpoints[trackId][user][0].timestamp > timestamp) {
             // Next check earliest checkpoint
 
-            // If specified block number is earlier than user's first checkpoint,
+            // If specified timestamp number is earlier than user's first checkpoint,
             // return null checkpoint
             return
                 UserCheckpoint({
-                    blockNumber: 0,
+                    timestamp: 0,
                     staked: 0,
                     stakeWeight: 0,
                     numFinishedSales: 0
@@ -272,9 +273,9 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                 UserCheckpoint memory tempCp = userCheckpoints[trackId][user][
                     center
                 ];
-                if (tempCp.blockNumber == blockNumber) {
+                if (tempCp.timestamp == timestamp) {
                     return tempCp;
-                } else if (tempCp.blockNumber < blockNumber) {
+                } else if (tempCp.timestamp < timestamp) {
                     lower = center;
                 } else {
                     upper = center - 1;
@@ -286,14 +287,14 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         }
     }
 
-    // gets a user's stake weight within a track at a particular block number
+    // gets a user's stake weight within a track at a particular timestamp number
     // logic extended from Compound COMP token `getPriorVotes` function
     function getUserStakeWeight(
         uint24 trackId,
         address user,
-        uint80 blockNumber
+        uint80 timestamp
     ) public view returns (uint192) {
-        require(blockNumber <= block.number, 'block # too high');
+        require(timestamp <= block.timestamp, 'timestamp # too high');
 
         // if track is disabled, stake weight is 0
         if (trackDisabled[trackId]) return 0;
@@ -308,11 +309,11 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         UserCheckpoint memory closestUserCheckpoint = getClosestUserCheckpoint(
             trackId,
             user,
-            blockNumber
+            timestamp
         );
 
         // check if closest preceding checkpoint was null checkpoint
-        if (closestUserCheckpoint.blockNumber == 0) {
+        if (closestUserCheckpoint.timestamp == 0) {
             return 0;
         }
 
@@ -320,10 +321,10 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
         TrackCheckpoint memory closestTrackCp = getClosestTrackCheckpoint(
             trackId,
-            blockNumber
+            timestamp
         );
 
-        // get number of finished sales between user's last checkpoint blockNumber and provided blockNumber
+        // get number of finished sales between user's last checkpoint timestamp and provided timestamp
         uint24 numFinishedSalesDelta = closestTrackCp.numFinishedSales -
             closestUserCheckpoint.numFinishedSales;
 
@@ -335,12 +336,12 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         if (numFinishedSalesDelta == 0) {
             // calculate normally without rollover decay
 
-            uint80 elapsedBlocks = blockNumber -
-                closestUserCheckpoint.blockNumber;
+            uint80 elapsedTimestamps = timestamp -
+                closestUserCheckpoint.timestamp;
 
             stakeWeight =
                 closestUserCheckpoint.stakeWeight +
-                (uint192(elapsedBlocks) *
+                (uint192(elapsedTimestamps) *
                     track.weightAccrualRate *
                     closestUserCheckpoint.staked) /
                 10**18;
@@ -351,21 +352,21 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
             // starting stakeweight
             stakeWeight = closestUserCheckpoint.stakeWeight;
-            // current block for iteration
-            uint80 currBlock = closestUserCheckpoint.blockNumber;
+            // current timestamp for iteration
+            uint80 currTimestamp = closestUserCheckpoint.timestamp;
 
             // for each finished sale in between, get stake weight of that period
             // and perform weighted sum
             for (uint24 i = 0; i < numFinishedSalesDelta; i++) {
                 // get number of blocks passed at the current sale number
-                uint80 elapsedBlocks = trackFinishedSaleBlocks[trackId][
+                uint80 elapsedTimestamps = trackFinishedSaleTimestamps[trackId][
                     closestUserCheckpoint.numFinishedSales + i
-                ] - currBlock;
+                ] - currTimestamp;
 
                 // update stake weight
                 stakeWeight =
                     stakeWeight +
-                    (uint192(elapsedBlocks) *
+                    (uint192(elapsedTimestamps) *
                         track.weightAccrualRate *
                         closestUserCheckpoint.staked) /
                     10**18;
@@ -385,15 +386,15 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                         track.passiveRolloverRate) /
                     ROLLOVER_FACTOR_DECIMALS;
 
-                // update currBlock for next round
-                currBlock = trackFinishedSaleBlocks[trackId][
+                // update currTimestamp for next round
+                currTimestamp = trackFinishedSaleTimestamps[trackId][
                     closestUserCheckpoint.numFinishedSales + i
                 ];
             }
 
             // add any remaining accrued stake weight at current finished sale count
-            uint80 remainingElapsed = blockNumber -
-                trackFinishedSaleBlocks[trackId][
+            uint80 remainingElapsed = timestamp -
+                trackFinishedSaleTimestamps[trackId][
                     closestTrackCp.numFinishedSales - 1
                 ];
             stakeWeight +=
@@ -408,7 +409,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
     }
 
     // get closest PRECEDING track checkpoint
-    function getClosestTrackCheckpoint(uint24 trackId, uint80 blockNumber)
+    function getClosestTrackCheckpoint(uint24 trackId, uint80 timestamp)
         private
         view
         returns (TrackCheckpoint memory cp)
@@ -417,21 +418,20 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         uint32 nCheckpoints = trackCheckpointCounts[trackId];
 
         if (
-            trackCheckpoints[trackId][nCheckpoints - 1].blockNumber <=
-            blockNumber
+            trackCheckpoints[trackId][nCheckpoints - 1].timestamp <= timestamp
         ) {
             // First check most recent checkpoint
 
             // return closest checkpoint
             return trackCheckpoints[trackId][nCheckpoints - 1];
-        } else if (trackCheckpoints[trackId][0].blockNumber > blockNumber) {
+        } else if (trackCheckpoints[trackId][0].timestamp > timestamp) {
             // Next check earliest checkpoint
 
-            // If specified block number is earlier than track's first checkpoint,
+            // If specified timestamp number is earlier than track's first checkpoint,
             // return null checkpoint
             return
                 TrackCheckpoint({
-                    blockNumber: 0,
+                    timestamp: 0,
                     totalStaked: 0,
                     totalStakeWeight: 0,
                     numFinishedSales: 0
@@ -445,9 +445,9 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                 TrackCheckpoint memory tempCp = trackCheckpoints[trackId][
                     center
                 ];
-                if (tempCp.blockNumber == blockNumber) {
+                if (tempCp.timestamp == timestamp) {
                     return tempCp;
-                } else if (tempCp.blockNumber < blockNumber) {
+                } else if (tempCp.timestamp < timestamp) {
                     lower = center;
                 } else {
                     upper = center - 1;
@@ -459,14 +459,14 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         }
     }
 
-    // gets total stake weight within a track at a particular block number
+    // gets total stake weight within a track at a particular timestamp number
     // logic extended from Compound COMP token `getPriorVotes` function
-    function getTotalStakeWeight(uint24 trackId, uint80 blockNumber)
+    function getTotalStakeWeight(uint24 trackId, uint80 timestamp)
         external
         view
         returns (uint192)
     {
-        require(blockNumber <= block.number, 'block # too high');
+        require(timestamp <= block.timestamp, 'timestamp # too high');
 
         // if track is disabled, stake weight is 0
         if (trackDisabled[trackId]) return 0;
@@ -474,22 +474,22 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         // get closest track checkpoint
         TrackCheckpoint memory closestCheckpoint = getClosestTrackCheckpoint(
             trackId,
-            blockNumber
+            timestamp
         );
 
         // check if closest preceding checkpoint was null checkpoint
-        if (closestCheckpoint.blockNumber == 0) {
+        if (closestCheckpoint.timestamp == 0) {
             return 0;
         }
 
         // calculate blocks elapsed since checkpoint
-        uint80 additionalBlocks = (blockNumber - closestCheckpoint.blockNumber);
+        uint80 additionalTimestamps = (timestamp - closestCheckpoint.timestamp);
 
         // get track info
         TrackInfo storage trackInfo = tracks[trackId];
 
         // calculate marginal accrued stake weight
-        uint192 marginalAccruedStakeWeight = (uint192(additionalBlocks) *
+        uint192 marginalAccruedStakeWeight = (uint192(additionalTimestamps) *
             trackInfo.weightAccrualRate *
             closestCheckpoint.totalStaked) / 10**18;
 
@@ -529,7 +529,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
             // add a first checkpoint for this user on this track
             userCheckpoints[trackId][_msgSender()][0] = UserCheckpoint({
-                blockNumber: uint80(block.number),
+                timestamp: uint80(block.timestamp),
                 staked: amount,
                 stakeWeight: 0,
                 numFinishedSales: trackCp.numFinishedSales
@@ -550,16 +550,16 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                 'exceeds staking cap'
             );
 
-            // ensure block number downcast to uint80 is monotonically increasing (prevent overflow)
+            // ensure timestamp number downcast to uint80 is monotonically increasing (prevent overflow)
             // this should never happen within the lifetime of the universe, but if it does, this prevents a catastrophe
             require(
-                prev.blockNumber <= uint80(block.number),
-                'block # overflow'
+                prev.timestamp <= uint80(block.timestamp),
+                'timestamp # overflow'
             );
 
             // add a new checkpoint for user within this track
-            // if no blocks elapsed, just update prev checkpoint (so checkpoints can be uniquely identified by block number)
-            if (prev.blockNumber == uint80(block.number)) {
+            // if no blocks elapsed, just update prev checkpoint (so checkpoints can be uniquely identified by timestamp number)
+            if (prev.timestamp == uint80(block.timestamp)) {
                 prev.staked = addElseSub
                     ? prev.staked + amount
                     : prev.staked - amount;
@@ -568,14 +568,14 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                 userCheckpoints[trackId][_msgSender()][
                     nCheckpointsUser
                 ] = UserCheckpoint({
-                    blockNumber: uint80(block.number),
+                    timestamp: uint80(block.timestamp),
                     staked: addElseSub
                         ? prev.staked + amount
                         : prev.staked - amount,
                     stakeWeight: getUserStakeWeight(
                         trackId,
                         _msgSender(),
-                        uint80(block.number)
+                        uint80(block.timestamp)
                     ),
                     numFinishedSales: trackCp.numFinishedSales
                 });
@@ -588,7 +588,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         }
 
         // emit
-        emit AddUserCheckpoint(trackId, uint80(block.number));
+        emit AddUserCheckpoint(trackId, uint80(block.timestamp));
     }
 
     function addTrackCheckpoint(
@@ -607,7 +607,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         if (nCheckpoints == 0) {
             // add a first checkpoint for this track
             trackCheckpoints[trackId][0] = TrackCheckpoint({
-                blockNumber: uint80(block.number),
+                timestamp: uint80(block.timestamp),
                 totalStaked: amount,
                 totalStakeWeight: 0,
                 numFinishedSales: _bumpSaleCounter ? 1 : 0
@@ -629,18 +629,19 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                 require(!addElseSub, 'disabled: cannot add stake');
             }
 
-            // ensure block number downcast to uint80 is monotonically increasing (prevent overflow)
+            // ensure timestamp number downcast to uint80 is monotonically increasing (prevent overflow)
             // this should never happen within the lifetime of the universe, but if it does, this prevents a catastrophe
             require(
-                prev.blockNumber <= uint80(block.number),
-                'block # overflow'
+                prev.timestamp <= uint80(block.timestamp),
+                'timestamp # overflow'
             );
 
             // calculate blocks elapsed since checkpoint
-            uint80 additionalBlocks = (uint80(block.number) - prev.blockNumber);
+            uint80 additionalTimestamp = (uint80(block.timestamp) -
+                prev.timestamp);
 
             // calculate marginal accrued stake weight
-            uint192 marginalAccruedStakeWeight = (uint192(additionalBlocks) *
+            uint192 marginalAccruedStakeWeight = (uint192(additionalTimestamp) *
                 track.weightAccrualRate *
                 prev.totalStaked) / 10**18;
 
@@ -669,8 +670,8 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
             }
 
             // add a new checkpoint for this track
-            // if no blocks elapsed, just update prev checkpoint (so checkpoints can be uniquely identified by block number)
-            if (additionalBlocks == 0) {
+            // if no timestamp elapsed, just update prev checkpoint (so checkpoints can be uniquely identified by timestamp number)
+            if (additionalTimestamp == 0) {
                 prev.totalStaked = addElseSub
                     ? prev.totalStaked + amount
                     : prev.totalStaked - amount;
@@ -686,7 +687,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
                     : prev.numFinishedSales;
             } else {
                 trackCheckpoints[trackId][nCheckpoints] = TrackCheckpoint({
-                    blockNumber: uint80(block.number),
+                    timestamp: uint80(block.timestamp),
                     totalStaked: addElseSub
                         ? prev.totalStaked + amount
                         : prev.totalStaked - amount,
@@ -708,7 +709,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         }
 
         // emit
-        emit AddTrackCheckpoint(trackId, uint80(block.number));
+        emit AddTrackCheckpoint(trackId, uint80(block.timestamp));
     }
 
     // stake

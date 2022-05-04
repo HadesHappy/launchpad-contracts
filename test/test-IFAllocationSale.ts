@@ -32,7 +32,7 @@ export default describe('IF Allocation Sale', function () {
   let trackId: number
 
   // sale contract vars
-  let snapshotBlock: number // block at which to take allocation snapshot
+  let snapshotTimestamp: number // block at which to take allocation snapshot
   let startTime: number // start timestamp of sale (inclusive)
   let endTime: number // end timestamp of sale (inclusive)
   const salePrice = '10000000000000000000' // 10 PAY per SALE
@@ -45,10 +45,9 @@ export default describe('IF Allocation Sale', function () {
   beforeEach(async () => {
     // set launchpad blocks in future
     mineNext()
-    const currBlock = await ethers.provider.getBlockNumber()
     const currTime = await getBlockTime()
     mineNext()
-    snapshotBlock = currBlock + 90
+    snapshotTimestamp = currTime + 5000
     startTime = currTime + 10000
     endTime = currTime + 20000
 
@@ -121,7 +120,7 @@ export default describe('IF Allocation Sale', function () {
       SaleToken.address,
       IFAllocationMaster.address,
       trackId,
-      snapshotBlock,
+      snapshotTimestamp,
       startTime,
       endTime,
       maxTotalDeposit
@@ -163,11 +162,7 @@ export default describe('IF Allocation Sale', function () {
     ).to.equal((stakeAmount * 4).toString())
 
     //fastforward from current block to after snapshot block
-    const blocksToMine =
-      snapshotBlock - (await ethers.provider.getBlockNumber())
-    for (let i = 0; i < blocksToMine; i++) {
-      await mineNext()
-    }
+    mineTimeDelta(snapshotTimestamp - (await getBlockTime()))
   })
 
   it('can purchase, withdraw, and cash', async function () {
@@ -190,7 +185,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in purchase
-    expect((await getGasUsed()).toString()).to.equal('237976')
+    expect((await getGasUsed()).toString()).to.equal('227798')
 
     // fast forward from current time to after end time
     mineTimeDelta(endTime - (await getBlockTime()))
@@ -201,7 +196,7 @@ export default describe('IF Allocation Sale', function () {
     mineNext()
 
     // gas used in withdraw
-    expect((await getGasUsed()).toString()).to.equal('99981')
+    expect((await getGasUsed()).toString()).to.equal('100003')
 
     // expect balance to increase by fund amount
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
@@ -402,7 +397,7 @@ export default describe('IF Allocation Sale', function () {
       SaleToken.address,
       IFAllocationMaster.address, // doesn't matter
       trackId, // doesn't matter
-      snapshotBlock, // doesn't matter
+      snapshotTimestamp, // doesn't matter
       startTime, // doesn't matter
       endTime, // doesn't matter
       maxTotalDeposit // doesn't matter
@@ -476,7 +471,7 @@ export default describe('IF Allocation Sale', function () {
       SaleToken.address,
       IFAllocationMaster.address, // doesn't matter
       trackId, // doesn't matter
-      snapshotBlock, // doesn't matter
+      snapshotTimestamp, // doesn't matter
       startTime, // doesn't matter
       endTime, // doesn't matter
       maxTotalDeposit // doesn't matter
@@ -560,7 +555,7 @@ export default describe('IF Allocation Sale', function () {
       SaleToken.address,
       IFAllocationMaster.address, // doesn't matter
       trackId, // doesn't matter
-      snapshotBlock, // doesn't matter
+      snapshotTimestamp, // doesn't matter
       startTime, // doesn't matter
       endTime, // doesn't matter
       maxTotalDeposit // doesn't matter

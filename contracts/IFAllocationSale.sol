@@ -46,7 +46,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // NOTE: sale price must accomodate any differences in decimals between sale and payment tokens. If payment token has A decimals and sale token has B decimals, then the price must be adjusted by multiplying by 10**(A-B).
     // If A was 18 but B was only 12, then the salePrice should be adjusted by multiplying by 1,000,000. If A was 12 and B was 18, then salePrice should be adjusted by dividing by 1,000,000.
 
-    //TODO: binary search or some function on allocMaster to give accurate timestamp from allocSnapshotBlock
+    //TODO: binary search or some function on allocMaster to give accurate timestamp from allocSnapshotTimestamp
     uint256 public salePrice;
     // funder
     address public funder;
@@ -63,7 +63,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     // track id
     uint24 public trackId;
     // allocation snapshot block
-    uint80 public allocSnapshotBlock;
+    uint80 public allocSnapshotTimestamp;
     // start timestamp when sale is active (inclusive)
     uint256 public startTime;
     // end timestamp when sale is active (inclusive)
@@ -106,7 +106,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         ERC20 _saleToken,
         IFAllocationMaster _allocationMaster,
         uint24 _trackId,
-        uint80 _allocSnapshotBlock,
+        uint80 _allocSnapshotTimestamp,
         uint256 _startTime,
         uint256 _endTime,
         uint256 _maxTotalPayment
@@ -126,7 +126,7 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         saleToken = _saleToken;
         allocationMaster = _allocationMaster; // can be 0 (with allocation override)
         trackId = _trackId; // can be 0 (with allocation override)
-        allocSnapshotBlock = _allocSnapshotBlock; // can be 0 (with allocation override)
+        allocSnapshotTimestamp = _allocSnapshotTimestamp; // can be 0 (with allocation override)
         startTime = _startTime;
         endTime = _endTime;
         maxTotalPayment = _maxTotalPayment; // can be 0 (for giveaway)
@@ -265,11 +265,11 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         uint256 userWeight = allocationMaster.getUserStakeWeight(
             trackId,
             user,
-            allocSnapshotBlock
+            allocSnapshotTimestamp
         );
         uint256 totalWeight = allocationMaster.getTotalStakeWeight(
             trackId,
-            allocSnapshotBlock
+            allocSnapshotTimestamp
         );
 
         // total weight must be greater than 0
@@ -416,11 +416,11 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         uint256 userWeight = allocationMaster.getUserStakeWeight(
             trackId,
             user,
-            allocSnapshotBlock
+            allocSnapshotTimestamp
         );
         uint256 totalWeight = allocationMaster.getTotalStakeWeight(
             trackId,
-            allocSnapshotBlock
+            allocSnapshotTimestamp
         );
         // total weight must be greater than 0
         require(totalWeight > 0, 'total weight is 0');
