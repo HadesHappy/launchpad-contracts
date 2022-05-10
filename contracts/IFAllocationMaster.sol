@@ -183,8 +183,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         // get number of finished sales of this track
         uint24 nFinishedSales = trackCheckpoints[trackId][
             trackCheckpointCounts[trackId] - 1
-        ]
-        .numFinishedSales;
+        ].numFinishedSales;
 
         // update map that tracks timestamp numbers of finished sales
         trackFinishedSaleTimestamps[trackId][nFinishedSales] = uint80(
@@ -226,7 +225,7 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
 
         // update user rollover amount
         trackActiveRollOvers[trackId][_msgSender()][saleCount] = userCp
-        .stakeWeight;
+            .stakeWeight;
 
         // add new user rollover amount to total
         trackTotalActiveRollOvers[trackId][saleCount] += userCp.stakeWeight;
@@ -800,8 +799,6 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         // get track info
         TrackInfo storage track = tracks[trackId];
 
-        //// get user latest checkpoint
-
         // get number of user's checkpoints within this track
         uint32 userCheckpointCount = userCheckpointCounts[trackId][
             _msgSender()
@@ -811,6 +808,12 @@ contract IFAllocationMaster is Ownable, ReentrancyGuard {
         UserCheckpoint storage checkpoint = userCheckpoints[trackId][
             _msgSender()
         ][userCheckpointCount - 1];
+
+        // update checkpoint before emergency withdrawal
+        // add user checkpoint
+        addUserCheckpoint(trackId, checkpoint.staked, false);
+        // add track checkpoint
+        addTrackCheckpoint(trackId, checkpoint.staked, false, false);
 
         // transfer the specified amount of stake token from this contract to user
         track.stakeToken.safeTransfer(_msgSender(), checkpoint.staked);
