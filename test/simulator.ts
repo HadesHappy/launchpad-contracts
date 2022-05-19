@@ -109,19 +109,23 @@ export const simAllocationMaster = async (
     )
 
     // get checkpoints of users
-    const nUserCheckpoints = await allocationMaster.userCheckpointCounts(
+    const user1Checkpoints = await allocationMaster.userCheckpointCounts(
       trackNum,
       simUsers[0].address
+    )
+    const user2Checkpoints = await allocationMaster.userCheckpointCounts(
+      trackNum,
+      simUsers[1].address
     )
     const user1Cp = await allocationMaster.userCheckpoints(
       trackNum,
       simUsers[0].address,
-      nUserCheckpoints - 1
+      user1Checkpoints - 1
     )
     const user2Cp = await allocationMaster.userCheckpoints(
       trackNum,
       simUsers[1].address,
-      nUserCheckpoints - 1
+      user2Checkpoints - 1
     )
 
     // save data row
