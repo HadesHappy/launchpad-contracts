@@ -111,6 +111,17 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         uint256 _endTime,
         uint256 _maxTotalPayment
     ) {
+        // saleToken shouldn't be the same as paymentToken
+        require(_saleToken != _paymentToken, 'saleToken = paymentToken');
+        // when salePrice != 0, paymentToken and maxTotalPayment shouldn't be 0
+        require(
+            _salePrice == 0 ||
+                (_salePrice != 0 &&
+                    address(_paymentToken) != address(0) &&
+                    _maxTotalPayment != 0),
+            'paymentToken or maxTotalPayment should not be 0 when salePrice is 0'
+        );
+
         // funder cannot be 0
         require(_funder != address(0), '0x0 funder');
         // sale token cannot be 0
@@ -119,6 +130,17 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         require(block.timestamp < _startTime, 'start timestamp too early');
         // end timestamp must be after start timestamp
         require(_startTime < _endTime, 'end timestamp before start');
+
+        require(
+            _allocSnapshotTimestamp > block.timestamp ||
+                (_allocSnapshotTimestamp <= block.timestamp &&
+                    _allocationMaster.getTotalStakeWeight(
+                        _trackId,
+                        _allocSnapshotTimestamp
+                    ) >
+                    0),
+            'total weight is 0 on while using older timestamp'
+        );
 
         salePrice = _salePrice; // can be 0 (for giveaway)
         funder = _funder;
