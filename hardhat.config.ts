@@ -18,13 +18,6 @@ module.exports = {
     },
   },
   networks: {
-    hardhat: {
-      mining: {
-        auto: false,
-        interval: 0,
-      },
-      allowUnlimitedContractSize: false,
-    },
     bsc_test: {
       url: 'https://data-seed-prebsc-1-s1.binance.org:8545',
       chainId: 97,
