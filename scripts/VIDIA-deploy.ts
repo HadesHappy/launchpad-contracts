@@ -6,17 +6,18 @@
 import hre from 'hardhat'
 
 export async function main(): Promise<void> {
+  // params
+  const name: string = process.env.NAME || ''
+  const symbol: string = process.env.SYMBOL || ''
+  const admin: string = process.env.admin || '' 
+  const underlying: string = process.env.underlying || '' 
+
   // We get the contract to deploy
   console.log(hre.network.name);
   const VIDIAFactory = await hre.ethers.getContractFactory('vIDIA')
   
   // TODO: change the below params before deploying to mainnet
-  const VIDIA = await VIDIAFactory.deploy(
-    "June IDIA",
-    "JIDIA",
-    "0x6f981a30263A43E0D060D2033C9F0C6A318572fc",
-    "0x44AB9E98FF201f468Fe4687b2FB5247b5BD0fc5a",
-  )
+  const VIDIA = await VIDIAFactory.deploy(name, symbol, admin, underlying);
 
   console.log('VIDIA deployed to ', VIDIA.address)
 }
