@@ -16,7 +16,6 @@ export async function main(): Promise<void> {
   console.log(hre.network.name);
   const VIDIAFactory = await hre.ethers.getContractFactory('vIDIA')
   
-  // TODO: change the below params before deploying to mainnet
   const VIDIA = await VIDIAFactory.deploy(name, symbol, admin, underlying);
 
   console.log('VIDIA deployed to ', VIDIA.address)
