@@ -27,6 +27,9 @@ npx hardhat run ./scripts/IFAllocationMaster-deploy.ts --network bsc_test
 
 # allocation sale
 SELLER=0xABCD PAY_TOKEN=0xABCD SALE_TOKEN=0xABCD ALLOCATION_MASTER=0xABCD TRACK_ID=123 SNAP_BLOCK=123456 START_BLOCK=123456 END_BLOCK=123456 SALE_PRICE=100000000000000000000 MAX_TOTAL_PAYMENT=10000000000000000000000 npx hardhat run ./scripts/IFAllocationSale-deploy.ts --network bsc_test
+
+# vIDIA
+NAME=VIDIA SYMBOL=VIDIA ADMIN=0xABCD UNDERLYING=0xABCD npx hardhat run ./scripts/VIDIA-deploy.ts --network bsc_test
 ```
 
 ### Production

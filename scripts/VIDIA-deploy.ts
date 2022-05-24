@@ -9,8 +9,8 @@ export async function main(): Promise<void> {
   // params
   const name: string = process.env.NAME || ''
   const symbol: string = process.env.SYMBOL || ''
-  const admin: string = process.env.admin || '' 
-  const underlying: string = process.env.underlying || '' 
+  const admin: string = process.env.ADMIN || '' 
+  const underlying: string = process.env.UNDERLYING || '' 
 
   // We get the contract to deploy
   console.log(hre.network.name);
