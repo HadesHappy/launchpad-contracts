@@ -70,5 +70,13 @@ module.exports = {
         mnemonic: process.env.MAINNET_MNEMONIC || '',
       },
     },
+    kovan: {
+      url: 'https://kovan.poa.network/',
+      chainId: 42,
+      gasPrice: 5000000000,
+      accounts: {
+        mnemonic: process.env.MAINNET_MNEMONIC || '',
+      },
+    },
   },
 }
