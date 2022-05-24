@@ -13,7 +13,6 @@ export async function main(): Promise<void> {
   const underlying: string = process.env.UNDERLYING || '' 
 
   // We get the contract to deploy
-  console.log(hre.network.name);
   const VIDIAFactory = await hre.ethers.getContractFactory('vIDIA')
   
   const VIDIA = await VIDIAFactory.deploy(name, symbol, admin, underlying);
