@@ -71,6 +71,9 @@ export default describe('vIDIA', async () => {
     await underlying.transfer(vester.address, convToBN(1000))
     await underlying.approve(vIDIA.address, MaxUint256)
     await underlying.connect(vester).approve(vIDIA.address, MaxUint256)
+    await underlying.transfer(vester2.address, convToBN(1000))
+    await underlying.approve(vIDIA.address, MaxUint256)
+    await underlying.connect(vester2).approve(vIDIA.address, MaxUint256)
   })
 
   it('test static funcs', async () => {
@@ -466,4 +469,24 @@ export default describe('vIDIA', async () => {
       'Can restake without paying fee'
     )
   })
+
+  it('test late staker claim reward', async () => {
+    const ownerStakeAmt = convToBN(200)
+    const stakeAmtA = convToBN(50)
+    const stakeAmtB = convToBN(50)
+    await vIDIA.stake(ownerStakeAmt)
+    await vIDIA.connect(vester).stake(stakeAmtA)
+    await vIDIA.claimStaked(ownerStakeAmt.div(2))
+
+    await vIDIA.connect(vester2).stake(stakeAmtB)
+    await vIDIA.claimStaked(ownerStakeAmt.div(2))
+
+    // all reward goes to vester
+    const rewardFirst = ownerStakeAmt.div(2).mul(20).div(100)
+    // reward is shared by both vester and vester2
+    const rewardSecond = ownerStakeAmt.div(2).mul(20).div(100).div(2)
+    expect(await vIDIA.calculateUserReward(vester.address)).to.equal(rewardFirst.add(rewardSecond))
+    expect(await vIDIA.calculateUserReward(vester2.address)).to.equal(rewardSecond)
+  })
+
 })
