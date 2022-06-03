@@ -30,6 +30,9 @@ SELLER=0xABCD PAY_TOKEN=0xABCD SALE_TOKEN=0xABCD ALLOCATION_MASTER=0xABCD TRACK_
 
 # vIDIA
 NAME=VIDIA SYMBOL=VIDIA ADMIN=0xABCD UNDERLYING=0xABCD npx hardhat run ./scripts/VIDIA-deploy.ts --network bsc_test
+
+# Verify vIDIA
+npx hardhat verify --network bsc_test <DEPLOYED_CONTRACT_ADDRESS> "VIDIA" "VIDIA" "<ADMIN_ADDRESS>" "<UNDERLYING_ADDRESS>"
 ```
 
 ### Production

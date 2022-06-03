@@ -28,6 +28,7 @@
     "typescript": "^4.5.4"
   },
   "dependencies": {
+    "@nomiclabs/hardhat-etherscan": "^3.0.4",
     "erc-payable-token": "^4.5.0"
   }
 }

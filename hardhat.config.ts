@@ -1,4 +1,5 @@
 import '@nomiclabs/hardhat-waffle'
+import '@nomiclabs/hardhat-etherscan'
 import dotenv from 'dotenv'
 
 dotenv.config()
@@ -16,6 +17,9 @@ module.exports = {
     settings: {
       optimizer: { enabled: true },
     },
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY || '',
   },
   networks: {
     bsc_test: {
