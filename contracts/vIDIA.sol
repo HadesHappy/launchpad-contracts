@@ -91,6 +91,8 @@ contract vIDIA is AccessControlEnumerable, IFTokenStandard {
         address _admin,
         address _underlying
     ) AccessControlEnumerable() IFTokenStandard(_name, _symbol, _admin) {
+        require(_admin != address(0x0), "Admin address must not be zero");
+        require(_underlying != address(0x0), "Underlying address must not be zero");
         _setupRole(FEE_SETTER_ROLE, _admin);
         _setupRole(DELAY_SETTER_ROLE, _admin);
         _setupRole(WHITELIST_SETTER_ROLE, _admin);

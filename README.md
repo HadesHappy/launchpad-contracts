@@ -13,8 +13,14 @@ yarn install
 
 ## Test
 
+### Running all tests
 ```
 npx hardhat test
+```
+
+### Running specific tests
+```
+npx hardhat test --grep "<YOUR TARGET TESTS KEYWORD>"
 ```
 
 ## Deploy

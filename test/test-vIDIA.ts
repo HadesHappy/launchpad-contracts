@@ -15,7 +15,9 @@ const _2 = ethers.constants.Two
 const _10 = BigNumber.from(10)
 const _10000 = BigNumber.from(10000)
 const FACTOR = BigNumber.from(_10.pow(BigNumber.from(30)))
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+const ONE_ADDRESS = '0x0000000000000000000000000000000000000001'
+
 
 const TWO_WEEKS = 14 * 86400
 
@@ -488,5 +490,18 @@ export default describe('vIDIA', async () => {
     expect(await vIDIA.calculateUserReward(vester.address)).to.equal(rewardFirst.add(rewardSecond))
     expect(await vIDIA.calculateUserReward(vester2.address)).to.equal(rewardSecond)
   })
-
+  
+  it('test padding zero admin and underlying address', async () => {
+    console.log(owner.address)
+    const VIDIAFactory = await ethers.getContractFactory('vIDIA')
+    expect(VIDIAFactory.deploy(
+      'VIDIA','VIDIA',ZERO_ADDRESS, ZERO_ADDRESS,
+    )).to.be.revertedWith('Admin address must not be zero')
+    expect(VIDIAFactory.deploy(
+      'VIDIA', 'VIDIA', owner.address, ZERO_ADDRESS,
+    )).to.be.revertedWith('Underlying address must not be zero')
+    expect((await VIDIAFactory.deploy(
+      'VIDIA', 'VIDIA', owner.address, ONE_ADDRESS,
+    ))).to.exist
+  })
 })
