@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
-import '@openzeppelin/contracts/utils/math/Math.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import './IFAllocationMaster.sol';
@@ -26,8 +25,6 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     uint256 public saleAmount;
     // tracks amount purchased by each address
     mapping(address => uint256) public paymentReceived;
-    // tracks amount claimed by each address
-    mapping(address => uint256) public paymentClaimed;
     // tracks whether user has already successfully withdrawn
     mapping(address => bool) public hasWithdrawn;
     // tracks whether sale has been cashed
@@ -71,12 +68,8 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     uint256 public startTime;
     // end timestamp when sale is active (inclusive)
     uint256 public endTime;
-    // the most recent time the user claimed the saleToken
-    uint256 public latestClaimTime;
     // withdraw/cash delay timestamp (inclusive)
     uint24 public withdrawDelay;
-    // the time where the user can take all of the vested saleToken
-    uint256 public vestingEndTime;
     // optional min for payment token amount
     uint256 public minTotalPayment;
     // max for payment token amount
@@ -95,7 +88,6 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
     event SetWhitelistSetter(address indexed whitelistSetter);
     event SetWhitelist(bytes32 indexed whitelistRootHash);
     event SetWithdrawDelay(uint24 indexed withdrawDelay);
-    event SetVestingEndTime(uint256 indexed vestingEndTime);
     event Purchase(address indexed sender, uint256 paymentAmount);
     event Withdraw(address indexed sender, uint256 amount);
     event Cash(
@@ -160,7 +152,6 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         startTime = _startTime;
         endTime = _endTime;
         maxTotalPayment = _maxTotalPayment; // can be 0 (for giveaway)
-        latestClaimTime = _endTime;
     }
 
     // MODIFIERS
@@ -271,18 +262,6 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
         emit SetWithdrawDelay(_withdrawDelay);
     }
 
-    // Function for owner to set a vesting end time
-    function setVestingEndTime(uint256 _vestingEndTime) external onlyOwner {
-        // require(_vestingEndTime > endTime + withdrawDelay, "Vesting end time has to be after withdrawl start time");
-        vestingEndTime = _vestingEndTime;
-
-        // emit
-        emit SetVestingEndTime(_vestingEndTime);
-    }
-
-    function getVestingEndTime() public view returns (uint256) {
-        return vestingEndTime;
-    }
     // Returns true if user is on whitelist, otherwise false
     function checkWhitelist(address user, bytes32[] calldata merkleProof)
         public
@@ -428,54 +407,31 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
 
         // must be past end timestamp plus withdraw delay
         require(
-            (endTime + withdrawDelay < block.timestamp) && (latestClaimTime < block.timestamp),
+            endTime + withdrawDelay < block.timestamp,
             'cannot withdraw yet'
         );
+        // prevent repeat withdraw
+        require(hasWithdrawn[_msgSender()] == false, 'already withdrawn');
         // must not be a zero price sale
         require(salePrice != 0, 'use withdrawGiveaway');
-        // get total payment received
-        uint256 totalClaimable = paymentReceived[_msgSender()];
-        // prevent repeat withdraw
-        require(totalClaimable != 0, 'already withdrawn');
 
-        uint256 currentClaimable = getCurrentClaimable(totalClaimable, _msgSender());
-        paymentClaimed[_msgSender()] += currentClaimable;
+        // get payment received
+        uint256 payment = paymentReceived[_msgSender()];
 
         // calculate amount of sale token owed to buyer
-        // TODO: calculate saleTokenOwned earlier to prevent rounding error
-        uint256 saleTokenOwed = (currentClaimable * SALE_PRICE_DECIMALS) / salePrice;
-        console.log('s', saleTokenOwed);
-        console.log('c', paymentClaimed[_msgSender()]);
+        uint256 saleTokenOwed = (payment * SALE_PRICE_DECIMALS) / salePrice;
+
+        // set withdrawn to true
+        hasWithdrawn[_msgSender()] = true;
 
         // increment withdrawer count
-        if (!hasWithdrawn[_msgSender()]) {
-            withdrawerCount += 1;
-            // set withdrawn to true
-            hasWithdrawn[_msgSender()] = true;
-        }
+        withdrawerCount += 1;
 
-        // update last claimed time
-        latestClaimTime = block.timestamp;
         // transfer owed sale token to buyer
         saleToken.safeTransfer(_msgSender(), saleTokenOwed);
 
         // emit
         emit Withdraw(_msgSender(), saleTokenOwed);
-    }
-
-    function getCurrentClaimable(uint256 totalClaimable, address user) public view returns (uint256) {
-        if (vestingEndTime != 0) {
-            // users can get all of the tokens after vestingEndTime
-            if (block.timestamp > vestingEndTime) {
-                console.log('r', paymentReceived[user]);
-                console.log('c', paymentClaimed[user]);
-                return paymentReceived[user] - paymentClaimed[user];
-            }
-            // linear vesting
-            // currentClaimable = (now - last claimed time) / (total vesting time) * totalClaimable
-            return totalClaimable * (block.timestamp - latestClaimTime) / (vestingEndTime - endTime + withdrawDelay);
-        }
-        return totalClaimable;
     }
 
     function getUserStakeValue(address user) public view returns (uint256) {
@@ -505,7 +461,6 @@ contract IFAllocationSale is Ownable, ReentrancyGuard {
             endTime + withdrawDelay < block.timestamp,
             'cannot withdraw yet'
         );
-        // TODO: remove this after implementing currentClaimable calculation
         // prevent repeat withdraw
         require(hasWithdrawn[_msgSender()] == false, 'already withdrawn');
         // must be a zero price sale

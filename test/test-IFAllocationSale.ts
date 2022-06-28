@@ -35,7 +35,6 @@ export default describe('IF Allocation Sale', function () {
   let snapshotTimestamp: number // block at which to take allocation snapshot
   let startTime: number // start timestamp of sale (inclusive)
   let endTime: number // end timestamp of sale (inclusive)
-  let vestingEndTime: number // end timestamp of vesting
   const salePrice = '10000000000000000000' // 10 PAY per SALE
   const maxTotalDeposit = '25000000000000000000000000' // max deposit
   // other vars
@@ -51,7 +50,6 @@ export default describe('IF Allocation Sale', function () {
     snapshotTimestamp = currTime + 5000
     startTime = currTime + 10000
     endTime = currTime + 20000
-    vestingEndTime = currTime + 50000
 
     // get test accounts
     owner = (await ethers.getSigners())[0]
@@ -763,49 +761,5 @@ export default describe('IF Allocation Sale', function () {
     expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
     // expect contract balance to be 0 (no coins locked)
     expect(await SaleToken.balanceOf(IFAllocationSale.address)).to.equal('0')
-  })
-
-  it('can set vesting time', async function () {
-    IFAllocationSale.connect(owner).setVestingEndTime(endTime)
-    let vet = await IFAllocationSale.getVestingEndTime()
-    console.log('vet:', vet)
-    IFAllocationSale.connect(owner).setVestingEndTime(vestingEndTime)
-    vet = await IFAllocationSale.getVestingEndTime()
-    console.log('vet:', vet)
-    mineNext()
-
-    // amount to pay
-    const paymentAmount = '333330'
-
-    // fast forward from current time to start time
-    mineTimeDelta(startTime - (await getBlockTime()))
-
-    // purchase
-    mineNext()
-    await PaymentToken.connect(buyer).approve(
-      IFAllocationSale.address,
-      paymentAmount
-    )
-    await IFAllocationSale.connect(buyer).purchase(paymentAmount)
-
-    mineNext()
-
-    // fast forward from current time to after end time
-    // mineTimeDelta(endTime - (await getBlockTime()) + ((vestingEndTime - endTime) / 3))
-    mineTimeDelta(endTime - (await getBlockTime()))
-    // test withdraw
-    await IFAllocationSale.connect(buyer).withdraw()
-    console.log(await SaleToken.balanceOf(buyer.address))
-    expect(await SaleToken.balanceOf(buyer.address)).to.equal('1')
-
-    mineTimeDelta((vestingEndTime - endTime) / 3)
-    await IFAllocationSale.connect(buyer).withdraw()
-    console.log(await SaleToken.balanceOf(buyer.address))
-    expect(await SaleToken.balanceOf(buyer.address)).to.equal('11113')
-
-    mineTimeDelta((vestingEndTime - endTime) / 3 * 2)
-    await IFAllocationSale.connect(buyer).withdraw()
-    console.log(await SaleToken.balanceOf(buyer.address))
-    expect(await SaleToken.balanceOf(buyer.address)).to.equal('33333')
   })
 })
