@@ -1,17 +1,12 @@
 
 import '@nomiclabs/hardhat-ethers'
-import { ethers, web3 } from 'hardhat'
-import { AbiItem } from 'web3-utils'
+import { ethers } from 'hardhat'
 import hre from 'hardhat'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { getBlockTime, mineNext } from './helpers'
 import { Contract } from '@ethersproject/contracts'
 import IDIAVoucher from '../abi/IDIAVoucher.json'
-import Multicall from '../abi/Multicall.json'
 import GenericToken from '../artifacts/contracts/GenericToken.sol/GenericToken.json'
 import { expect } from 'chai'
-import { Interface } from '@ethersproject/abi'
-import { BytesLike } from 'ethers'
 
 export default describe('Solv Voucher', function () {
   // wallet address
@@ -24,7 +19,6 @@ export default describe('Solv Voucher', function () {
   const VESTINGPOOL_ADDRESS = '0x67D48Ce0E776147B0d996e1FaCC0FbAA91b1CBC4'
   const PROXY_ADDRESS = '0x0c491ac26d2cdda63667df65b43b967b9293161c'
   const IDIA_ADDRESS = '0x0b15Ddf19D47E6a86A56148fb4aFFFc6929BcB89'
-  const MULTICALL_ADDRESS = '0xfF6FD90A470Aaa0c1B8A54681746b07AcdFedc9B'
 
   // minter and contract instance
   let minter: SignerWithAddress
@@ -36,15 +30,6 @@ export default describe('Solv Voucher', function () {
   this.timeout(0)
   hre.tracer.enabled = true
 
-  const multicall = async (abi: any[], calls: any[]) => {
-    const multicallContract = new web3.eth.Contract((Multicall as unknown) as AbiItem, MULTICALL_ADDRESS)
-    const itf = new Interface(abi)
-    const calldata = calls.map((call) => [call.address.toLowerCase(), itf.encodeFunctionData(call.name, call.params)])
-    const { returnData } = await multicallContract.methods.aggregate(calldata)
-    const res = returnData.map((call: BytesLike, i: number) => itf.decodeFunctionResult(calls[i].name, call))
-    return res
-  }
-  
   beforeEach(async () => {
     minter = await ethers.getSigner(MINTER_ADDRESS)
     await hre.network.provider.request({
@@ -77,6 +62,7 @@ export default describe('Solv Voucher', function () {
     await voucherContract.connect(minter).mint(
         0, voucherValue, [1632960000], [10000], ''
     )
+    expect(await voucherContract.nextTokenId()).to.be.equals((tokenId.toNumber() + 1).toString())
 
     // the minter claims the voucher
     const minterClaimValue = voucherValue.div(10).mul(1)
@@ -86,22 +72,21 @@ export default describe('Solv Voucher', function () {
 
     // the minter transfer the voucher to another address
     const userClaimValue = voucherValue.div(10).mul(2)
-    await voucherContract.connect(minter)['safeTransferFrom(address,address,uint256)'](minter.address, user.address, tokenId)
-    await voucherContract.connect(user).claim(tokenId, userClaimValue)
+    const id = voucherContract.nextTokenId()
+    const newTokenId = await voucherContract.connect(minter)['transferFrom(address,address,uint256,uint256)'](minter.address, user.address, tokenId, userClaimValue)
+    console.log('new token id:', newTokenId)
+    await voucherContract.connect(user).claim(id, userClaimValue)
     expect(await voucherContract.claimableAmount(tokenId)).to.be.equals(voucherValue.sub(minterClaimValue).sub(userClaimValue))
   })
 
-  it('can batch minting', async function () {
-    const voucherValue = ethers.constants.WeiPerEther.mul(10)
-    const call = {
-        address: PROXY_ADDRESS,
-        name: 'mint',
-        params: [0, voucherValue, [1632960000], [10000], '']
-    }
-    const calls = []
-    for (let i = 0; i < 1000; i++) {
-        calls.push(call)
-    }
-    console.log(await multicall(IDIAVoucher, calls))
+  it('can batch mint', async function () {
+    const mintVoucher = await (await ethers.getContractFactory('BatchMintVoucher')).connect(minter).deploy()
+    await idiaContract.connect(minter).transfer(mintVoucher.address, ethers.constants.WeiPerEther)
+    await mintVoucher.approve()
+    console.log(await voucherContract.nextTokenId())
+    await mintVoucher.mint()
+    console.log(await voucherContract.nextTokenId())
+    await mintVoucher.batchMint(50)
+    console.log(await voucherContract.nextTokenId())
   })
 })
