@@ -1,39 +1,55 @@
-
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import "../library/IICToken.sol";
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 
-contract BatchMintVoucher {
-    address PROXY_ADDRESS = 0x0c491ac26d2cDDa63667DF65b43b967B9293161c;
-    address IDIA_ADDRESS = 0x0b15Ddf19D47E6a86A56148fb4aFFFc6929BcB89;
-    address VESTINGPOOL_ADDRESS = 0x67D48Ce0E776147B0d996e1FaCC0FbAA91b1CBC4;
+contract BatchMintVoucher is Ownable {
+    // address PROXY_ADDRESS = 0x0c491ac26d2cDDa63667DF65b43b967B9293161c;
+    // address IDIA_ADDRESS = 0x0b15Ddf19D47E6a86A56148fb4aFFFc6929BcB89;
+    // address VESTINGPOOL_ADDRESS = 0x67D48Ce0E776147B0d996e1FaCC0FbAA91b1CBC4;
+    IICToken internal iicToken;
 
-    constructor () {}
-
-    function mint() external {
-        IICToken iicToken = IICToken(PROXY_ADDRESS);
-        uint64[] memory maturities = new uint64[](1);
-        maturities[0] = uint64(1632960000);
-        uint32[] memory percentages = new uint32[](1);
-        percentages[0] = uint32(10000);
-        iicToken.mint(0, 1000, maturities, percentages, "");
+    constructor (address proxyAddr, address idiaAddr, address vestingPoolAddr) {
+        iicToken = IICToken(proxyAddr);
+        ERC20 idia = ERC20(idiaAddr);
+        idia.approve(vestingPoolAddr, type(uint256).max);
     }
 
-    function batchMint(uint256 n) external {
-        IICToken iicToken = IICToken(PROXY_ADDRESS);
-        uint64[] memory maturities = new uint64[](1);
-        maturities[0] = uint64(1632960000);
-        uint32[] memory percentages = new uint32[](1);
-        percentages[0] = uint32(10000);
-        for (uint i = 0; i < n; i++) {
-            iicToken.mint(0, 1000, maturities, percentages, "");
+    function batchMint(
+        uint64[] calldata terms,
+        uint256[] calldata values,
+        uint64[][] calldata maturities,
+        uint32[][] calldata percentages,
+        string[] calldata originalInvestors
+    ) external payable {
+        require(
+            (terms.length == values.length) && 
+            (values.length == maturities.length) &&
+            (maturities.length == percentages.length) && 
+            (percentages.length == originalInvestors.length),
+            "Params length are different"
+        );
+        for (uint i = 0; i < terms.length; i++) {
+            iicToken.mint(
+                terms[i],
+                values[i],
+                maturities[i],
+                percentages[i],
+                originalInvestors[i]
+            );
         }
     }
 
-    function approve() external {
-        ERC20 idia = ERC20(IDIA_ADDRESS);
-        idia.approve(VESTINGPOOL_ADDRESS, 100000000000000000000000000);
+    function withdraw(address erc20Address) external onlyOwner {
+        ERC20 token = ERC20(erc20Address);
+        uint256 balance = token.balanceOf(address(this));
+        token.transfer(owner(), balance);
+    }
+
+    function setProxyAddress(address proxyAddress) external onlyOwner {
+        iicToken = IICToken(proxyAddress);
     }
 }

@@ -6,6 +6,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from '@ethersproject/contracts'
 import IDIAVoucher from '../abi/IDIAVoucher.json'
 import GenericToken from '../artifacts/contracts/GenericToken.sol/GenericToken.json'
+import BatchMintParams from '../scripts/inputs/BatchMintParams.json'
 import { expect } from 'chai'
 
 export default describe('Solv Voucher', function () {
@@ -80,13 +81,17 @@ export default describe('Solv Voucher', function () {
   })
 
   it('can batch mint', async function () {
-    const mintVoucher = await (await ethers.getContractFactory('BatchMintVoucher')).connect(minter).deploy()
+    const mintVoucher = await (await ethers.getContractFactory('BatchMintVoucher')).connect(minter).deploy(PROXY_ADDRESS, IDIA_ADDRESS, VESTINGPOOL_ADDRESS)
     await idiaContract.connect(minter).transfer(mintVoucher.address, ethers.constants.WeiPerEther)
-    await mintVoucher.approve()
-    console.log(await voucherContract.nextTokenId())
-    await mintVoucher.mint()
-    console.log(await voucherContract.nextTokenId())
-    await mintVoucher.batchMint(50)
-    console.log(await voucherContract.nextTokenId())
+    const tokenId = await voucherContract.nextTokenId()
+    console.log(mintVoucher.address)
+    await mintVoucher.batchMint(
+      BatchMintParams.terms,
+      BatchMintParams.values,
+      BatchMintParams.maturities,
+      BatchMintParams.percentages,
+      BatchMintParams.originalInvestors,
+    )
+    expect(await voucherContract.nextTokenId()).to.be.equals((tokenId.toNumber() + BatchMintParams.terms.length).toString())
   })
 })

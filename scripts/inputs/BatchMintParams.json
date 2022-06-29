@@ -1,0 +1,41 @@
+{
+    "proxyAddress": "0x0c491ac26d2cDDa63667DF65b43b967B9293161c",
+    "idiaAddress": "0x0b15Ddf19D47E6a86A56148fb4aFFFc6929BcB89",
+    "idiaVoucherAddress": "0x039Bb4b13F252597a69fA2e6ad19034E3CCbbF1C",
+    "vestingPoolAddress": "0x67D48Ce0E776147B0d996e1FaCC0FbAA91b1CBC4",
+    "terms": [
+        0,
+        0,
+        0,
+        0,
+        0
+    ],
+    "values": [
+        100,
+        200,
+        300,
+        400,
+        500
+    ],
+    "maturities": [
+        [1632960000],
+        [1632960000],
+        [1632960000],
+        [1632960000],
+        [1632960000]
+    ],
+    "percentages": [
+        [10000],
+        [10000],
+        [10000],
+        [10000],
+        [10000]
+    ],
+    "originalInvestors": [
+        "",
+        "",
+        "",
+        "",
+        ""
+    ]
+}
