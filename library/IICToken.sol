@@ -14,4 +14,6 @@ interface IICToken {
     function claimableAmount(uint256 tokenId_) external view returns(uint256);
 
     function recharge(uint256 tokenId_, uint256 amount_) external;
+    function transferFrom(address from, address to, uint256 tokenId) external;
+    function ownerOf(uint256 tokenId) external view returns (address);
 }
