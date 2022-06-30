@@ -35,33 +35,35 @@ export async function main(): Promise<void> {
     BatchMintParams.vestingPoolAddress,
   )
   const idiaContract = new ethers.Contract(BatchMintParams.idiaAddress, GenericToken.abi, signer)
-  const sourceContract = await (new ethers.Contract(BatchMintParams.idiaVoucherAddress, IDIAVoucher, signer))
+  const sourceContract = await (new ethers.Contract(BatchMintParams.icTokenAddress, IDIAVoucher, signer))
   const voucherContract = await sourceContract.attach(BatchMintParams.proxyAddress)
 
-  // Send token
+
+  // Approve the contract to spend our tokens
   const totalValue = vouchers.reduce((acc, voucher) => { 
     return acc.add(BigNumber.from(voucher.value)) }, BigNumber.from(0)
   )
-  console.log('Total value to send:', totalValue.toNumber())
-  await idiaContract.connect(signer).transfer(
+  console.log('Total value needed:', totalValue.toNumber())
+  await idiaContract.connect(signer).approve(
     batchMintContract.address, 
     totalValue,
   )
-  console.log('Balance of contract:', (await idiaContract.balanceOf(batchMintContract.address)).toNumber())
-  assert(BigNumber.from((await idiaContract.balanceOf(batchMintContract.address))).gte(totalValue), 'Not enough balance')
 
   // start token id
   const start = (await voucherContract.nextTokenId()).toNumber()
   console.log('Start minting from token id:', start)
 
   // mint
-  await batchMintContract.batchMint(
-    vouchers.map((voucher) => voucher.address),
-    vouchers.map((voucher) => voucher.term),
-    vouchers.map((voucher) => voucher.value),
-    vouchers.map((voucher) => voucher.maturities),
-    vouchers.map((voucher) => voucher.percentages),
-    vouchers.map((voucher) => voucher.originalInvestor),
+  await batchMintContract.connect(signer).batchMint(
+    totalValue,
+    {
+      users: vouchers.map((voucher) => voucher.address),
+      terms: vouchers.map((voucher) => voucher.term),
+      values: vouchers.map((voucher) => voucher.value),
+      maturities: vouchers.map((voucher) => voucher.maturities),
+      percentages: vouchers.map((voucher) => voucher.percentages),
+      originalInvestors: vouchers.map((voucher) => voucher.originalInvestor),
+    }
   )
 
   // end token id

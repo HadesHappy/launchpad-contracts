@@ -8,6 +8,7 @@ import IDIAVoucher from '../abi/IDIAVoucher.json'
 import GenericToken from '../artifacts/contracts/GenericToken.sol/GenericToken.json'
 import BatchMintParams from '../scripts/inputs/BatchMintParams.json'
 import { expect } from 'chai'
+import { BigNumber } from '@ethersproject/bignumber'
 
 export default describe('Solv Voucher', function () {
   // wallet address
@@ -81,17 +82,32 @@ export default describe('Solv Voucher', function () {
   })
 
   it('can batch mint', async function () {
+    // get params and total idia needed
+    const vouchers = BatchMintParams.vouchers
+    const totalValue = vouchers.reduce((acc, voucher) => { 
+      return acc.add(BigNumber.from(voucher.value)) }, BigNumber.from(0)
+    )
+    // deploy contract
     const mintVoucher = await (await ethers.getContractFactory('BatchMintVoucher')).connect(minter).deploy(PROXY_ADDRESS, IDIA_ADDRESS, VESTINGPOOL_ADDRESS)
-    await idiaContract.connect(minter).transfer(mintVoucher.address, ethers.constants.WeiPerEther)
+    // approve the contract to spend idia
+    await idiaContract.connect(minter).approve(mintVoucher.address, totalValue)
     const tokenId = await voucherContract.nextTokenId()
     console.log(mintVoucher.address)
-    await mintVoucher.batchMint(
-      BatchMintParams.terms,
-      BatchMintParams.values,
-      BatchMintParams.maturities,
-      BatchMintParams.percentages,
-      BatchMintParams.originalInvestors,
+
+    // mint
+    await mintVoucher.connect(minter).batchMint(
+      totalValue,
+      {
+      users: vouchers.map((voucher) => voucher.address),
+      terms: vouchers.map((voucher) => voucher.term),
+      values: vouchers.map((voucher) => voucher.value),
+      maturities: vouchers.map((voucher) => voucher.maturities),
+      percentages: vouchers.map((voucher) => voucher.percentages),
+      originalInvestors: vouchers.map((voucher) => voucher.originalInvestor),
+      }
     )
-    expect(await voucherContract.nextTokenId()).to.be.equals((tokenId.toNumber() + BatchMintParams.terms.length).toString())
+
+    // check if the correct amount of vouchers are minted
+    expect(await voucherContract.nextTokenId()).to.be.equals((tokenId.toNumber() + vouchers.length).toString())
   })
 })
