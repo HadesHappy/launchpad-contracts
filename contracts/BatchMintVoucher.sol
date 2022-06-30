@@ -54,7 +54,7 @@ contract BatchMintVoucher is Ownable {
     }
 
     function withdrawEth() external onlyOwner {
-        payable(msg.sender).transfer(address(this).balance);
+        payable(owner()).transfer(address(this).balance);
     }
 
     function setProxyAddress(address proxyAddress) external onlyOwner {
