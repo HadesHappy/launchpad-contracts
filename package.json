@@ -31,6 +31,7 @@
     "@nomiclabs/hardhat-etherscan": "^3.0.4",
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "erc-payable-token": "^4.5.0",
+    "hardhat-ethernal": "^1.0.0",
     "hardhat-gas-reporter": "^1.0.8",
     "hardhat-tracer": "^1.1.0-rc.6"
   }

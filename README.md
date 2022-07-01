@@ -23,6 +23,33 @@ npx hardhat test
 npx hardhat test --grep "<YOUR TARGET TESTS KEYWORD>"
 ```
 
+### Inspect transactions on ethernal
+
+Make sure ethernal is installed: https://doc.tryethernal.com/getting-started/quickstart
+
+Spin up local node
+```
+npx hardhat node --fork <NODE RPC URL>
+```
+
+Turn on ethernal listener
+```
+ethernal listen
+```
+
+Import ethernal to the test script
+```typescript
+import 'hardhat-ethernal'
+```
+
+Run test case with ethernal credentials. Connect it to local node.
+```
+ETHERNAL_EMAIL=<YOUR EMAIL> ETHERNAL_PASSWORD=<YOUR PASSWORD> npx hardhat run <FILE PATH> --network localhost
+```
+
+Login and browse the transactions at https://app.tryethernal.com
+
+
 ## Deploy
 
 ### Deploy commands
