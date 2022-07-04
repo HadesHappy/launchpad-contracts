@@ -1,5 +1,9 @@
 import '@nomiclabs/hardhat-waffle'
 import '@nomiclabs/hardhat-etherscan'
+import '@nomiclabs/hardhat-web3'
+import 'hardhat-gas-reporter'
+import 'hardhat-tracer'
+import 'hardhat-ethernal'
 import dotenv from 'dotenv'
 
 dotenv.config()
@@ -19,9 +23,18 @@ module.exports = {
     },
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY || '',
+    apiKey: {
+      goerli: process.env.ETHERSCAN_API_KEY,
+      kovan: process.env.ETHERSCAN_API_KEY,
+      bscTestnet: process.env.BSCSCAN_API_KEY,
+    },
   },
   networks: {
+    hardhat: {
+      forking: {
+        url: 'https://bsc-dataseed.binance.org/',
+      },
+    },
     bsc_test: {
       url: 'https://data-seed-prebsc-1-s1.binance.org:8545',
       chainId: 97,
